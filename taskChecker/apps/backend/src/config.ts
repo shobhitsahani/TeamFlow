@@ -46,17 +46,62 @@ function configured(name: string, alias: string, fallback: string): string {
   return need(alias, fallback);
 }
 
+const DEV_JWT_FALLBACK = "dev-only-change-me-at-least-32-chars-with-randomness";
+
+function hasEntropy(secret: string): boolean {
+  if (secret.length < 32) return false;
+  if (secret === DEV_JWT_FALLBACK) return false;
+  if (/dev-only-change-me/i.test(secret)) return false;
+  // Reject trivial secrets like "aaaa..." or "abcdabcdabcd..."
+  if (/^(.)\1*$/.test(secret)) return false;
+  if (new Set(secret).size < 8) return false;
+  return true;
+}
+
+function resolveJwtSecret(nodeEnv: string): string {
+  const raw = process.env.JWT_SECRET;
+  const alias = process.env.JWT_SECRET_4;
+  const candidate =
+    raw && raw !== "process.env.JWT_SECRET_4"
+      ? raw
+      : alias && alias !== "process.env.JWT_SECRET_4"
+        ? alias
+        : undefined;
+  if (nodeEnv === "production") {
+    // Fail closed: never boot prod with a known/default secret. Also refuse
+    // the auth-sandbox fallback flag in production (defense in depth — there
+    // is currently no fallback path, and there must never be one in prod).
+    if (process.env.ALLOW_AUTH_FALLBACK === "true") {
+      throw new Error("ALLOW_AUTH_FALLBACK must never be enabled in production");
+    }
+    if (!candidate) throw new Error("Missing required env var: JWT_SECRET in production");
+    if (!hasEntropy(candidate)) {
+      throw new Error("JWT_SECRET in production must be ≥32 chars with real entropy (not a default/repeated value)");
+    }
+    return candidate;
+  }
+  if (!candidate) {
+    console.warn("[config] WARNING: JWT_SECRET unset — using dev-only fallback. Never use this in production.");
+    return DEV_JWT_FALLBACK;
+  }
+  if (!hasEntropy(candidate)) {
+    console.warn("[config] WARNING: JWT_SECRET looks weak (<32 chars or low entropy). Use a strong random value in production.");
+  }
+  return candidate;
+}
+
 export function loadConfig(): Config {
+  const nodeEnv = process.env.NODE_ENV ?? "development";
   return {
     port: Number(process.env.PORT ?? 4002),
-    nodeEnv: process.env.NODE_ENV ?? "development",
+    nodeEnv,
     // v0 project variables may be referenced through an indirection such as
     // process.env.DATABASE_URL_4; resolve that alias before connecting.
     databaseUrl: configured("DATABASE_URL", "DATABASE_URL_4", "postgres://teamflow:teamflow@localhost:5432/teamflow"),
     migrateDatabaseUrl: configured("DATABASE_MIGRATE_URL", "DATABASE_URL_4", "postgres://postgres:postgres@localhost:5432/teamflow"),
     databaseReplicaUrl: process.env.DATABASE_REPLICA_URL,
     redisUrl: need("REDIS_URL", "redis://localhost:6379"),
-    jwtSecret: configured("JWT_SECRET", "JWT_SECRET_4", "dev-only-change-me-at-least-32-chars-with-randomness"),
+    jwtSecret: resolveJwtSecret(nodeEnv),
     accessTokenTtl: process.env.ACCESS_TOKEN_TTL ?? "15m",
     uploadBackend: (process.env.UPLOAD_BACKEND as "memory" | "s3") ?? "memory",
     s3Endpoint: process.env.S3_ENDPOINT,
