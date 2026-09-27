@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on monday"],
+  "timezone": "Asia/Kolkata",
+  "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["taskChecker/**"],
+      "groupName": "taskChecker deps",
+      "groupSlug": "taskchecker"
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true,
+      "automergeType": "pr",
+      "requiredStatusChecks": ["ci"]
+    }
+  ],
+  "vulnerabilityAlerts": { "labels": ["security"] },
+  "prHourlyLimit": 2
+}
