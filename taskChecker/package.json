@@ -27,10 +27,5 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ],
-  "overrides": {
-    "typescript-eslint": {
-      "typescript": "6.0.2"
-    }
-  }
+  ]
 }
