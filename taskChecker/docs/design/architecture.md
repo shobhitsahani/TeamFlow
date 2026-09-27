@@ -65,7 +65,7 @@ Client Request
 │  │ 2. Auth (JWT/API key validation)│  │
 │  │ 3. Tenant resolution (org_id)   │  │
 │  │ 4. Rate limit (per org/user)    │  │
-│  │ 5. RLS context (SET app.current_user_id) │  │
+│  │ 5. RLS context (SET LOCAL app.tenant_id) │  │
 │  └─────────────────────────────────┘  │
 │                   │                   │
 │                   ▼                   │
@@ -230,7 +230,7 @@ eventBus.on('task.updated', (event) => {
 - TLS termination (or ALB does it)
 - Request ID generation + propagation
 - Auth validation (JWT signature, API key lookup)
-- Tenant resolution → set `app.current_org_id`, `app.current_user_id`
+- Tenant resolution → set `app.tenant_id` (`SET LOCAL`, per-request transaction; as built in `lib/tenant.ts`)
 - Rate limiting (Redis sliding window)
 - Request/response logging (structured JSON)
 - CORS, security headers

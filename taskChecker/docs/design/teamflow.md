@@ -24,7 +24,7 @@
 4. **Realtime** — notifications + WebSocket push of task/comment events, with cursor-based catch-up so a dropped connection never loses updates.
 5. **Integrations** — outbound webhooks, API keys, usage metering + tier limits, audit logs, soft deletion, full-text search.
 
-**Non-functional:** 30k DAU target · reads p99 < 250 ms / writes < 500 ms · 99.9% · strong business state / eventual derived (≤5 s freshness) · RPO ≤ 15 min / RTO ≤ 1 h · tenant isolation is a *hard invariant*.
+**Non-functional:** 30k DAU headroom target (future — the MVP baseline is `requirements.md`: 2,500 DAU, ~1.2 peak QPS) · reads p99 < 250 ms / writes < 500 ms · 99.9% · strong business state / eventual derived (≤5 s freshness) · RPO ≤ 15 min / RTO ≤ 1 h · tenant isolation is a *hard invariant*.
 
 **Out of scope:** mobile, chat, custom domains, billing *engine*, multi-region AA, database silos, dedicated search cluster.
 

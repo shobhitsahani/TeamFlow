@@ -4,6 +4,17 @@
 
 **Chosen approach:** Single PostgreSQL database with `tenant_id` (organization_id) on every table + PostgreSQL Row-Level Security (RLS) policies.
 
+> **As-built (2026-09, authoritative):** the implementation sets **`app.tenant_id`**
+> via `SET LOCAL` inside the request transaction (`withTenant` in
+> `apps/backend/src/lib/tenant.ts`); the JWT carries `sub` (user) + `tid`
+> (tenant). Table naming is `tenants` / `memberships` with `tenant_id` columns
+> (see `apps/backend/src/db/schema.ts` + Drizzle migrations). The DDL sketches
+> below predate the build and use the draft names — read them through this map:
+> `organizations`→`tenants`, `organization_members`→`memberships`,
+> `organization_id`→`tenant_id`, `app.current_user_id`→`app.tenant_id`.
+> Scale baseline for the MVP is `requirements.md` (100 orgs, ≤50 users/org,
+> 2,500 DAU, ~1.2 peak QPS); larger figures elsewhere are future headroom.
+
 **Why:**
 - Scale is small (100 orgs, 5K users) — single writer node is sufficient
 - RLS enforces isolation at the database level — impossible to leak data via buggy app code
@@ -437,7 +448,7 @@ CREATE POLICY teams_isolation ON teams
 -- ... similar for all tables ...
 ```
 
-**Application sets `app.current_user_id`** at request start (via middleware). RLS ensures even `SELECT * FROM tasks` cannot leak cross-org data.
+**Application sets `app.tenant_id`** per request transaction (`SET LOCAL` in `withTenant`). RLS ensures even `SELECT * FROM tasks` cannot leak cross-org data. (The `app.current_user_id` name in the sketches above is the pre-build draft — the built GUC is `app.tenant_id`; the user comes from the verified JWT, not a GUC.)
 
 ---
 
