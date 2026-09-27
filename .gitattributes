@@ -1,0 +1,3 @@
+# Normalize line endings (audit P2 git hygiene): text files use LF in the
+# repo; contributors on Windows get CRLF in the working copy automatically.
+* text=auto
