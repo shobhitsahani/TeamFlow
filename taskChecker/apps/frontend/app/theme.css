@@ -1088,3 +1088,13 @@
 .dark .settings-card-content p {
   color: var(--slate-500);
 }
+.dark .settings-danger {
+  background: rgb(190 18 60 / 0.08);
+  border-color: rgb(190 18 60 / 0.4);
+}
+.dark .settings-danger:hover {
+  border-color: rgb(190 18 60 / 0.65);
+}
+.dark .delete-success-code strong {
+  color: #fff;
+}

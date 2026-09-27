@@ -12,7 +12,7 @@ export * from "./activity.js";
 export * from "./governance.js";
 
 import { tenants, users, refreshTokens } from "./auth.js";
-import { memberships, invites } from "./orgs.js";
+import { memberships, invites, orgDeleteCodes } from "./orgs.js";
 import { teams, projects } from "./core.js";
 import { tasks, comments, attachments } from "./tasks.js";
 import { chatMessages, chatReactions } from "./chat.js";
@@ -22,6 +22,7 @@ import { webhooks, deliveries, apiKeys, usageMeter, auditLogs, idempotency } fro
 export type Tenant = typeof tenants.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
+export type OrgDeleteCode = typeof orgDeleteCodes.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
@@ -48,6 +49,7 @@ export const schema = {
   activityEvents,
   notifications,
   invites,
+  orgDeleteCodes,
   webhooks,
   deliveries,
   apiKeys,

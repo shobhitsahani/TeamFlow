@@ -446,6 +446,76 @@ button.trello-due.is-empty:hover {
 .st-topbar {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
+  overflow: visible;
+}
+
+/* topbar never clips its right cluster: the brand stays put, the search
+   absorbs all shrink (min-width: 0 beats the width: 100% base), and the
+   Create/bell/account group is pinned to the right edge. */
+.st-topbar .trello-brand {
+  flex: none;
+}
+.st-topbar .st-search {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+.st-topbar .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  min-width: 0;
+  margin-left: auto;
+}
+.st-topbar .trello-create-btn {
+  flex: none;
+  white-space: nowrap;
+}
+.st-topbar .trello-create-label {
+  white-space: nowrap;
+}
+
+/* topbar collapses in stages as space shrinks so the Create / bell /
+   account cluster can never be pushed off-screen */
+@media (max-width: 1200px) {
+  .st-topbar .st-search {
+    max-width: 400px;
+  }
+  .st-topbar .st-search [data-slot="input-group-addon"][data-align="inline-end"] {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .st-topbar .st-search {
+    max-width: 260px;
+  }
+  .st-topbar .topbar-theme {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .st-topbar {
+    gap: 8px;
+    padding-inline: 12px;
+  }
+  .st-topbar .st-search {
+    max-width: none;
+  }
+  .st-topbar .trello-create-label {
+    display: none;
+  }
+  .st-topbar .trello-create-btn {
+    padding-inline: 10px;
+  }
+}
+
+/* sidebar empty states read as UI text, not code */
+.st-empty-label {
+  display: block;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate-500);
 }
 
 /* command palette + sheets sit above the blue board */

@@ -2,21 +2,26 @@
    src/routes/calendar.tsx, backed by the real tasks API.
    Monday-first month grid, prev/today/next nav, per-day task chips with
    label-tone dots, assignee + project subline. Click a chip to open the
-   card modal. Undated tasks render in a strip below the grid. */
+   card modal. Undated tasks render in a strip below the grid.
+
+   Presentation layer runs on the shadcn set (Card / CardHeader / Button /
+   Badge / Tooltip) with a subtle month-change fade from components/motion.
+   The grid itself stays custom: react-day-picker (components/ui/calendar)
+   renders day cells but has no slot for per-day task chips or the
+   outside-day sizing this board view needs. */
 
 "use client";
 
 import { useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Filter } from "lucide-react";
 import type { Task } from "@/lib/api";
-import { cx } from "@/lib/utils";
-import {
-  effectiveLabel,
-  lagoonInitials,
-  loadLagoonMeta,
-  toYmd,
-  toneForPriority,
-} from "./lagoon-utils";
+import { cn } from "@/lib/utils";
+import { motion } from "@/components/motion";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { effectiveLabel, lagoonInitials, loadLagoonMeta, toYmd, toneForPriority } from "./lagoon-utils";
 
 const MONTH_NAMES = [
   "January",
@@ -56,14 +61,7 @@ export interface LagoonCalendarProps {
   onOpen: (task: Task) => void;
 }
 
-export function LagoonCalendar({
-  tasks,
-  projectLabel,
-  today,
-  metaTick,
-  memberName,
-  onOpen,
-}: LagoonCalendarProps) {
+export function LagoonCalendar({ tasks, projectLabel, today, metaTick, memberName, onOpen }: LagoonCalendarProps) {
   const [viewDate, setViewDate] = useState(() => {
     if (today) {
       const [y, m] = today.split("-").map(Number);
@@ -80,10 +78,7 @@ export function LagoonCalendar({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   // Trivial derivation (≤42 numbers) — deliberately unmemoized so the
   // React Compiler can optimize this component.
-  const cells = Array.from(
-    { length: Math.ceil((firstDay + daysInMonth) / 7) * 7 },
-    (_, index) => index - firstDay + 1,
-  );
+  const cells = Array.from({ length: Math.ceil((firstDay + daysInMonth) / 7) * 7 }, (_, index) => index - firstDay + 1);
 
   const visibleTasks = useMemo(() => {
     if (!upcomingOnly || !today) return tasks;
@@ -126,167 +121,235 @@ export function LagoonCalendar({
   }
 
   return (
-    <div className="lagoon-cal-page">
-      <div className="lagoon-cal-titlebar">
+    <div className="flex flex-col gap-0">
+      <div className="flex flex-col justify-between gap-5 border-b border-border/70 px-3 pb-6 pt-5 sm:flex-row sm:items-end sm:px-5 sm:pt-6 sm:pb-7">
         <div>
-          <div className="lagoon-cal-eyebrow">
-            <CalendarDays size={14} />
+          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <CalendarDays size={14} aria-hidden />
             Schedule
           </div>
-          <h1 className="lagoon-display lagoon-cal-title">Calendar</h1>
-          <p className="lagoon-cal-sub">
+          <h1 className="lagoon-display text-3xl font-semibold tracking-tight sm:text-4xl">Calendar</h1>
+          <p className="mt-2 max-w-[34rem] text-sm text-muted-foreground">
             A clear view of deadlines{projectLabel ? ` in ${projectLabel}` : " across every Lagoon project"}.
           </p>
         </div>
-        <div className="lagoon-cal-actions">
-          <button
+        <div className="flex flex-none items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant={upcomingOnly ? "outline" : "secondary"}
+                  size="sm"
+                  onClick={() => setUpcomingOnly(false)}
+                  aria-pressed={!upcomingOnly}
+                />
+              }
+            >
+              <Filter size={14} aria-hidden /> {projectLabel || "All projects"}
+            </TooltipTrigger>
+            <TooltipContent>{projectLabel || "All tasks in view"}</TooltipContent>
+          </Tooltip>
+          <Button
             type="button"
-            className="lagoon-toggle-btn"
-            onClick={() => setUpcomingOnly(false)}
-            aria-pressed={!upcomingOnly}
-            title={projectLabel || "All tasks in view"}
-          >
-            <Filter size={14} /> {projectLabel || "All projects"}
-          </button>
-          <button
-            type="button"
-            className={cx("lagoon-toggle-btn", upcomingOnly && "is-on")}
+            variant={upcomingOnly ? "secondary" : "outline"}
+            size="sm"
             onClick={() => setUpcomingOnly((v) => !v)}
             aria-pressed={upcomingOnly}
           >
-            <Clock3 size={14} /> Upcoming
-          </button>
+            <Clock3 size={14} aria-hidden /> Upcoming
+          </Button>
         </div>
       </div>
 
-      <section className="lagoon-cal-panel" aria-label={`${MONTH_NAMES[month]} ${year} calendar`}>
-        <div className="lagoon-cal-panelhead">
+      <Card
+        className="mx-3 mt-6 overflow-hidden py-0 sm:mx-5 sm:mt-8"
+        aria-label={`${MONTH_NAMES[month]} ${year} calendar`}
+      >
+        <CardHeader className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 py-4">
           <div>
-            <h2 className="lagoon-display lagoon-cal-month">
+            <CardTitle className="lagoon-display text-lg">
               {MONTH_NAMES[month]} {year}
-            </h2>
-            <p className="lagoon-cal-count">
-              {monthTasks.length} scheduled {monthTasks.length === 1 ? "task" : "tasks"}
-            </p>
+            </CardTitle>
+            <CardDescription>
+              <Badge variant="secondary" className="mt-1.5">
+                {monthTasks.length} scheduled {monthTasks.length === 1 ? "task" : "tasks"}
+              </Badge>
+            </CardDescription>
           </div>
-          <div className="lagoon-cal-nav">
-            <button type="button" aria-label="Previous month" className="lagoon-icon-btn lagoon-cal-navbtn" onClick={() => moveMonth(-1)}>
-              <ChevronLeft size={16} />
-            </button>
-            <button type="button" className="lagoon-btn-secondary lagoon-cal-todaybtn" onClick={goToday}>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Previous month"
+              onClick={() => moveMonth(-1)}
+            >
+              <ChevronLeft size={16} aria-hidden />
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={goToday}>
               Today
-            </button>
-            <button type="button" aria-label="Next month" className="lagoon-icon-btn lagoon-cal-navbtn" onClick={() => moveMonth(1)}>
-              <ChevronRight size={16} />
-            </button>
+            </Button>
+            <Button type="button" variant="outline" size="icon-sm" aria-label="Next month" onClick={() => moveMonth(1)}>
+              <ChevronRight size={16} aria-hidden />
+            </Button>
           </div>
-        </div>
+        </CardHeader>
 
-        <div className="lagoon-cal-weekhead" aria-hidden>
-          {WEEK_DAYS.map((day) => (
-            <div key={day} className="lagoon-cal-weekday">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        <div className="lagoon-cal-grid">
-          {cells.map((day, index) => {
-            const validDay = day > 0 && day <= daysInMonth;
-            const key = validDay ? dateKey(year, month, day) : "";
-            const dayTasks = key ? (tasksByDate.get(key) ?? []) : [];
-            const isToday = !!today && key === today;
-            return (
+        <CardContent className="px-0">
+          <div className="grid grid-cols-7 border-b border-border/70 bg-muted/40" aria-hidden>
+            {WEEK_DAYS.map((day) => (
               <div
-                key={`${key}-${index}`}
-                className={cx("lagoon-cal-cell", !validDay && "is-outside")}
+                key={day}
+                className="px-2 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sm:px-3 sm:text-left"
               >
-                {validDay ? (
-                  <>
-                    <div className={cx("lagoon-cal-daynum", isToday && "is-today")}>{day}</div>
-                    <div className="lagoon-cal-chips">
-                      {dayTasks.slice(0, 3).map((task) => {
-                        const name = memberName(task.assigneeId);
-                        return (
-                          <button
-                            key={task.id}
-                            type="button"
-                            className="lagoon-cal-chip"
-                            onClick={() => onOpen(task)}
-                            title={`${task.title} — ${projectLabel}`}
-                          >
-                            <span className="lagoon-cal-chiprow">
-                              <span
-                                className="lagoon-cal-dot"
-                                style={{ background: toneDotVar(task, metaTick) }}
-                              />
-                              <span className="lagoon-cal-chiptitle">{task.title}</span>
-                            </span>
-                            <span className="lagoon-cal-chipsub">
-                              {name ? `${lagoonInitials(name)} · ` : ""}
-                              {projectLabel}
-                            </span>
-                          </button>
-                        );
-                      })}
-                      {dayTasks.length > 3 ? (
-                        <button
-                          type="button"
-                          className="lagoon-cal-more"
-                          onClick={() => onOpen(dayTasks[3]!)}
-                          title={dayTasks
-                            .slice(3)
-                            .map((t) => t.title)
-                            .join("\n")}
-                        >
-                          +{dayTasks.length - 3} more
-                        </button>
-                      ) : null}
-                    </div>
-                  </>
-                ) : null}
+                {day}
               </div>
-            );
-          })}
-        </div>
-      </section>
+            ))}
+          </div>
 
-      {undated.length > 0 ? (
-        <section className="lagoon-cal-undated" aria-label={`Unscheduled, ${undated.length} tasks`}>
-          <h2 className="lagoon-display lagoon-cal-undatedtitle">
-            No date <span className="lagoon-col-count">{undated.length}</span>
-          </h2>
-          <div className="lagoon-cal-undatedlist">
-            {undated.map((task) => {
-              const name = memberName(task.assigneeId);
+          <motion.div
+            key={`${year}-${month}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="grid grid-cols-7"
+          >
+            {cells.map((day, index) => {
+              const validDay = day > 0 && day <= daysInMonth;
+              const key = validDay ? dateKey(year, month, day) : "";
+              const dayTasks = key ? (tasksByDate.get(key) ?? []) : [];
+              const isToday = !!today && key === today;
               return (
-                <button key={task.id} type="button" className="lagoon-tl-row" onClick={() => onOpen(task)}>
-                  <span
-                    className="lagoon-cal-dot"
-                    style={{ background: toneDotVar(task, metaTick), width: 8, height: 8 }}
-                  />
-                  <span style={{ minWidth: 0, flex: 1 }}>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {task.title}
-                    </span>
-                    <span style={{ fontSize: 10, color: "var(--lagoon-muted-fg)" }}>
-                      {name ?? "Unassigned"} · {projectLabel}
-                    </span>
-                  </span>
-                </button>
+                <div
+                  key={`${key}-${index}`}
+                  className={cn(
+                    "min-h-28 border-b border-r border-border/60 bg-card/35 p-1.5 sm:min-h-36 sm:p-2",
+                    !validDay && "bg-muted/50",
+                  )}
+                >
+                  {validDay ? (
+                    <>
+                      <div
+                        className={cn(
+                          "mb-1 grid size-6 place-items-center rounded-full text-xs text-muted-foreground",
+                          isToday && "bg-primary font-semibold text-primary-foreground",
+                        )}
+                      >
+                        {day}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        {dayTasks.slice(0, 3).map((task) => {
+                          const name = memberName(task.assigneeId);
+                          return (
+                            <Tooltip key={task.id}>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpen(task)}
+                                    className="block w-full rounded-md bg-muted/90 p-1.5 text-left shadow-[inset_0_0_0_1px_var(--border)] transition-all duration-150 ease-out hover:-translate-y-px"
+                                  />
+                                }
+                              >
+                                <span className="flex items-start gap-1.5">
+                                  <span
+                                    aria-hidden
+                                    className="mt-1 size-1.5 flex-none rounded-full"
+                                    style={{ background: toneDotVar(task, metaTick) }}
+                                  />
+                                  <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[10px] font-semibold leading-snug">
+                                    {task.title}
+                                  </span>
+                                </span>
+                                <span className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap pl-3 text-[9px] text-muted-foreground">
+                                  {name ? `${lagoonInitials(name)} · ` : ""}
+                                  {projectLabel}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {task.title} — {projectLabel}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
+                        {dayTasks.length > 3 ? (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  onClick={() => onOpen(dayTasks[3]!)}
+                                  className="rounded px-1.5 py-0.5 text-left text-[10px] font-semibold text-primary hover:bg-primary/10"
+                                />
+                              }
+                            >
+                              +{dayTasks.length - 3} more
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {dayTasks
+                                .slice(3)
+                                .map((t) => t.title)
+                                .join(", ")}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
+                </div>
               );
             })}
-          </div>
-        </section>
+          </motion.div>
+        </CardContent>
+      </Card>
+
+      {undated.length > 0 ? (
+        <Card className="mx-3 mt-4 gap-3 py-0 pb-3 sm:mx-5" aria-label={`Unscheduled, ${undated.length} tasks`}>
+          <CardHeader className="py-3">
+            <CardTitle className="lagoon-display flex items-center gap-2 text-[13px] font-semibold">
+              No date <Badge variant="secondary">{undated.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              {undated.map((task) => {
+                const name = memberName(task.assigneeId);
+                return (
+                  <button
+                    key={task.id}
+                    type="button"
+                    onClick={() => onOpen(task)}
+                    className="flex items-center gap-3 rounded-md border border-border/70 bg-card px-3 py-2 text-left transition-colors duration-150 hover:border-primary/50 hover:bg-muted/50"
+                  >
+                    <span
+                      aria-hidden
+                      className="size-2 flex-none rounded-full"
+                      style={{ background: toneDotVar(task, metaTick) }}
+                    />
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {task.title}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {name ?? "Unassigned"} · {projectLabel}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

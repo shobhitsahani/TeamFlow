@@ -92,7 +92,9 @@ const MemberRow = memo(function MemberRow({
 
   return (
     <Item variant="outline" size="sm">
-      <ItemMedia>
+      {/* Center the avatar with the text block + actions (the Item primitive
+          top-anchors media whenever a description exists). */}
+      <ItemMedia className="self-center! translate-y-0!">
         <Avatar>
           <AvatarFallback
             style={{

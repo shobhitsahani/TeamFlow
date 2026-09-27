@@ -31,3 +31,19 @@ export const invites = pgTable("invites", {
   index("invites_hash_idx").on(table.tokenHash),
   index("invites_code_hash_idx").on(table.codeHash),
 ]);
+
+/** Organization-deletion verification codes: single-use 6-digit codes emailed
+ * to the requesting owner and verified alongside their account password
+ * before the tenant row (and, via FK cascade, all tenant data) is deleted. */
+export const orgDeleteCodes = pgTable("org_delete_codes", {
+  tenantId: uuid("tenant_id").notNull(),
+  id: uuid("id").notNull(),
+  /** SHA-256 of the 6-digit code — the plaintext only ever travels by email. */
+  codeHash: text("code_hash").notNull(),
+  expiresAt: t("expires_at").notNull(),
+  usedAt: t("used_at"),
+  requestedById: uuid("requested_by_id").notNull(),
+  createdAt: t("created_at").default(now()),
+}, (table) => [
+  index("org_delete_codes_tenant_idx").on(table.tenantId, table.createdAt),
+]);

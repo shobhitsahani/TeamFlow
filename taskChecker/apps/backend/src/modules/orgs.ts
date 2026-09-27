@@ -3,20 +3,21 @@
  * `withTenant`, so RLS scopes every row to the caller's org; admin surfaces
  * additionally require admin+ (owner for minting owners). */
 import { Hono, type Context } from "hono";
-import { and, count, eq, inArray, isNull } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { Tx } from "../lib/tenant.js";
 import { inTenant, withTenant, evictMembership } from "../lib/request.js";
 import { requireRole, Rbac, type Role } from "../lib/rbac.js";
-import { hashPassword, hashSecret } from "../lib/password.js";
-import { INVITE_CODE_RE, normalizeInviteCode, randomInviteCode, randomToken, uuidv7 } from "../lib/ids.js";
-import { badRequest, forbidden, notFound, quotaExceeded, unauthorized } from "../lib/errors.js";
+import { constantTimeEqual, hashPassword, hashSecret, verifyPassword } from "../lib/password.js";
+import { DELETE_CODE_RE, INVITE_CODE_RE, normalizeDeleteCode, normalizeInviteCode, randomDeleteCode, randomInviteCode, randomToken, uuidv7 } from "../lib/ids.js";
+import { ApiError, badRequest, forbidden, notFound, quotaExceeded, unauthorized } from "../lib/errors.js";
 import { audit } from "../lib/audit.js";
-import { sendInviteEmail } from "../lib/email.js";
+import { rateLimit } from "../lib/ratelimit.js";
+import { sendInviteEmail, sendOrgDeleteCodeEmail } from "../lib/email.js";
 import { signAccessToken } from "../lib/tokens.js";
 import { config } from "../config.js";
 import { db } from "../db/client.js";
-import { invites, memberships, projects, tasks, tenants, users } from "../db/schema.js";
+import { invites, memberships, orgDeleteCodes, projects, tasks, tenants, users } from "../db/schema.js";
 import { lookupInvite, lookupInviteByCode } from "../lib/auth.js";
 import { tierLimits } from "../lib/usage.js";
 
@@ -372,6 +373,143 @@ orgRoutes.post("/orgs/:orgId/disable", async (c) => {
       entityType: "tenant", entityId: orgId, before: { status: tenant.status },
     });
     return c.json({ ok: true, status: "disabled" });
+  });
+});
+
+// Organization deletion (two-factor: account password + emailed code).
+const DELETE_CODE_TTL_MS = 15 * 60 * 1000;
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "***";
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
+// POST /v1/orgs/{orgId}/delete-code — owner only. Mints a single-use 6-digit
+// code and emails it (Resend) to the requesting owner's own address — the
+// code half of the two-factor organization delete (password is the other).
+// Earlier unused codes are retired so exactly one code is live at a time.
+orgRoutes.post("/orgs/:orgId/delete-code", async (c) => {
+  const p = c.get("principal");
+  const orgId = c.req.param("orgId");
+  if (orgId !== p.tenantId) throw forbidden("Organization mismatch.");
+  if (p.tokenType !== "user" || !p.userId) throw forbidden("Only user sessions can delete organizations.");
+  const rl = await rateLimit(`org-delete-code:${orgId}:${p.userId}`, 5, 3600);
+  if (!rl.allowed) throw new ApiError(429, "rate_limited", "Too many code requests; try again later.", true);
+
+  const created = await inTenant(c, async (tx) => {
+    requireRole(p.role, Rbac.owner);
+    const tenant = await tx.query.tenants.findFirst({ where: (t, { eq: e }) => e(t.id, orgId) });
+    if (!tenant) throw notFound("Organization not found.");
+    await tx
+      .update(orgDeleteCodes)
+      .set({ usedAt: new Date() })
+      .where(and(eq(orgDeleteCodes.tenantId, orgId), isNull(orgDeleteCodes.usedAt)));
+    const code = randomDeleteCode();
+    const expiresAt = new Date(Date.now() + DELETE_CODE_TTL_MS);
+    await tx.insert(orgDeleteCodes).values({
+      tenantId: orgId,
+      id: uuidv7(),
+      codeHash: hashSecret(code),
+      expiresAt,
+      requestedById: p.userId,
+    });
+    await audit(tx, {
+      tenantId: orgId, actorId: p.userId, action: "org.delete_requested",
+      entityType: "tenant", entityId: orgId,
+    });
+    return { code, expiresAt, orgName: tenant.name };
+  });
+
+  const me = await db
+    .select({ email: users.email, name: users.name })
+    .from(users)
+    .where(eq(users.id, p.userId))
+    .limit(1);
+  const to = me[0]?.email ?? "";
+  const email = to
+    ? await sendOrgDeleteCodeEmail({
+        to,
+        orgName: created.orgName,
+        code: created.code,
+        expiresAt: created.expiresAt,
+        requesterName: me[0]?.name ?? undefined,
+      })
+    : { sent: false as const, error: "no_account_email" };
+  return c.json(
+    {
+      sent: email.sent,
+      expiresAt: created.expiresAt.toISOString(),
+      email: to ? maskEmail(to) : "",
+      // Why the mail didn't go out (email_unconfigured, resend_403: …) — the
+      // UI shows this verbatim so a misconfigured sender is diagnosable.
+      ...(email.sent ? {} : { reason: email.error ?? "email_failed" }),
+      // Dev fallback: without a mailer the owner could never receive the code,
+      // so hand it back directly — they are the verified recipient anyway.
+      ...(email.sent ? {} : { code: created.code, devFallback: true as const }),
+    },
+    201,
+  );
+});
+
+// POST /v1/orgs/{orgId}/delete { password, code } — owner only. Verifies the
+// requester's account password plus the emailed 6-digit code, then destroys
+// the tenant row; every tenant-scoped table REFERENCES tenants(id)
+// ON DELETE CASCADE, so all org data goes with it. Users (global accounts)
+// are untouched. Returns another owned org to land on, if one exists.
+orgRoutes.post("/orgs/:orgId/delete", async (c) => {
+  const p = c.get("principal");
+  const orgId = c.req.param("orgId");
+  if (orgId !== p.tenantId) throw forbidden("Organization mismatch.");
+  if (p.tokenType !== "user" || !p.userId) throw forbidden("Only user sessions can delete organizations.");
+  const parsed = z
+    .object({ password: z.string().min(1).max(200), code: z.string().min(1).max(32) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw badRequest("Account password and verification code are required.");
+  const rl = await rateLimit(`org-delete-verify:${orgId}:${p.userId}`, 10, 600);
+  if (!rl.allowed) throw new ApiError(429, "rate_limited", "Too many attempts; try again later.", true);
+
+  return inTenant(c, async (tx) => {
+    requireRole(p.role, Rbac.owner);
+    const me = await db.select().from(users).where(eq(users.id, p.userId)).limit(1);
+    if (!me[0] || !verifyPassword(parsed.data.password, me[0].passwordHash)) {
+      throw unauthorized("Account password or verification code is incorrect.");
+    }
+    const code = normalizeDeleteCode(parsed.data.code);
+    if (!DELETE_CODE_RE.test(code)) throw unauthorized("Account password or verification code is incorrect.");
+    const digest = hashSecret(code);
+    const now = new Date();
+    const candidates = await tx
+      .select()
+      .from(orgDeleteCodes)
+      .where(and(eq(orgDeleteCodes.tenantId, orgId), isNull(orgDeleteCodes.usedAt)))
+      .orderBy(desc(orgDeleteCodes.createdAt))
+      .limit(10);
+    const match = candidates.find(
+      (row) => row.expiresAt.getTime() > now.getTime() && constantTimeEqual(row.codeHash, digest),
+    );
+    if (!match) throw unauthorized("Account password or verification code is incorrect.");
+    await tx.update(orgDeleteCodes).set({ usedAt: now }).where(eq(orgDeleteCodes.id, match.id));
+
+    // Member ids for cache eviction — the cascade below wipes the rows.
+    const memberRows = await tx
+      .select({ userId: memberships.userId })
+      .from(memberships)
+      .where(eq(memberships.tenantId, orgId));
+    await audit(tx, {
+      tenantId: orgId, actorId: p.userId, action: "org.deleted",
+      entityType: "tenant", entityId: orgId,
+    });
+    // tenants carries no RLS policy (global table, app-checked above).
+    await tx.delete(tenants).where(eq(tenants.id, orgId));
+    for (const m of memberRows) evictMembership(orgId, m.userId);
+
+    const remaining = await db
+      .select({ tenantId: memberships.tenantId })
+      .from(memberships)
+      .where(and(eq(memberships.userId, p.userId), eq(memberships.status, "active")))
+      .limit(1);
+    return c.json({ ok: true, switchTo: remaining[0]?.tenantId ?? null });
   });
 });
 

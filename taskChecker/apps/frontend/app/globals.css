@@ -1450,6 +1450,38 @@ button.board-card-due:disabled { cursor: default; }
   flex: 1;
 }
 
+/* Danger zone — destructive organization actions (owner only) */
+.settings-danger {
+  border-color: #fecdd3;
+  background: #fff5f5;
+  align-items: center;
+}
+.settings-danger:hover {
+  border-color: #fda4af;
+  box-shadow: 0 4px 8px -2px rgba(190, 18, 60, 0.25), 0 0 1px rgba(190, 18, 60, 0.31);
+  transform: none;
+}
+.settings-danger .settings-card-icon {
+  background: #be123c;
+}
+.delete-success-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: var(--slate-50);
+  border: 1px dashed var(--slate-300);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--slate-600);
+}
+.delete-success-code strong {
+  font-family: var(--stack-mono);
+  font-size: 18px;
+  letter-spacing: 0.3em;
+  color: var(--slate-900);
+}
+
 /* search */
 .search-page { padding: 24px 28px; overflow-y: auto; flex: 1; }
 .search-container { max-width: 800px; }

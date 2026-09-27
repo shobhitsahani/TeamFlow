@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskChecker / TeamFlow — Intensive Full-Project Audit Report — 2026-09-25</title>
+<style>
+:root{--bg:#0b1020;--bg2:#111936;--card:#151f42;--card2:#1a2650;--line:#2a3a6e;--txt:#e8ecff;--mut:#9aa6d3;--acc:#6ea8ff;--acc2:#8b5cf6;--ok:#22c55e;--warn:#f59e0b;--crit:#ef4444;--info:#38bdf8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font-family:Inter,'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#0d1330 40%,#0b1020);color:var(--txt);line-height:1.65}
+a{color:var(--acc)}code{font-family:JetBrains Mono,Consolas,Menlo,monospace;background:#0a0f28;border:1px solid var(--line);padding:1px 6px;border-radius:6px;font-size:.85em;color:#cfe0ff}
+pre{background:#080d22;border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow:auto;font-size:.82em;line-height:1.55;color:#d6e2ff}
+header.hero{padding:56px 32px 32px;max-width:1180px;margin:0 auto}
+.badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:.75em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);background:#0e1640;color:var(--mut)}
+.badge.crit{background:rgba(239,68,68,.15);color:#ffb4b4;border-color:#7f2d2d}
+.badge.warn{background:rgba(245,158,11,.15);color:#ffe1a8;border-color:#7a5410}
+.badge.ok{background:rgba(34,197,94,.15);color:#b7f5cf;border-color:#14532d}
+h1{font-size:2.4em;line-height:1.15;margin:.4em 0 .2em}
+.sub{color:var(--mut);font-size:1.05em;max-width:900px}
+.grid{display:grid;gap:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:26px 0}
+.kpi{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:16px}
+.kpi .n{font-size:1.9em;font-weight:800}.kpi .l{color:var(--mut);font-size:.85em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px 80px}
+.toc{background:#0e1640;border:1px solid var(--line);border-radius:16px;padding:20px 24px;columns:2;column-gap:32px}
+.toc a{display:block;padding:3px 0;text-decoration:none;font-size:.92em}.toc a:hover{text-decoration:underline}
+section.card{background:rgba(21,31,66,.85);border:1px solid var(--line);border-radius:18px;padding:28px;margin:22px 0;backdrop-filter:blur(6px)}
+h2{margin-top:0;font-size:1.55em;border-bottom:1px solid var(--line);padding-bottom:10px}
+h3{color:#cdd8ff;margin-top:26px}h4{color:#b9c6f5}
+table{width:100%;border-collapse:collapse;font-size:.9em;margin:12px 0;background:#0c1330;border-radius:12px;overflow:hidden}
+th,td{padding:10px 12px;border-bottom:1px solid #22305e;text-align:left;vertical-align:top}
+th{background:#16205a;color:#dbe6ff;font-size:.82em;text-transform:uppercase;letter-spacing:.05em}
+tr:last-child td{border-bottom:none}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.75em;font-weight:700}
+.p0{background:#ef4444;color:#fff}.p1{background:#f59e0b;color:#1a1000}.p2{background:#38bdf8;color:#04121d}.ok-t{background:rgba(34,197,94,.18);color:#a7f3c7}.warn-t{background:rgba(245,158,11,.18);color:#fde1a8}.crit-t{background:rgba(239,68,68,.18);color:#ffc4c4}
+.bar{height:10px;background:#0a0f28;border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+.bar>div{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+.score{display:flex;align-items:center;gap:12px;margin:8px 0}.score .lbl{width:220px;font-size:.9em}.score .val{width:46px;text-align:right;font-weight:800}
+.callout{border-left:4px solid var(--acc);background:#0e1640;padding:12px 16px;border-radius:0 12px 12px 0;margin:14px 0}
+.callout.danger{border-color:var(--crit);background:rgba(239,68,68,.08)}
+.callout.warn{border-color:var(--warn);background:rgba(245,158,11,.08)}
+.callout.good{border-color:var(--ok);background:rgba(34,197,94,.08)}
+footer{color:var(--mut);font-size:.85em;text-align:center;padding:30px}
+nav.top{position:sticky;top:0;z-index:10;background:rgba(11,16,32,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:10px 32px;display:flex;gap:18px;font-size:.85em;overflow:auto}
+nav.top a{white-space:nowrap;text-decoration:none;color:var(--mut)}nav.top a:hover{color:#fff}
+@media print{nav.top,.noprint{display:none}body{background:#fff;color:#000}section.card{background:#fff;border-color:#ccc}pre{background:#f5f5f5;color:#000}}
+@media(max-width:800px){.toc{columns:1}header.hero,.wrap{padding-left:16px;padding-right:16px}}
+</style>
+</head>
+<body>
+<nav class="top noprint">
+<a href="#exec">Exec</a><a href="#inventory">Inventory</a><a href="#stack">Stack</a><a href="#arch">Architecture</a><a href="#db">DB/Supabase</a><a href="#sec">Security</a><a href="#quality">Quality</a><a href="#deps">Dependencies</a><a href="#ops">Ops</a><a href="#docs">Docs</a><a href="#ai">AI Config</a><a href="#git">Git</a><a href="#perf">Perf/Scale</a><a href="#ux">UX/A11y</a><a href="#findings">Findings</a><a href="#scores">Scores</a><a href="#roadmap">Roadmap</a><a href="#appendix">Appendix</a>
+</nav>
+<header class="hero">
+<span class="badge">Intensive audit • Full project • 2026-09-25 • Branch v0/trello-ui-polish</span>
+<h1>TaskChecker / TeamFlow<br>Full-Project Intensive Audit Report</h1>
+<p class="sub">Scope: <code>C:\projects\taskChecker</code> (outer ops wrapper) + <code>C:\projects\taskChecker\taskChecker</code> (inner TeamFlow monorepo: <code>apps/backend</code>, <code>apps/frontend</code>, <code>apps/docs</code>, <code>apps/web</code> stub, <code>packages/*</code>, <code>docs/design</code>, <code>supabase/</code>, <code>agent/</code>, LiteLLM proxy, MCP, git). Method: filesystem census, config/source reads, secret/TODO/console/eval/SQL-injection sweeps, TS/ESLint/Prettier review, dep-matrix review, docs-vs-code drift analysis, git-state inspection. No secrets are reproduced — values are redacted. No live DB writes were performed.</p>
+<div class="kpis">
+<div class="kpi"><div class="n">354</div><div class="l">Inner-monorepo files (excl. node_modules/.git/.next/.turbo/dist)</div></div>
+<div class="kpi"><div class="n">~44–49k</div><div class="l">Estimated LOC (code+docs+css; see §2)</div></div>
+<div class="kpi"><div class="n">6.8 / 10</div><div class="l">Overall health (weighted; see §16)</div></div>
+<div class="kpi"><div class="n">3 × P0</div><div class="l">Critical findings requiring immediate action</div></div>
+<div class="kpi"><div class="n">9 × P1</div><div class="l">High-priority findings (30-day window)</div></div>
+<div class="kpi"><div class="n">Next 16 + React 19</div><div class="l">Bleeding-edge frontend • Hono 4 + Bun + Turbo</div></div>
+</div>
+<div class="callout danger"><strong>Read first — 3 criticals:</strong> (1) Plaintext API keys committed in <code>litellm_config.yaml</code> + <code>.claude/settings.local.json</code> — rotate immediately + git-history purge. (2) Backend boots with known <code>JWT_SECRET</code> fallback (<code>apps/backend/src/config.ts:59</code>) — fail-closed required in prod. (3) Committed-HEAD auth sandbox fallback issues real owner JWTs on DB failure (<code>apps/backend/src/modules/auth.ts:109-198</code>) — uncommitted diff already fixes; commit/merge it now. Full register in §15.</div>
+</header>
+<div class="wrap">
+<div class="toc noprint"><strong>Contents</strong>
+<a href="#exec">1 Executive summary &amp; verdict</a><a href="#inventory">2 Project inventory &amp; census</a><a href="#stack">3 Technology stack matrix</a><a href="#arch">4 Architecture deep dive</a><a href="#db">5 Database, migrations &amp; Supabase</a><a href="#sec">6 Auth, tenancy &amp; security audit</a><a href="#quality">7 Code quality: TS / lint / errors / logging</a><a href="#deps">8 Dependencies &amp; supply chain</a><a href="#ops">9 Build, DevEx, ops &amp; CI/CD</a><a href="#docs">10 Documentation audit</a><a href="#ai">11 AI / agent / MCP configuration</a><a href="#git">12 Git hygiene &amp; working tree</a><a href="#perf">13 Performance, scalability &amp; resilience</a><a href="#ux">14 Frontend UX &amp; accessibility</a><a href="#findings">15 Findings register (P0/P1/P2)</a><a href="#scores">16 Scored dimensions</a><a href="#roadmap">17 Prioritized roadmap (30/60/90)</a><a href="#appendix">18 Appendix: trees, scripts, env, refs</a>
+</div>
+
+<section class="card" id="exec"><h2>1 — Executive summary &amp; verdict</h2>
+<p><strong>What this is:</strong> TeamFlow — a multi-tenant SaaS (Linear + Jira + Slack-lite) built as a pnpm + Bun + Turbo monorepo. Hono modular-monolith API with Postgres RLS + Redis + BullMQ + WS realtime; Next.js 16 / React 19 frontend with Tailwind 4 + Base-UI + framer-motion; thorough <code>docs/design</code> suite (8 docs + SVG architecture).</p>
+<p><strong>What's good:</strong> genuinely strong tenant-isolation design (composite <code>(tenant_id,id)</code> PKs + <code>SET LOCAL app.tenant_id</code> + RLS fail-closed + NOSUPERUSER role); clean modular backend (<code>modules/*</code>, <code>lib/*</code>, zod + jose, stable error envelope); strict TypeScript base (<code>strict + noUncheckedIndexedAccess + isolatedModules + moduleDetection:force</code>); economy of tooling (Turbo + shared configs); excellent design-doc depth for a v0.</p>
+<p><strong>What's risky:</strong> secrets hygiene (committed keys), prod-readiness gaps (no CI, no Dockerfile, no prod logger/metrics, backend has no ESLint), dual ORM + dual package-manager drift, Supabase CLI scaffold is dead while frontend points at a live hosted project, design-doc numbers drift (2.5k vs 10k vs 30k vs 50k DAU), port mismatches (:3000 vs :4000 vs :4002 vs :3001 in docs), orphan <code>apps/web</code> stub.</p>
+<table><tr><th>Dimension</th><th>Score</th><th>One-line verdict</th></tr>
+<tr><td>Architecture &amp; tenancy</td><td><strong>8.5/10</strong></td><td>Load-bearing isolation is correct and well-documented.</td></tr>
+<tr><td>Backend implementation</td><td><strong>7.5/10</strong></td><td>Solid Hono core; needs fail-closed secrets + structured logging + lint.</td></tr>
+<tr><td>Frontend implementation</td><td><strong>7.0/10</strong></td><td>Modern, rich UI; bleeding-edge Next 16 risk + a11y gaps.</td></tr>
+<tr><td>Data &amp; Supabase</td><td><strong>6.0/10</strong></td><td>Migrations real via Drizzle path; Supabase CLI unused; dual-ORM cost.</td></tr>
+<tr><td>Security &amp; secrets</td><td><strong>4.5/10</strong></td><td>Design strong, operations weak — committed keys dominate.</td></tr>
+<tr><td>Quality gates</td><td><strong>5.5/10</strong></td><td>TS strict; ESLint partial; Prettier unconfigured; no CI.</td></tr>
+<tr><td>Docs</td><td><strong>7.5/10</strong></td><td>Best-in-class depth for v0; needs single source of truth fixes.</td></tr>
+<tr><td>Ops / DevEx</td><td><strong>5.0/10</strong></td><td>Local DX works; no CI/CD, no containers, no runbooks.</td></tr>
+</table>
+<div class="callout good"><strong>Verdict:</strong> Ship-able as a v0 demo / internal pilot <em>after</em> P0 fixes (rotate keys, fail-closed JWT, merge auth fix, add CI + secret scanning). Not prod-ready for multi-customer SaaS until P1 hardening (structured logs/metrics, RLS tests in CI, backup/DR proof, env validation) is complete.</div>
+</section>
+
+<section class="card" id="inventory"><h2>2 — Project inventory &amp; census</h2>
+<h3>2.1 Dual-root layout (must understand)</h3>
+<pre> C:\projects\taskChecker\                      OUTER wrapper (name=task-checker-root, pnpm@10.34.3)
+ ├── package.json / pnpm-workspace.yaml (includes taskChecker, taskChecker/apps/*, packages/*)
+ ├── .npmrc / .gitignore / .mcp.json / opencode.json / skills-lock.json
+ ├── litellm_config.yaml + start-proxy.ps1   (LiteLLM :4000 proxy)
+ ├── supabase/config.toml (project_id=taskChecker, stock scaffold)
+ ├── agent/skills + .agents/skills + .claude/skills  (mirrored Supabase skills)
+ ├── .opencode/ (caveman skill ref)
+ ├── temp_extract/ (43 probe/log/html artifacts — NOT source)
+ └── taskChecker\                            INNER monorepo (name=TeamFlow, Node&gt;=24, Bun 1.3.14)
+     ├── apps/backend | frontend | docs | web(stub)
+     ├── packages/ui | eslint-config | typescript-config
+     ├── docs/design/ (8 md + diagram html)
+     └── bun.lock + pnpm-workspace.yaml + turbo.json</pre>
+<h3>2.2 File census (inner monorepo, excl. node_modules/.git/.next/.turbo/dist)</h3>
+<table><tr><th>Extension</th><th>Count</th><th>Approx. lines</th><th>Notes</th></tr>
+<tr><td>.md</td><td>138</td><td>~10,659</td><td>design docs + READMEs + vendored skills</td></tr>
+<tr><td>.tsx</td><td>70</td><td>~12,407</td><td>frontend pages + components + @repo/ui</td></tr>
+<tr><td>.ts</td><td>68</td><td>~7,596</td><td>backend src + frontend lib + tests</td></tr>
+<tr><td>.css</td><td>8</td><td>~7,311</td><td>Tailwind v4 theme files (globals/theme/trello/lagoon/home)</td></tr>
+<tr><td>.sql</td><td>11</td><td>~566</td><td>0001–0010 migrations + init.sql</td></tr>
+<tr><td>.prisma</td><td>1</td><td>~323</td><td>schema.prisma (secondary ORM)</td></tr>
+<tr><td>.json</td><td>18</td><td>~515</td><td>package/tsconfig/turbo/mcp/opencode</td></tr>
+<tr><td>.html</td><td>2</td><td>~850</td><td>architecture diagram + temp artifact</td></tr>
+<tr><td>.js/.mjs/.cjs</td><td>~10</td><td>~130+</td><td>configs (next/eslint/postcss)</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>354</strong></td><td><strong>~44–49k</strong></td><td>Outer repo total incl. wrapper ≈ 541 files</td></tr></table>
+<div class="callout"><strong>Interpretation:</strong> roughly 20k lines of first-party TS/TSX, ~10.6k docs, ~7.3k CSS. Healthy v0 ratio. CSS weight suggests theme duplication (trello.css + lagoon.css + theme.css) — consolidation candidate.</div>
+<h3>2.3 App-by-app footprint</h3>
+<table><tr><th>App/Package</th><th>Key content</th><th>Status</th></tr>
+<tr><td><code>apps/backend</code></td><td><code>src/app.ts, config.ts, index.ts, db/* (schema×8 + migrations 0001–0010), lib/* (17 helpers), modules/* (10 domains), realtime/ws.ts, worker/*</code> + <code>test/* (8 suites)</code> + <code>prisma/schema.prisma</code> + <code>docker-compose.yml</code></td><td class="ok-t">Real, active</td></tr>
+<tr><td><code>apps/frontend</code></td><td><code>app/* (layout, page, providers, auth×3, app/board|projects|tasks/[id]|teams|work|activity|search|settings×5)</code> + <code>components/* (~40 incl. ui×25, lagoon×3)</code> + <code>lib/* (api, auth, hooks, realtime, swr…)</code></td><td class="ok-t">Real, active</td></tr>
+<tr><td><code>apps/docs</code></td><td>Next app on :4001, stock README</td><td class="warn-t">Exists, thin</td></tr>
+<tr><td><code>apps/web</code></td><td>Only <code>app/globals.css</code> + <code>app/auth/signup/page.tsx</code>, <strong>no package.json</strong></td><td class="crit-t">Orphan stub — delete or promote</td></tr>
+<tr><td><code>packages/ui</code></td><td><code>button, card, code</code> re-exports (<code>./* → ./src/*.tsx</code>)</td><td class="ok-t">Minimal, correct</td></tr>
+<tr><td><code>packages/eslint-config</code></td><td><code>base.js, next.js, react-internal.js</code></td><td class="warn-t">Functional, softened (only-warn)</td></tr>
+<tr><td><code>packages/typescript-config</code></td><td><code>base.json, nextjs.json, react-library.json</code></td><td class="ok-t">Strong</td></tr></table>
+</section>
+
+<section class="card" id="stack"><h2>3 — Technology stack matrix</h2>
+<table><tr><th>Layer</th><th>Choices (pinned)</th><th>Assessment</th></tr>
+<tr><td>Monorepo</td><td>pnpm 10.34.3 (outer) + Bun 1.3.14 + Turbo 2.10/2.11 + Node ≥24 + TS 7.0.2 + Prettier 3.9.6</td><td>Works but dual-PM (pnpm+bun locks) risks drift. Pin one installer per app; document it.</td></tr>
+<tr><td>Backend</td><td>Hono 4.7 + @hono/node-server 1.14 + @hono/node-ws 1.1, zod 3.25, jose 6, postgres 3.4 + drizzle-orm 0.44 + prisma 6.4.1, ioredis 5.6 + bullmq 5.34, ws 8.18, supabase-js 2.116</td><td>Coherent modular monolith. Dual-ORM is the main smell — choose Drizzle (migrations already Drizzle-led) and demote Prisma to tooling or remove.</td></tr>
+<tr><td>Data/infra</td><td>PG 16-alpine (compose) / 17 (supabase CLI), Redis 7-alpine AOF, MinIO latest, Supabase local stack (54321/54322/54323/54324/54327)</td><td>Local stack complete; Supabase CLI path unused — either adopt or remove to avoid confusion.</td></tr>
+<tr><td>Frontend</td><td>Next 16.3.2 + React 19.2.8, Tailwind 4.3.3 + tw-animate-css, Base-UI 1.8, framer-motion 13.4, lucide-react 1.45, date-fns 4.4, day-picker 10, cva/clsx/merge</td><td>Modern; Next 16 is bleeding edge — track codemods (see AGENTS.md banner). framer-motion 13 is pre-rename <code>motion</code> — fine, plan migration.</td></tr>
+<tr><td>Quality</td><td>ESLint 10.9.1 + @repo configs + typescript-eslint 8.68; shared tsconfigs</td><td>Good bones; backend unlinted; all-errors-as-warnings weakens gates.</td></tr>
+<tr><td>AI/proxy</td><td>LiteLLM :4000 (Groq Llama-3.3-70B / Gemini-2.0-Flash / DeepSeek free), Supabase MCP, opencode perms, 24 pinned skills</td><td>Useful; keys committed — must move to env + rotation.</td></tr></table>
+</section>
+
+<section class="card" id="arch"><h2>4 — Architecture deep dive</h2>
+<h3>4.1 Backend — Hono modular monolith</h3>
+<p>Entry: <code>apps/backend/src/index.ts</code> (serve + realtime gateway + workers + deadline sweep + EADDRINUSE handling + SIGINT/SIGTERM). App: <code>src/app.ts</code> (middleware chain → domain routers → error envelope). Config: <code>src/config.ts</code> (PORT 4002 default, DB/Redis/JWT/S3/Supabase).</p>
+<table><tr><th>Area</th><th>Files</th><th>Notes</th></tr>
+<tr><td>DB</td><td><code>db/client.ts, migrate.ts, seed.ts, schema.ts, schema/{auth,core,tasks,orgs,chat,activity,governance,enums,index}.ts</code></td><td>Drizzle-led migrations 0001–0010; <code>withTenant()</code> sets <code>app.tenant_id</code> per-tx; seed idempotent (acme/globex).</td></tr>
+<tr><td>Lib (17)</td><td><code>audit, auth, blobs, cache, cursor, errors, events, idempotency, ids, password, queue, ratelimit, rbac, redis, request, supabase, tenant, tokens, usage</code></td><td>Strong cross-cutting coverage: stable error envelope, idempotency, cursor pagination, RBAC, rate-limit, usage metering.</td></tr>
+<tr><td>Modules (10)</td><td><code>attachments, auth, billing, chat, comments, core, feed, governance, orgs, search, tasks</code></td><td>Domain isolation good; check inter-module imports stay via <code>lib/events</code>/outbox rather than direct coupling.</td></tr>
+<tr><td>Realtime</td><td><code>realtime/ws.ts</code> (Redis pub/sub per-org + cursor catch-up)</td><td>Correct pattern; needs backpressure + authz-per-channel tests (partially present).</td></tr>
+<tr><td>Worker</td><td><code>worker/workers.ts, deadlines.ts</code> (notify/webhook/usage + 5-min sweep)</td><td>BullMQ appropriate; assert DLQ + retry budgets (config has 10 webhook retries).</td></tr>
+<tr><td>Tests</td><td><code>test/{integration, realtime, rbac, ratelimit, password, deadlines, cursor, ids}.test.ts</code></td><td>Good breadth incl. tenant-isolation e2e (<code>TEAMFLOW_IT=1</code>). Wire into CI.</td></tr></table>
+<h3>4.2 Frontend — Next.js App Router</h3>
+<p>Routes: <code>/, /auth/sign-in|sign-up|accept-invite, /app/board|projects|tasks/[id]|teams|work|activity|search|settings(+audit|usage|members|integrations)</code>. Proxy: <code>next.config.js</code> rewrites <code>/api/v1/* + /v1/* → http://localhost:4002/v1/*</code>. State/data: <code>lib/api, auth, hooks(+advanced), mutations, realtime, swr, mock-storage (being deleted)</code>. UI: ~40 components incl. <code>app-shell, chat-rail, command-palette, notif-sheet, lagoon/*, ui/* (25 primitives)</code> + 5 theme CSS files.</p>
+<div class="callout warn"><strong>Port drift:</strong> frontend dev <code>:3000</code>, backend <code>FRONTEND_BASE_URL :4000</code>, backend API <code>:4002</code>, README says <code>:3001</code>, docs app <code>:4001</code>, proxy <code>:4000</code>. Freeze a port map in README + <code>.env.example</code> and enforce via config validation.</div>
+<h3>4.3 Request lifecycle (as designed + as built)</h3>
+<pre>Browser (:3000) → Next rewrite /v1/* → Hono (:4002) → auth (jose JWT) → withTenant tx
+(SET LOCAL app.tenant_id) → zod validation → RBAC → Drizzle/postgres (RLS enforces)
+→ outbox/events → BullMQ/Redis → WS gateway → per-org broadcast + cursor catch-up
+Attachments → memory (dev) | S3/MinIO (prod path)</pre>
+</section>
+
+<section class="card" id="db"><h2>5 — Database, migrations &amp; Supabase</h2>
+<h3>5.1 Postgres (source of truth: backend, not Supabase CLI)</h3>
+<ul><li><strong>Engine:</strong> PG 16-alpine via <code>apps/backend/docker-compose.yml</code> (:5432) + <code>docker/init.sql</code> creating NOSUPERUSER <code>teamflow</code> so RLS applies. Supabase CLI declares PG 17 — version skew to reconcile.</li>
+<li><strong>Migrations:</strong> <code>0001_init → 0010_chat_realtime</code> via <code>bun src/db/migrate.ts</code> using <code>sql.unsafe(fileBody).simple()</code> — safe (local files only) provided image build pins migration hashes.</li>
+<li><strong>Model:</strong> 20+ tables per <code>docs/design/data-model.md</code>; tenant tables keyed <code>(tenant_id,id)</code> with tenant-carrying FKs — cross-tenant refs impossible by constraint. Cursor pagination, soft-delete, <code>tsvector+GIN</code> FTS.</li>
+<li><strong>RLS:</strong> fail-closed policies on <code>app.tenant_id</code>; no context → zero rows / rejected writes. Design + backend README agree. <code>data-model.md</code> still sketches <code>app.current_user_id + organization_id</code> — update to <code>app.tenant_id</code>.</li></ul>
+<h3>5.2 Supabase local scaffold — effectively dead</h3>
+<p><code>supabase/config.toml</code> (415 lines, stock): <code>project_id=taskChecker</code>, api :54321, db :54322/shadow :54320, pooler disabled, studio :54323, smtp :54324, storage 50MiB+s3+vector, realtime on, analytics :54327, auth signup-on/JWT-3600. <strong>But:</strong> no <code>migrations/</code>, no <code>seed.sql</code> (despite <code>seed.sql_paths</code> enabled), no <code>functions/</code>. <code>.temp/</code> holds only <code>cli-latest v2.117.0</code>. Live linkage exists only via env examples pointing at hosted <code>lnplireboawtrfpwpcdd.supabase.co</code>.</p>
+<div class="callout"><strong>Recommendation:</strong> either (A) adopt Supabase properly (move migrations under <code>supabase/migrations</code>, add <code>seed.sql</code>, enable pooler, document env) or (B) delete <code>supabase/</code> scaffold and standardize on compose+Drizzle. Hybrid confusion is the current worst option.</div>
+<h3>5.3 ORM duality</h3>
+<p>Both <code>drizzle-orm 0.44 + postgres 3.4</code> (runtime) and <code>@prisma/client 6.4.1 + prisma 6.4.1</code> (scripts <code>prisma:generate|migrate|studio</code> unused in practice) are installed. Cost: migration drift, double schema source, larger image. <strong>Recommendation:</strong> keep Drizzle; remove Prisma deps/scripts or isolate todocs tooling.</p>
+</section>
+
+<section class="card" id="sec"><h2>6 — Auth, tenancy &amp; security audit</h2>
+<h3>6.1 Tenancy (strength)</h3>
+<ul><li>Composite PKs + tenant-carrying FKs — <span class="pill" style="background:var(--ok);color:#04140a">Excellent</span></li>
+<li>Per-request <code>withTenant()</code> + RLS fail-closed + NOSUPERUSER role — <span class="pill" style="background:var(--ok);color:#04140a">Excellent</span></li>
+<li>Integration suite for tenant isolation — <span class="pill" style="background:var(--ok);color:#04140a">Good</span> (must run in CI)</li></ul>
+<h3>6.2 Secret &amp; auth findings</h3>
+<table><tr><th>#</th><th>Severity</th><th>Location</th><th>Issue</th><th>Fix</th></tr>
+<tr><td>S-1</td><td><span class="pill p0">P0</span></td><td><code>litellm_config.yaml:6,11,16,22,28,34</code>, <code>.claude/settings.local.json</code></td><td>Live API keys committed (Groq <code>gsk_…</code>, Gemini <code>AQ.Ab8…</code>, OpenRouter <code>sk-or-v1-…</code>). Repo is <code>trello-clone</code> on GitHub — exposure window open.</td><td>Rotate all 3 now; move to env/secret manager; add Gitleaks to CI; purge history (BFG/filter-repo) or accept rotation-only.</td></tr>
+<tr><td>S-2</td><td><span class="pill p0">P0</span></td><td><code>apps/backend/src/config.ts:59</code></td><td><code>JWT_SECRET</code> falls back to <code>dev-only-change-me…</code> and boots. Prod with missing env = known signing key.</td><td><code>need("JWT_SECRET")</code> with no fallback when <code>NODE_ENV=production</code>; validate length ≥32 + entropy; fail fast.</td></tr>
+<tr><td>S-3</td><td><span class="pill p0">P0</span></td><td><code>apps/backend/src/modules/auth.ts:81,109-198</code> (HEAD)</td><td>DB-down sandbox issues real <code>owner</code> JWTs for fake <code>uuidv7()</code> users. Availability-vs-security tradeoff that becomes auth bypass on DB flap.</td><td>Merge the uncommitted fix (login/signup throw on DB-down); keep sandbox only behind explicit <code>ALLOW_AUTH_FALLBACK=true</code> + never in prod.</td></tr>
+<tr><td>S-4</td><td><span class="pill p1">P1</span></td><td><code>apps/frontend/.env.example:6-7</code>, <code>apps/backend/.env.example</code></td><td>Real publishable Supabase URL+key + weak defaults (<code>minioadmin/minioadmin</code>, <code>teamflow:teamflow</code>, <code>password123</code> seeds) committed.</td><td>Replace examples with placeholders; keep demo creds clearly labeled + seeded only in dev.</td></tr>
+<tr><td>S-5</td><td><span class="pill p1">P1</span></td><td><code>apps/backend/src/lib/redis.ts:80,91-93</code>, <code>realtime/ws.ts:186</code>, <code>modules/auth.ts:127-156</code></td><td>Empty catches / swallowed errors hide outages and complicate forensics.</td><td>Log with request-id at <code>warn+</code>; emit metrics; document intentional best-effort cases.</td></tr></table>
+<h3>6.3 Injection / XSS / transport</h3>
+<ul><li><strong>SQLi:</strong> Good — Drizzle + postgres-js parameterization throughout; sole <code>sql.unsafe</code> is <code>db/migrate.ts:53</code> over local migration files. Pin migration dir perms in image.</li>
+<li><strong>XSS:</strong> Sole <code>dangerouslySetInnerHTML</code> is <code>apps/frontend/app/layout.tsx:66-67</code> static anti-flash theme script — safe. No <code>eval/new Function/child_process/innerHTML/document.write</code>.</li>
+<li><strong>Transport/headers:</strong> No security-headers middleware observed (helmet-equivalent), no CORS allowlist review, no cookie <code>HttpOnly/Secure/SameSite</code> audit in scope — add checklist item (see roadmap).</li>
+<li><strong>Rate-limit/authz:</strong> <code>lib/ratelimit.ts</code> (Redis pipeline — not shell exec) + <code>lib/rbac.ts</code> + per-channel WS authz — verify with dedicated tests.</li></ul>
+<div class="callout good"><strong>Permissions hygiene (good):</strong> <code>opencode.json</code> denies <code>*.env</code> reads/edits + <code>git add *.env*</code>; <code>.gitignore</code>s correctly ignore <code>.env</code> (verified via <code>git check-ignore</code>); <code>config.ts:1-4</code> documents never-log-secrets.</div>
+</section>
+
+<section class="card" id="quality"><h2>7 — Code quality: TS / lint / errors / logging</h2>
+<h3>7.1 TypeScript — strong</h3>
+<p><code>packages/typescript-config/base.json</code>: <code>strict, noUncheckedIndexedAccess, isolatedModules, moduleDetection:force, ES2022, skipLibCheck</code>. <code>nextjs.json</code> (ESNext/Bundler/jsx:preserve) and <code>react-library.json</code> (react-jsx) correctly extended by <code>frontend/docs/backend tsconfigs</code>. Redundant <code>strictNullChecks</code> re-declaration — harmless. Skew: root <code>TS 7.0.2</code> vs <code>eslint-config</code> dep <code>TS 6.0.2</code> + override forcing <code>typescript-eslint→TS 6.0.2</code> — dual majors risk divergence; align.</p>
+<h3>7.2 ESLint — partial</h3>
+<ul><li>Flat config everywhere; <code>base.js</code> = js.recommended + tseslint.recommended + prettier-compat + <code>turbo/no-undeclared-env-vars:warn</code>; <code>next.js</code> adds core-web-vitals + react-hooks.</li>
+<li><code>eslint-plugin-only-warn</code> demotes <strong>all</strong> errors → warnings; <code>frontend: eslint .</code> passes on warnings (vs <code>ui/docs: --max-warnings 0</code>). Tighten frontend script.</li>
+<li><strong>Backend has no ESLint at all</strong> (no config, no <code>lint</code> script) — biggest quality-gate gap.</li>
+<li>Missing: <code>no-console</code>, <code>no-explicit-any</code> tightening, security plugin (<code>eslint-plugin-security</code>).</li></ul>
+<h3>7.3 Prettier — unconfigured</h3>
+<p>No <code>.prettierrc*/prettier.config.*/.prettierignore</code> under <code>taskChecker/</code>; <code>format</code> runs <code>prettier --write "**/*.{ts,tsx,md}"</code> on defaults with 3.9.6. Add explicit config for determinism.</p>
+<h3>7.4 Errors &amp; logging</h3>
+<ul><li><strong>Errors:</strong> <code>lib/errors.ts:59-82</code> stable <code>{error:{code,message,request_id,retryable}}</code> + <code>isDependencyDown()</code> cause-chain walk (503 vs 500) — good. <code>readyz</code> <code>.catch(()=>null)</code> intentional.</li>
+<li><strong>Logging:</strong> 34 <code>console.*</code> hits; backend uses ad-hoc prefixed console as logger (index/migrate/seed/workers/queue/redis/ws/errors/auth) — fine for dev, unsuitable for prod (no levels, no redaction audit, no sink). Frontend <code>console.error</code> in realtime/audit/search without error-boundary/reporting hookup. Adopt pino/winston + request-id + JSON in prod + Sentry/PostHog hook.</li>
+<li><strong>TODOs:</strong> zero <code>TODO/FIXME/HACK</code> in backend/packages; frontend 52 <code>placeholder</code> hits are all UI props (false positives); one real stub comment in <code>settings/usage/page.tsx:81</code>.</li></ul>
+</section>
+
+<section class="card" id="deps"><h2>8 — Dependencies &amp; supply chain</h2>
+<table><tr><th>Dep</th><th>Pinned</th><th>Note / action</th></tr>
+<tr><td>next / react / react-dom / @types/react</td><td>16.3.2 / 19.2.8 / 19.2.8 / 19.2.18</td><td>Bleeding edge; follow Next 16 codemods per AGENTS.md; pin + test upgrades in CI matrix.</td></tr>
+<tr><td>hono / @hono/node-server / node-ws</td><td>^4.7 / ^1.14 / ^1.1</td><td>Current; fine.</td></tr>
+<tr><td>drizzle-orm / postgres / prisma</td><td>^0.44 / ^3.4 / ^6.4.1</td><td>Dual-ORM — consolidate (see §5.3).</td></tr>
+<tr><td>bullmq / ioredis</td><td>^5.34 / ^5.6</td><td>Appropriate; ensure Redis AOF + DLQ + dashboards.</td></tr>
+<tr><td>jose / zod</td><td>^6 / ^3.25</td><td>jose current; plan zod 3→4 migration (breaking).</td></tr>
+<tr><td>ws</td><td>^8.18.1</td><td>Confirm ≥ patched for historic DoS CVEs; consider native <code>node:ws</code>/Hono WS only.</td></tr>
+<tr><td>supabase-js</td><td>^2.116</td><td>Optional path; remove if standardizing off Supabase.</td></tr>
+<tr><td>tailwindcss / base-ui / framer-motion / lucide / date-fns</td><td>^4.3.3 / ^1.8 / ^13.4 / ^1.45 / ^4.4</td><td>Current; framer-motion 13 = pre-rename <code>motion</code> — plan import migration.</td></tr>
+<tr><td>turbo / pnpm / bun / node</td><td>2.10↔2.11 / 10.34.3 / 1.3.14 / ≥24</td><td>Skew across roots; align Turbo; choose bun-vs-pnpm per app and document.</td></tr>
+<tr><td>typescript</td><td>7.0.2 vs 6.0.2 (override)</td><td>Align to single major.</td></tr></table>
+<div class="callout warn"><strong>Supply-chain gaps:</strong> no <code>npm/pnpm audit</code> in CI, no Dependabot/Renovate, no lockfile-audit, no SBOM. <code>turbo.json</code> <code>build.inputs</code> includes <code>.env*</code> (cache-bust by design — correct). Add audit + license check to CI.</div>
+</section>
+
+<section class="card" id="ops"><h2>9 — Build, DevEx, ops &amp; CI/CD</h2>
+<table><tr><th>Area</th><th>Observed</th><th>Grade</th></tr>
+<tr><td>Scripts</td><td>Outer: <code>predev/prebuild pnpm install</code> + <code>--dir taskChecker</code> delegation. Inner: <code>turbo run build/dev/lint/check-types</code>. Backend: <code>dev/start/build/check-types/test/test:integration/db:migrate|seed/prisma:*</code>. Frontend: <code>dev(:3000)/build/start/lint/check-types(next typegen+tsc)</code>.</td><td>Good</td></tr>
+<tr><td>Turbo</td><td><code>build dependsOn ^build, outputs .next/**; lint/check-types dependsOn ^; dev persistent/no-cache; ui:tui</code>. <code>.turbo/.next</code> present — caching active.</td><td>Good</td></tr>
+<tr><td>Compose</td><td><code>postgres:16-alpine :5432 + redis:7-alpine :6379 (AOF everysec) + minio :9000/9001</code>, healthchecks, named volumes, <code>init.sql</code> NOSUPERUSER role.</td><td>Good (dev)</td></tr>
+<tr><td>Envs</td><td><code>backend/.env.example (59 lines)</code> + <code>frontend/.env.example (7 lines)</code> thorough; real <code>.env</code>s exist locally and are git-ignored (correct).</td><td>Good</td></tr>
+<tr><td>Proxy</td><td><code>start-proxy.ps1</code> (hardcoded Win Python path) + <code>litellm_config.yaml</code> (:4000, drop_params) → free tiers.</td><td>Works / fragile</td></tr>
+<tr><td>CI/CD</td><td><strong>None:</strong> no <code>.github/workflows</code>, no <code>Dockerfile*</code> (dev compose only), no image publish — despite resilience doc requiring Trivy/CodeQL/Dependabot/Gitleaks.</td><td class="crit-t">Missing (P1)</td></tr>
+<tr><td>Smoke</td><td><code>apps/backend/smoke.ps1 + compose.log</code> present (not deep-audited).</td><td>—</td></tr></table>
+<div class="callout warn"><strong>Port map (freeze this):</strong> <code>3000</code> frontend-dev · <code>4000</code> LiteLLM proxy (+ claimed FRONTEND_BASE_URL) · <code>4001</code> docs · <code>4002</code> API · <code>5432/6379/9000-1</code> infra · <code>54321-54327</code> Supabase-local. README <code>:3001</code> is stale.</div>
+</section>
+
+<section class="card" id="docs"><h2>10 — Documentation audit</h2>
+<p><strong>Inventory:</strong> <code>taskChecker/README.md</code> (39L) + <code>apps/backend/README.md</code> (73L, best ops doc) + <code>apps/docs/README.md</code> (36L stock boilerplate) + <code>packages/eslint-config/README.md</code> (3L stub) + <code>docs/design/{teamflow(357L), teamflow-requirements(87L), requirements(71L), architecture(337L), data-model(504L), api-design(564L), estimation(96L), resilience-observability-security(315L)} + diagram/teamflow-architecture.html (475L)</code>.</p>
+<table><tr><th>Check</th><th>Result</th></tr>
+<tr><td>Depth</td><td class="ok-t">Excellent for v0 — trade-offs, failure modes, ladder, endpoint tables, WS protocol, SLOs, alert rules.</td></tr>
+<tr><td>Scale drift</td><td class="crit-t"><code>requirements</code> 2.5k DAU/1.2 QPS vs <code>estimation</code> 10k/12 QPS vs <code>teamflow</code> 30k/35–120 QPS vs <code>teamflow-requirements</code> 50k/1500+170 QPS. No single source of truth.</td></tr>
+<tr><td>Auth drift</td><td class="warn-t"><code>data-model.md app.current_user_id + organization_id</code> vs built <code>app.tenant_id + tenant_id</code>. Update doc.</td></tr>
+<tr><td>Runbooks/ops</td><td class="warn-t">Missing: env reference, incident runbooks, backup/DR proof, Supabase guide, CI guide.</td></tr>
+<tr><td>Placement</td><td>All docs nested one level down (<code>taskChecker/docs</code>); no outer docs — confusing for newcomers.</td></tr></table>
+</section>
+
+<section class="card" id="ai"><h2>11 — AI / agent / MCP configuration</h2>
+<ul><li><strong>Mirrored Supabase skills (×3):</strong> <code>.agents/skills + .claude/skills + agent/skills</code> each carry <code>supabase + supabase-postgres-best-practices</code> (~35 refs). <code>skills-lock.json</code> (outer) pins 2 from <code>supabase/agent-skills</code> with hashes — correct.</li>
+<li><strong>Inner skills:</strong> <code>taskChecker/skills-lock.json</code> pins 24 (23× <code>proyecto26/system-design-skills</code> + 1× <code>anthropics/skills:frontend-design</code>) — explains design-doc rigor.</li>
+<li><strong>MCP:</strong> <code>.mcp.json</code> = Supabase HTTP MCP (<code>project_ref=lnplireboawtrfpwpcdd</code>, features docs/account/database/debugging/development/functions/branching).</li>
+<li><strong>Opencode:</strong> outer <code>opencode.json</code> (sane <code>*.env</code> denies) + <code>.opencode/</code> (caveman ref only).</li>
+<li><strong class="crit-t">Conflict + secret:</strong> <code>.claude/settings.local.json</code> sets <code>ANTHROPIC_BASE_URL=openrouter.ai</code> + <code>ANTHROPIC_AUTH_TOKEN=sk-or-v1-… (committed)</code> + <code>MODEL=nvidia/nemotron-3-ultra…:free</code> and <code>disabledMcpjsonServers:[supabase]</code> — i.e. Claude explicitly disables the Supabase MCP that <code>.mcp.json</code> configures. Reconcile intent; rotate the OpenRouter key regardless.</li></ul>
+</section>
+
+<section class="card" id="git"><h2>12 — Git hygiene &amp; working tree</h2>
+<table><tr><th>Fact</th><th>Value</th></tr>
+<tr><td>Branch / remote</td><td><code>v0/trello-ui-polish</code> in sync with <code>origin/v0/trello-ui-polish</code> · <code>https://github.com/shobhitsahani/trello-clone.git</code></td></tr>
+<tr><td>Log (10)</td><td><code>ba71a2f, 461b42b, 1b6f6fd, cd2e024, b05684e, 10e65f4, 50c6a13, ff877f2, 24402aa, c27be95</code> — clean conventional prefixes</td></tr>
+<tr><td>Uncommitted</td><td>6 modified/deleted, 0 untracked: <code>M backend/src/modules/auth.ts</code>, <code>M frontend/app/app/board/page.tsx</code>, <code>M frontend/app/auth/sign-in|sign-up/page.tsx</code>, <code>M frontend/lib/api.ts|auth.tsx</code>, <code>D frontend/lib/mock-storage.ts</code> — <code>59+/451-</code> net deletion (removes 186L mock-storage, −147L api.ts). Auth diff = security fix (see S-3). LF→CRLF warnings on 2 files.</td></tr>
+<tr><td>Stash</td><td><code>stash@{0}: On main: wip-motion-board</code> — reconcile or drop.</td></tr>
+<tr><td>Ignores</td><td>Outer 30L + inner 38L + supabase ignores correctly cover <code>.env/node_modules/.next/.turbo/.branches/.temp</code>.</td></tr></table>
+<div class="callout"><strong>Actions:</strong> commit the auth-fix diff separately with security note; delete or land the stash; normalize line endings (<code>.gitattributes * text=auto</code>); add branch protection + required checks once CI exists.</div>
+</section>
+
+<section class="card" id="perf"><h2>13 — Performance, scalability &amp; resilience</h2>
+<ul><li><strong>Capacity story is incoherent today</strong> (see §10 scale drift). Freeze one BOTEC: e.g. <code>requirements</code> as MVP truth (100 orgs/5k users/2.5k DAU/1.2 QPS/80GB-7yr/p99&lt;100ms/99.95%) and mark others as evolution targets.</li>
+<li><strong>Good patterns observed:</strong> cursor pagination lib, Redis cache/rate-limit, BullMQ + deadline sweep (5 min), WS cursor catch-up, PgBouncer topology in arch doc, outbox/domain-events sketch.</li>
+<li><strong>Missing proof:</strong> no k6/load test, no EXPLAIN/index audit in CI, no p99 dashboard, no backup/DR drill evidence, no chaos/DB-down test beyond the (now-removed) sandbox. Resilience doc lists 9 alert rules + Prometheus/OTel + <code>/health/*</code> — implement <code>healthz/readyz</code> checks in CI + minimal Grafana.</li>
+<li><strong>Frontend:</strong> Next 16 + <code>optimizePackageImports</code> for icons is right; audit bundle (framer-motion + date-fns + day-picker weight), add <code>next/bundle-analyzer</code> + Lighthouse CI budgets.</li></ul>
+</section>
+
+<section class="card" id="ux"><h2>14 — Frontend UX &amp; accessibility</h2>
+<ul><li><strong>Breadth:</strong> board/projects/tasks/teams/work/activity/search/settings(audit/usage/members/integrations) + command-palette + chat-rail + notif-sheet + 25 <code>ui/*</code> primitives + lagoon/trello themes — impressive v0 surface.</li>
+<li><strong>Debt signals:</strong> 5 theme CSS files (~7.3k lines) suggest duplication; <code>usage</code> settings page is a commented-out placeholder; demo-board <code>Invalid uuid on card create</code> was just fixed via local-storage routing (<code>ba71a2f</code>) — add regression test.</li>
+<li><strong>A11y checklist (to verify):</strong> focus-visible + dialog focus-trap (Base-UI helps), keyboard board DnD alternative, color-contrast on lagoon/trello themes, <code>prefers-reduced-motion</code> for framer-motion, live-regions for chat/notifs, labeled date-picker/day-picker, empty/skeleton/error states per route.</li></ul>
+</section>
+
+<section class="card" id="findings"><h2>15 — Findings register (prioritized)</h2>
+<table><tr><th>ID</th><th>Pri</th><th>Title</th><th>Location</th><th>Detail &amp; fix</th></tr>
+<tr><td>F-01</td><td><span class="pill p0">P0</span></td><td>Rotate committed API keys + purge</td><td><code>litellm_config.yaml</code>, <code>.claude/settings.local.json</code></td><td>Groq/Gemini/OpenRouter keys in history. Rotate → env/secret-manager → Gitleaks CI → BFG purge or documented accept.</td></tr>
+<tr><td>F-02</td><td><span class="pill p0">P0</span></td><td>Fail-closed JWT secret</td><td><code>apps/backend/src/config.ts:59</code></td><td><code>need("JWT_SECRET")</code> in prod, ≥32 chars, startup validation.</td></tr>
+<tr><td>F-03</td><td><span class="pill p0">P0</span></td><td>Merge auth DB-down fix</td><td><code>apps/backend/src/modules/auth.ts</code> diff</td><td>Commit uncommitted hardening; gate any fallback behind explicit flag, never in prod.</td></tr>
+<tr><td>F-04</td><td><span class="pill p1">P1</span></td><td>Add CI (types+lint+tests+RLS e2e+audit+Gitleaks)</td><td>(missing) <code>.github/workflows</code></td><td>Block merge on green; include <code>TEAMFLOW_IT=1</code> suite + secret scan + <code>pnpm audit</code>.</td></tr>
+<tr><td>F-05</td><td><span class="pill p1">P1</span></td><td>Backend ESLint + frontend <code>--max-warnings 0</code></td><td><code>apps/backend</code>, <code>apps/frontend/package.json:10</code></td><td>Add backend flat config + lint script; remove global only-warn or enforce zero warnings.</td></tr>
+<tr><td>F-06</td><td><span class="pill p1">P1</span></td><td>Single source of truth for scale + auth model</td><td><code>docs/design/*</code></td><td>Freeze MVP numbers; update <code>data-model.md</code> to <code>app.tenant_id</code>.</td></tr>
+<tr><td>F-07</td><td><span class="pill p1">P1</span></td><td>Decide Supabase vs compose+Drizzle; kill duality</td><td><code>supabase/</code>, <code>prisma/*</code></td><td>Option A or B (§5); remove Prisma or Supabase scaffold accordingly.</td></tr>
+<tr><td>F-08</td><td><span class="pill p1">P1</span></td><td>Structured logging + error reporting + health SLOs</td><td><code>src/index.ts, lib/*, realtime/*</code></td><td>Pino JSON + request-id + Sentry; <code>/healthz|readyz</code> + minimal alerts.</td></tr>
+<tr><td>F-09</td><td><span class="pill p1">P1</span></td><td>Sanitize env examples + port map</td><td><code>*/.env.example</code>, READMEs</td><td>Placeholders only; frozen port table; config validation.</td></tr>
+<tr><td>F-10</td><td><span class="pill p1">P1</span></td><td>Resolve <code>apps/web</code> stub + TS/toolchain skew</td><td><code>apps/web</code>, roots</td><td>Delete or promote stub; align Turbo/TS; pick bun-vs-pnpm; add Prettier config.</td></tr>
+<tr><td>F-11</td><td><span class="pill p1">P1</span></td><td>Security headers/CORS/cookies + WS authz tests</td><td><code>src/app.ts, realtime/ws.ts</code></td><td>Add helmet-equivalent, allowlist, cookie flags, per-channel authz tests.</td></tr>
+<tr><td>F-12</td><td><span class="pill p2">P2</span></td><td>CSS consolidation + a11y pass + bundle budget</td><td><code>apps/frontend/app/*.css</code></td><td>Merge themes via tokens; Lighthouse CI; reduced-motion; live regions.</td></tr>
+<tr><td>F-13</td><td><span class="pill p2">P2</span></td><td>Docs: runbooks + backup/DR + API versioning proof</td><td><code>docs/design</code></td><td>Incident runbooks, RPO/RTO proof, OpenAPI at <code>/v1/openapi.json</code>.</td></tr>
+<tr><td>F-14</td><td><span class="pill p2">P2</span></td><td>Supply chain: Renovate + audit + SBOM</td><td>roots</td><td>Renovate/Dependabot, audit gate, license check; plan zod-4 + motion renames.</td></tr>
+<tr><td>F-15</td><td><span class="pill p2">P2</span></td><td>Git hygiene: attributes + stash + protection</td><td><code>.gitattributes</code> (new)</td><td><code>* text=auto</code>; land/drop stash; require checks.</td></tr>
+</table>
+</section>
+
+<section class="card" id="scores"><h2>16 — Scored dimensions (weighted → 6.8/10)</h2>
+<div class="score"><div class="lbl">Architecture &amp; tenancy (×2)</div><div class="bar" style="flex:1"><div style="width:85%"></div></div><div class="val">8.5</div></div>
+<div class="score"><div class="lbl">Backend (×1.5)</div><div class="bar" style="flex:1"><div style="width:75%"></div></div><div class="val">7.5</div></div>
+<div class="score"><div class="lbl">Frontend (×1.5)</div><div class="bar" style="flex:1"><div style="width:70%"></div></div><div class="val">7.0</div></div>
+<div class="score"><div class="lbl">Data &amp; Supabase</div><div class="bar" style="flex:1"><div style="width:60%"></div></div><div class="val">6.0</div></div>
+<div class="score"><div class="lbl">Security &amp; secrets (×2)</div><div class="bar" style="flex:1"><div style="width:45%"></div></div><div class="val">4.5</div></div>
+<div class="score"><div class="lbl">Quality gates (×1.5)</div><div class="bar" style="flex:1"><div style="width:55%"></div></div><div class="val">5.5</div></div>
+<div class="score"><div class="lbl">Docs</div><div class="bar" style="flex:1"><div style="width:75%"></div></div><div class="val">7.5</div></div>
+<div class="score"><div class="lbl">Ops / DevEx</div><div class="bar" style="flex:1"><div style="width:50%"></div></div><div class="val">5.0</div></div>
+<div class="callout">Weighting penalizes security + gates because they block prod. Fixing P0s alone lifts overall to ~7.8; completing P1s reaches ~8.6.</div>
+</section>
+
+<section class="card" id="roadmap"><h2>17 — Prioritized roadmap</h2>
+<h3>Next 48 hours (P0 — ~0.5–1 day)</h3>
+<ol><li>Rotate 3 API keys; move to env/secret manager; verify no abuse (billing/usage). [F-01]</li>
+<li>Fail-closed <code>JWT_SECRET</code> in prod + startup validation. [F-02]</li>
+<li>Commit/merge auth DB-down fix as isolated security commit; add regression test (DB-down → 503, no token). [F-03]</li>
+<li>Replace <code>.env.example</code> real values with placeholders. [F-09 partial]</li></ol>
+<h3>30 days (P1 — ~2–3 weeks eng)</h3>
+<ol><li>CI: <code>check-types + eslint --max-warnings 0 + bun test + TEAMFLOW_IT=1 + pnpm audit + Gitleaks + Trivy</code>. [F-04]</li>
+<li>Backend ESLint + Prettier config + TS alignment. [F-05, F-10]</li>
+<li>Structured logging + Sentry + <code>/healthz|readyz</code> + 3 starter alerts. [F-08]</li>
+<li>Security headers/CORS/cookies + WS per-channel authz tests. [F-11]</li>
+<li>Freeze scale + auth-model docs; fix port map. [F-06, F-09]</li>
+<li>Decide Supabase-vs-compose; remove Prisma-or-Supabase duality. [F-07]</li>
+<li>Dockerfile(s) + compose-prod + backup/DR proof. [ops]</li></ol>
+<h3>60–90 days (P2 — hardening)</h3>
+<ol><li>Bundle budgets + Lighthouse CI + theme-token consolidation + a11y pass. [F-12]</li>
+<li>OpenAPI + versioning proof + runbooks + load-test baseline (k6) + index/EXPLAIN audit. [F-13]</li>
+<li>Renovate + SBOM + license gate; plan zod-4 / motion / Next upgrades. [F-14]</li>
+<li>Resolve <code>apps/web</code>, stash, attributes, branch protection. [F-15]</li></ol>
+<table><tr><th>Milestone</th><th>Exit criteria</th></tr>
+<tr><td>Pilot-ready</td><td>P0 done + CI green + RLS e2e in CI + logging + backup tested</td></tr>
+<tr><td>Prod SaaS</td><td>P1 done + SLO dashboards + DR drill + pen-test-lite + DPA-ready audit retention</td></tr></table>
+</section>
+
+<section class="card" id="appendix"><h2>18 — Appendix</h2>
+<h3>A. Key trees</h3>
+<pre>C:\projects\taskChecker\taskChecker\apps\backend\src\{app,config,index}.ts
+  db\{client,migrate,seed,schema}.ts + schema\{auth,core,tasks,orgs,chat,activity,governance,enums,index}.ts + migrations\0001-0010.sql
+  lib\{audit,auth,blobs,cache,cursor,errors,events,idempotency,ids,password,queue,ratelimit,rbac,redis,request,supabase,tenant,tokens,usage}.ts
+  modules\{attachments,auth,billing,chat,comments,core,feed,governance,orgs,search,tasks}.ts
+  realtime\ws.ts  worker\{workers,deadlines}.ts  test\*.test.ts (8)  prisma\schema.prisma
+apps\frontend\app\{layout,page,providers,globals|theme|trello|lagoon|home.css}
+  auth\{sign-in,sign-up,accept-invite}  app\{board,projects,tasks/[id],teams,work,activity,search,settings[+audit|usage|members|integrations]}
+  components\{app-shell,chat-rail,command-palette,dynamic,icons,motion,notif-sheet,overlay,search-trigger,shell-parts,store,theme-*,ui×25,lagoon×3}
+  lib\{api,auth,hooks,hooks-advanced,mock-storage*,mutations,realtime,swr,utils}
+supabase\{config.toml}  docs\design\{8 md + diagram html}  packages\{ui,eslint-config,typescript-config}</pre>
+<h3>B. Scripts &amp; ports</h3>
+<pre>root:        pnpm --dir taskChecker run {dev,build,lint,format,check-types}
+inner:       turbo run {build,dev(--filter=!docs),lint,format,check-types}
+backend:     bun --watch src/index.ts | bun build | bun test | TEAMFLOW_IT=1 bun test test/integration.test.ts | bun src/db/{migrate,seed}.ts
+frontend:    next dev -p 3000 | next build | eslint . | next typegen && tsc --noEmit
+docs:        next dev --port 4001
+ports:       3000 fe-dev · 4000 litellm+FRONTEND_BASE_URL · 4001 docs · 4002 api · 5432 pg · 6379 redis · 9000/9001 minio · 54321-54327 supabase-local</pre>
+<h3>C. Env surface (names only — no values)</h3>
+<p><code>PORT, NODE_ENV, DATABASE_URL(_4), DATABASE_MIGRATE_URL, DATABASE_REPLICA_URL, REDIS_URL, JWT_SECRET(_4), ACCESS_TOKEN_TTL, UPLOAD_BACKEND, S3_{ENDPOINT,BUCKET,ACCESS_KEY,SECRET_KEY,REGION}, PUBLIC_BASE_URL, FRONTEND_BASE_URL, DEADLINE_SWEEP_MS, WORKER_WEBHOOK_RETRIES, LOG_LEVEL, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_API_BASE, WS_URL, NEXT_PUBLIC_SUPABASE_URL</code></p>
+<h3>D. References checked</h3>
+<p><code>package.json ×5, turbo.json, pnpm-workspace ×2, tsconfigs ×5, eslint configs ×5, README ×4, .gitignore ×3, .npmrc ×2, .mcp.json, opencode.json, litellm_config.yaml, start-proxy.ps1, supabase/config.toml, backend config/index/app/auth/redis/ws/errors/migrate/seed, frontend next.config/layout/api/auth/realtime, docs/design ×8, git status/log/remote/diff --stat, secret/TODO/console/eval sweeps.</code> Live Supabase API/keys/logs not called; <code>.env</code> contents not read per policy.</p>
+<h3>E. Limitations</h3>
+<p>No test/build execution (audit is static + git-state); no dynamic pen-test/load-test; dependency CVE status is version-reasoned, not scanner-verified — run <code>pnpm audit</code>/Trivy/Snyk in CI to confirm. Re-run this audit after P0/P1 to close findings.</p>
+</section>
+</div>
+<footer>Generated 2026-09-25 (UTC) • Branch <code>v0/trello-ui-polish</code> @ <code>ba71a2f</code> + 6 uncommitted changes • Auditor: Muse Spark (OpenCode) • File: <code>audit-report-2026-09-25.html</code> — self-contained, no external assets, print-friendly.</footer>
+</body>
+</html>

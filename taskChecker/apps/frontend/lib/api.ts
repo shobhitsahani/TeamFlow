@@ -503,6 +503,23 @@ export const api = {
 
     deactivateMember: (orgId: string, userId: string) =>
       request<{ ok: boolean }>(`/orgs/${orgId}/members/${userId}`, { method: "DELETE" }),
+
+    requestDeleteCode: (orgId: string) =>
+      request<{
+        sent: boolean;
+        expiresAt: string;
+        email: string;
+        /** Why the email did not go out (email_unconfigured, resend_403: …). */
+        reason?: string;
+        code?: string;
+        devFallback?: boolean;
+      }>(`/orgs/${orgId}/delete-code`, { method: "POST" }),
+
+    deleteOrg: (orgId: string, data: { password: string; code: string }) =>
+      request<{ ok: boolean; switchTo: string | null }>(`/orgs/${orgId}/delete`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 
   teams: {

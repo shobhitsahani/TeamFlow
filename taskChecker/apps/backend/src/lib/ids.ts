@@ -61,6 +61,23 @@ export function normalizeInviteCode(raw: string): string {
   return raw.toUpperCase().replace(/[\s-]+/g, "");
 }
 
+/** 6-digit numeric organization-deletion verification code, e.g. "482913".
+ * Short on purpose (typed from an email within minutes); brute force is
+ * stopped by the endpoint rate limit, and only the hash is stored. */
+export const DELETE_CODE_RE = /^\d{6}$/;
+
+export function randomDeleteCode(): string {
+  const buf = crypto.getRandomValues(new Uint8Array(6));
+  // Modulo like randomInviteCode above — uniform enough for a short-lived,
+  // rate-limited, single-use code.
+  return [...buf].map((b) => String((b as number) % 10)).join("");
+}
+
+/** Normalize a typed deletion code: strip whitespace/dashes (digits only). */
+export function normalizeDeleteCode(raw: string): string {
+  return raw.replace(/[\s-]+/g, "");
+}
+
 /**
  * Deterministic, uuid7-shaped id derived ONLY from the seed — same seed ⇒ same
  * id, which is what makes consumer writes idempotent under at-least-once

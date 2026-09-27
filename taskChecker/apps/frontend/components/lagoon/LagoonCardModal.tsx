@@ -6,11 +6,35 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
+import { AnimatePresence, motion, popIn } from "@/components/motion";
 import { api, type Comment, type Member, type PaginatedResponse, type Project, type Task } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { useToast } from "@/components/overlay";
-import { cx } from "@/lib/utils";
-import { IconTrash, IconX } from "@/components/icons";
+import { IconTrash } from "@/components/icons";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   LAGOON_TONES,
   defaultLabelForPriority,
@@ -56,6 +80,16 @@ export function LagoonCardModal({
   const [tone, setTone] = useState<LagoonTone | undefined>(meta.tone);
   const [checklist, setChecklist] = useState<LagoonCheckItem[]>(meta.checklist);
   const [saving, setSaving] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const [closeFired, setCloseFired] = useState(false);
+
+  /** Start motion exit; parent unmounts once the exit animation completes. */
+  const requestClose = () => setVisible(false);
+  const finishClose = () => {
+    if (closeFired) return;
+    setCloseFired(true);
+    onClose();
+  };
 
   const commentsQ = useSWR<PaginatedResponse<Comment>>(
     `lagoon-comments-${task.id}`,
@@ -158,7 +192,7 @@ export function LagoonCardModal({
   /** Done persists the text fields (title/description/label), then closes. */
   const handleDone = async () => {
     if (!canWrite) {
-      onClose();
+      requestClose();
       return;
     }
     const patch: Partial<Task> = {};
@@ -180,163 +214,194 @@ export function LagoonCardModal({
         setSaving(false);
       }
     }
-    onClose();
+    requestClose();
   };
 
   const assignee = members.find((m) => m.userId === task.assigneeId) ?? null;
 
+  const dueDate = useMemo(() => {
+    const ymd = toYmd(task.dueAt);
+    return ymd ? new Date(`${ymd}T12:00:00`) : undefined;
+  }, [task.dueAt]);
+  const doneCount = checklist.filter((c) => c.done).length;
+
   return (
-    <div className="lagoon-modal-veil" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Card details"
-        className="lagoon-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <input
-            aria-label="Card title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="lagoon-title-input"
-            disabled={!canWrite}
-          />
-          <button aria-label="Close" className="lagoon-icon-btn" onClick={onClose} style={{ flex: "none" }}>
-            <IconX size={16} />
-          </button>
-        </div>
-        {project ? (
-          <p style={{ marginTop: 4, fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
-            {project.key} · {project.name}
-          </p>
-        ) : null}
-
-        <div style={{ display: "grid", gap: 16, marginTop: 16 }}>
-          <div>
-            <p className="lagoon-field-label">Description</p>
-            <textarea
-              aria-label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="lagoon-input"
-              style={{ minHeight: 80, resize: "vertical" }}
-              placeholder="Add a more detailed description…"
-              disabled={!canWrite}
-            />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <p className="lagoon-field-label">Label</p>
-              <input
-                aria-label="Label"
-                value={label}
-                onChange={(e) => persistLabel(e.target.value, tone)}
-                className="lagoon-input"
-                placeholder="Label name"
-                disabled={!canWrite}
-              />
-              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                {LAGOON_TONES.map((t) => (
-                  <button
-                    key={t}
-                    aria-label={`Set ${t} label color`}
-                    onClick={() => persistLabel(label, tone === t ? undefined : t)}
+    <AnimatePresence onExitComplete={finishClose}>
+      {visible ? (
+        <Dialog
+          open
+          onOpenChange={(next) => {
+            if (!next) requestClose();
+          }}
+        >
+          <DialogContent
+            aria-label="Card details"
+            showCloseButton
+            className="max-w-lg gap-0 overflow-y-auto p-5 duration-0 data-open:animate-none sm:max-w-lg"
+            style={{ maxHeight: "85dvh" }}
+          >
+            <motion.div variants={popIn} initial="hidden" animate="show" exit="exit">
+              <DialogHeader className="flex-row items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="sr-only">Card details</DialogTitle>
+                  <Input
+                    aria-label="Card title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                     disabled={!canWrite}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 9999,
-                      background: `var(--lagoon-${t})`,
-                      boxShadow:
-                        tone === t
-                          ? "0 0 0 2px var(--lagoon-card), 0 0 0 4px var(--lagoon-ink)"
-                          : "none",
-                    }}
+                    className="border-0 bg-transparent px-0 text-base font-semibold shadow-none focus-visible:ring-1"
                   />
-                ))}
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <p className="lagoon-field-label">Priority</p>
-                <select
-                  aria-label="Priority"
-                  value={task.priority}
-                  onChange={(e) => void handlePriority(e.target.value as Task["priority"])}
-                  className="lagoon-input"
-                  disabled={!canWrite}
-                >
-                  <option value="critical">Critical</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                  <option value="none">None</option>
-                </select>
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <p className="lagoon-field-label">Member</p>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <button
-                    aria-label="Unassigned"
-                    title="Unassigned"
-                    onClick={() => void handleMember(null)}
-                    disabled={!canWrite}
-                    className={cx("lagoon-member-btn", task.assigneeId === null && "is-on")}
-                    style={{ background: "var(--lagoon-muted-fg)", color: "#fff" }}
-                  >
-                    –
-                  </button>
-                  {members.slice(0, 8).map((m) => {
-                    const display = m.name ?? m.email ?? m.userId.slice(0, 4);
-                    return (
-                      <button
-                        key={m.userId}
-                        title={display}
-                        onClick={() => void handleMember(m.userId)}
-                        disabled={!canWrite}
-                        className={cx("lagoon-member-btn", task.assigneeId === m.userId && "is-on")}
-                        style={{ background: lagoonAvatarTone(m.userId) }}
-                      >
-                        {lagoonInitials(display)}
-                      </button>
-                    );
-                  })}
+                  {project ? (
+                    <DialogDescription className="mt-1 text-xs">
+                      {project.key} · {project.name}
+                    </DialogDescription>
+                  ) : null}
                 </div>
-                {assignee ? (
-                  <p style={{ marginTop: 6, fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
-                    {assignee.name ?? assignee.email}
-                  </p>
-                ) : null}
-              </div>
-              <div>
-                <p className="lagoon-field-label">Due date</p>
-                <input
-                  aria-label="Due date"
-                  type="date"
-                  value={toYmd(task.dueAt) ?? ""}
-                  onChange={(e) => void handleDue(e.target.value)}
-                  className="lagoon-input"
-                  disabled={!canWrite}
-                />
-              </div>
-            </div>
-          </div>
+              </DialogHeader>
 
-          <div>
-            <p className="lagoon-field-label">
-              Checklist
-              {checklist.length > 0 ? ` · ${checklist.filter((c) => c.done).length}/${checklist.length}` : ""}
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div className="mt-4 grid gap-4">
+                <Field>
+                  <FieldLabel>Description</FieldLabel>
+                  <Textarea
+                    aria-label="Description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-20 resize-y"
+                    placeholder="Add a more detailed description…"
+                    disabled={!canWrite}
+                  />
+                </Field>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3">
+                    <Field>
+                      <FieldLabel>Label</FieldLabel>
+                      <Input
+                        aria-label="Label"
+                        value={label}
+                        onChange={(e) => persistLabel(e.target.value, tone)}
+                        placeholder="Label name"
+                        disabled={!canWrite}
+                      />
+                    </Field>
+                    <div className="flex items-center gap-1.5">
+                      {LAGOON_TONES.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          aria-label={`Set ${t} label color`}
+                          aria-pressed={tone === t}
+                          onClick={() => persistLabel(label, tone === t ? undefined : t)}
+                          disabled={!canWrite}
+                          data-active={tone === t}
+                          className="size-6 rounded-full transition-transform hover:scale-105 disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-ring data-[active=true]:ring-offset-2"
+                          style={{ background: `var(--lagoon-${t})` }}
+                        />
+                      ))}
+                      {label.trim() ? (
+                        <Badge variant="secondary" className="ml-1 max-w-32 truncate">
+                          {label.trim()}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <Field>
+                      <FieldLabel>Priority</FieldLabel>
+                      <Select
+                        value={task.priority}
+                        onValueChange={(v) => void handlePriority(v as Task["priority"])}
+                        disabled={!canWrite}
+                      >
+                        <SelectTrigger aria-label="Priority" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="critical">Critical</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
+                  <div className="grid content-start gap-3">
+                    <Field>
+                      <FieldLabel>Member</FieldLabel>
+                      <AvatarGroup>
+                        <button
+                          type="button"
+                          aria-label="Unassigned"
+                          title="Unassigned"
+                          onClick={() => void handleMember(null)}
+                          disabled={!canWrite}
+                          data-active={task.assigneeId === null}
+                          className="grid size-8 place-items-center rounded-full text-[10px] font-semibold text-white transition-opacity disabled:opacity-50"
+                          style={{ background: "var(--lagoon-muted-fg)", opacity: task.assigneeId === null ? 1 : 0.6 }}
+                        >
+                          –
+                        </button>
+                        {members.slice(0, 8).map((m) => {
+                          const display = m.name ?? m.email ?? m.userId.slice(0, 4);
+                          const active = task.assigneeId === m.userId;
+                          return (
+                            <Avatar
+                              key={m.userId}
+                              title={display}
+                              data-active={active}
+                              className="cursor-pointer"
+                              style={{
+                                background: lagoonAvatarTone(m.userId),
+                                opacity: active || task.assigneeId === null ? 1 : 0.6,
+                              }}
+                              onClick={() => void handleMember(m.userId)}
+                              aria-disabled={!canWrite}
+                            >
+                              <AvatarFallback className="bg-transparent text-[10px] font-semibold text-white">
+                                {lagoonInitials(display)}
+                              </AvatarFallback>
+                            </Avatar>
+                          );
+                        })}
+                      </AvatarGroup>
+                      {assignee ? (
+                        <p className="text-xs text-muted-foreground">{assignee.name ?? assignee.email}</p>
+                      ) : null}
+                    </Field>
+                    <Field>
+                      <FieldLabel>Due date</FieldLabel>
+                      <DatePicker
+                        value={dueDate}
+                        disabled={!canWrite}
+                        onSelect={(d) => {
+                          if (!d) {
+                            void handleDue("");
+                            return;
+                          }
+                          const m = String(d.getMonth() + 1).padStart(2, "0");
+                          const day = String(d.getDate()).padStart(2, "0");
+                          void handleDue(`${d.getFullYear()}-${m}-${day}`);
+                        }}
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </div>
+
+          <Field>
+            <FieldLabel>
+              Checklist{checklist.length > 0 ? ` · ${doneCount}/${checklist.length}` : ""}
+            </FieldLabel>
+            <div className="flex flex-col gap-0.5">
               {checklist.map((item) => (
-                <label key={item.id} className={cx("lagoon-check-row", item.done && "is-done")}>
-                  <input
-                    type="checkbox"
+                <label
+                  key={item.id}
+                  data-done={item.done}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted data-[done=true]:text-muted-foreground data-[done=true]:[&>span]:line-through"
+                >
+                  <Checkbox
                     checked={item.done}
                     disabled={!canWrite}
-                    onChange={() =>
+                    onCheckedChange={() =>
                       persistChecklist(
                         checklist.map((c) => (c.id === item.id ? { ...c, done: !c.done } : c)),
                       )
@@ -347,78 +412,82 @@ export function LagoonCardModal({
               ))}
             </div>
             {canWrite ? (
-              <form onSubmit={handleAddCheck} style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                <input
-                  name="checkItem"
-                  aria-label="New checklist item"
-                  className="lagoon-input"
-                  placeholder="Add an item"
-                />
-                <button type="submit" className="lagoon-btn-secondary">Add</button>
+              <form onSubmit={handleAddCheck} className="mt-1.5 flex gap-1.5">
+                <Input name="checkItem" aria-label="New checklist item" placeholder="Add an item" />
+                <Button type="submit" variant="secondary">
+                  Add
+                </Button>
               </form>
             ) : null}
-          </div>
+          </Field>
 
-          <div>
-            <p className="lagoon-field-label">Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <Field>
+            <FieldLabel>Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</FieldLabel>
+            <div className="flex flex-col gap-1.5">
               {commentsQ.isLoading ? (
-                <p style={{ fontSize: 12, color: "var(--lagoon-muted-fg)" }}>Loading comments…</p>
+                <p className="text-xs text-muted-foreground">Loading comments…</p>
               ) : comments.length === 0 ? (
-                <p style={{ fontSize: 12, color: "var(--lagoon-muted-fg)" }}>No comments yet.</p>
+                <p className="text-xs text-muted-foreground">No comments yet.</p>
               ) : (
                 comments.map((c) => (
-                  <div key={c.id} className="lagoon-comment">
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600 }}>
+                  <div key={c.id} className="rounded-lg border bg-muted/40 px-3 py-2 text-xs">
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="text-[11px] font-semibold">
                         {names.get(c.authorId) ?? "Someone"}
                       </span>
-                      <span style={{ fontSize: 10, color: "var(--lagoon-muted-fg)" }}>
+                      <span className="text-[10px] text-muted-foreground">
                         {new Date(c.createdAt).toLocaleString()}
                       </span>
                       {canWrite ? (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
                           aria-label="Delete comment"
                           onClick={() => void handleDeleteComment(c.id)}
-                          style={{ marginLeft: "auto", color: "var(--lagoon-muted-fg)" }}
+                          className="ml-auto text-muted-foreground"
                         >
                           <IconTrash size={12} />
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
-                    <p style={{ whiteSpace: "pre-wrap" }}>{c.body}</p>
+                    <p className="whitespace-pre-wrap">{c.body}</p>
                   </div>
                 ))
               )}
             </div>
             {canWrite ? (
-              <form onSubmit={handleAddComment} style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                <input
+              <form onSubmit={handleAddComment} className="mt-1.5 flex gap-1.5">
+                <Input
                   aria-label="Write a comment"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  className="lagoon-input"
                   placeholder="Write a comment…"
                 />
-                <button type="submit" className="lagoon-btn-secondary" disabled={!commentText.trim()}>
+                <Button type="submit" variant="secondary" disabled={!commentText.trim()}>
                   Send
-                </button>
+                </Button>
               </form>
             ) : null}
-          </div>
+          </Field>
 
-          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid var(--lagoon-border)", paddingTop: 12 }}>
+          <Separator />
+
+          <DialogFooter className="flex-row items-center justify-between border-0 bg-transparent p-0 pt-4 sm:justify-between">
             {canWrite ? (
-              <button className="lagoon-btn-danger" onClick={() => onDelete(task)}>
+              <Button variant="destructive" onClick={() => onDelete(task)}>
                 <IconTrash size={14} /> Delete card
-              </button>
-            ) : <span />}
-            <button className="lagoon-btn" onClick={() => void handleDone()} disabled={saving}>
+              </Button>
+            ) : (
+              <span />
+            )}
+            <Button onClick={() => void handleDone()} disabled={saving}>
               {saving ? "Saving…" : "Done"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            </Button>
+          </DialogFooter>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+    ) : null}
+  </AnimatePresence>
   );
 }
