@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback } from "react";
-import { api, type Task, type Comment, type Project, type Team, type PaginatedResponse } from "./api";
+import { api, type Task, type Comment, type Project, type Team, type Notification, type Member, type Webhook, type ApiKey, type PaginatedResponse } from "./api";
 import { useSWR } from "./swr";
 import { getCurrentTenantId } from "./api";
-import type { TaskStatus, Priority } from "./utils";
+import type { TaskStatus, Priority, Role } from "./utils";
 
 function getTenantId(): string {
   return getCurrentTenantId() ?? "";
@@ -12,11 +12,9 @@ function getTenantId(): string {
 
 export function useCreateProject() {
   const { mutate: mutateProjects } = useSWR<{ projects: Project[] }>("/projects", () => ({ projects: [] }));
-  const { mutate: mutateTeams } = useSWR<{ teams: Team[] }>("/teams", () => ({ teams: [] }));
 
   return useCallback(
     async (data: { teamId?: string; name: string; key: string }) => {
-      const tenantId = getTenantId();
       const result = await api.projects.create(data);
       
       await mutateProjects(
@@ -78,6 +76,7 @@ export function useUpdateTask() {
 
   return useCallback(
     async (taskId: string, data: Partial<Task>, projectId: string) => {
+      void projectId;
       const result = await api.tasks.update(taskId, data);
       
       await mutateTasks(
@@ -104,7 +103,7 @@ export function useDeleteTask() {
   );
 
   return useCallback(
-    async (taskId: string, projectId: string) => {
+    async (taskId: string) => {
       const result = await api.tasks.delete(taskId);
       
       await mutateTasks(
@@ -155,7 +154,7 @@ export function useDeleteComment() {
 }
 
 export function useMarkNotificationRead() {
-  const { mutate: mutateNotifications } = useSWR<PaginatedResponse<any>>(
+  const { mutate: mutateNotifications } = useSWR<PaginatedResponse<Notification>>(
     `/notifications`,
     () => ({ data: [], nextCursor: null, hasMore: false })
   );
@@ -169,7 +168,7 @@ export function useMarkNotificationRead() {
           if (!current) return { data: [], nextCursor: null, hasMore: false };
           return {
             ...current,
-            data: current.data.map((n: any) => (n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n)),
+            data: current.data.map((n: Notification) => (n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n)),
           };
         },
         { revalidate: false }
@@ -182,17 +181,17 @@ export function useMarkNotificationRead() {
 }
 
 export function useInviteMember() {
-  const { mutate: mutateMembers } = useSWR<{ members: any[] }>(
+  const { mutate: mutateMembers } = useSWR<{ members: Member[] }>(
     `/members`,
     () => ({ members: [] })
   );
 
   return useCallback(
-    async (orgId: string, email: string, role: string) => {
-      const result = await api.orgs.invite(orgId, { email, role: role as any });
+    async (orgId: string, email: string, role: Role) => {
+      const result = await api.orgs.invite(orgId, { email, role });
       
       await mutateMembers(
-        (current) => current ? { members: [...current.members, { email, role, status: "invited" }] } : { members: [{ email, role, status: "invited" }] },
+        (current) => current ? { members: [...current.members, { userId: email, name: null, email, role, status: "invited" as const }] } : { members: [{ userId: email, name: null, email, role, status: "invited" as const }] },
         { revalidate: false }
       );
       
@@ -203,21 +202,21 @@ export function useInviteMember() {
 }
 
 export function useUpdateMemberRole() {
-  const { mutate: mutateMembers } = useSWR<{ members: any[] }>(
+  const { mutate: mutateMembers } = useSWR<{ members: Member[] }>(
     `/members`,
     () => ({ members: [] })
   );
 
   return useCallback(
-    async (orgId: string, userId: string, role: string) => {
-      const result = await api.orgs.updateMemberRole(orgId, userId, role as any);
+    async (orgId: string, userId: string, role: Role) => {
+      const result = await api.orgs.updateMemberRole(orgId, userId, role);
       
       await mutateMembers(
         (current) => {
           if (!current) return { members: [] };
           return {
             ...current,
-            members: current.members.map((m: any) => (m.userId === userId ? { ...m, role } : m)),
+            members: current.members.map((m: Member) => (m.userId === userId ? { ...m, role } : m)),
           };
         },
         { revalidate: false }
@@ -230,7 +229,7 @@ export function useUpdateMemberRole() {
 }
 
 export function useDeactivateMember() {
-  const { mutate: mutateMembers } = useSWR<{ members: any[] }>(
+  const { mutate: mutateMembers } = useSWR<{ members: Member[] }>(
     `/members`,
     () => ({ members: [] })
   );
@@ -244,7 +243,7 @@ export function useDeactivateMember() {
           if (!current) return { members: [] };
           return {
             ...current,
-            members: current.members.map((m: any) => (m.userId === userId ? { ...m, status: "deactivated" } : m)),
+            members: current.members.map((m: Member) => (m.userId === userId ? { ...m, status: "deactivated" as const } : m)),
           };
         },
         { revalidate: false }
@@ -257,7 +256,7 @@ export function useDeactivateMember() {
 }
 
 export function useCreateWebhook() {
-  const { mutate: mutateWebhooks } = useSWR<{ webhooks: any[] }>(
+  const { mutate: mutateWebhooks } = useSWR<{ webhooks: Webhook[] }>(
     `/webhooks`,
     () => ({ webhooks: [] })
   );
@@ -287,7 +286,7 @@ export function useRotateWebhookSecret() {
 }
 
 export function useCreateApiKey() {
-  const { mutate: mutateApiKeys } = useSWR<{ apiKeys: any[] }>(
+  const { mutate: mutateApiKeys } = useSWR<{ apiKeys: ApiKey[] }>(
     `/api-keys`,
     () => ({ apiKeys: [] })
   );
@@ -308,7 +307,7 @@ export function useCreateApiKey() {
 }
 
 export function useRevokeApiKey() {
-  const { mutate: mutateApiKeys } = useSWR<{ apiKeys: any[] }>(
+  const { mutate: mutateApiKeys } = useSWR<{ apiKeys: ApiKey[] }>(
     `/api-keys`,
     () => ({ apiKeys: [] })
   );
@@ -322,7 +321,7 @@ export function useRevokeApiKey() {
           if (!current) return { apiKeys: [] };
           return {
             ...current,
-            apiKeys: current.apiKeys.map((k: any) => (k.id === id ? { ...k, revokedAt: new Date().toISOString() } : k)),
+            apiKeys: current.apiKeys.map((k: ApiKey) => (k.id === id ? { ...k, revokedAt: new Date().toISOString() } : k)),
           };
         },
         { revalidate: false }

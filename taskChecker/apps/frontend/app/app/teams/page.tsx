@@ -63,7 +63,7 @@ export default function TeamsPage() {
     orgId ? `teams-projects-${orgId}` : null,
     () => api.projects.list(orgId!),
   );
-  const teams = teamsQ.data?.teams ?? [];
+  const teams = useMemo(() => teamsQ.data?.teams ?? [], [teamsQ.data]);
   const projects = projectsQ.data?.projects ?? [];
 
   const handleCreate = async () => {

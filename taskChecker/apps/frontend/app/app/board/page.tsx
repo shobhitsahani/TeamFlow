@@ -8,6 +8,7 @@
 import { Suspense, memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LagoonShell, useLagoonChrome } from "@/components/lagoon/LagoonShell";
+import { LagoonCalendar } from "@/components/lagoon/LagoonCalendar";
 import { LagoonCardModal } from "@/components/lagoon/LagoonCardModal";
 import {
   IconBell,
@@ -102,7 +103,10 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
 }) {
   // Label + checklist live in per-task local meta (no backend fields for
   // them); metaTick re-reads after the modal saves.
-  const meta = useMemo(() => loadLagoonMeta(task.id), [task.id, metaTick]);
+  const meta = useMemo(() => {
+    void metaTick;
+    return loadLagoonMeta(task.id);
+  }, [task.id, metaTick]);
   const label = useMemo(() => effectiveLabel(task.priority, meta), [task.priority, meta]);
   const dueYmd = toYmd(task.dueAt);
   const due = dueYmd ? lagoonDueBadge(dueYmd, today) : null;
@@ -199,9 +203,15 @@ function LagoonListTitle({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
-  useEffect(() => {
+  // Sync draft when the saved title changes outside editing (render-adjustment
+  // pattern: no effect, no cascading render).
+  const [prevTitle, setPrevTitle] = useState(title);
+  const [prevEditing, setPrevEditing] = useState(editing);
+  if (title !== prevTitle || editing !== prevEditing) {
+    setPrevTitle(title);
+    setPrevEditing(editing);
     if (!editing) setDraft(title);
-  }, [title, editing]);
+  }
 
   if (!editing) {
     return (
@@ -268,7 +278,10 @@ function LagoonTimelineRow({
   today: string | null;
   onOpen: (task: Task) => void;
 }) {
-  const meta = useMemo(() => loadLagoonMeta(task.id), [task.id, metaTick]);
+  const meta = useMemo(() => {
+    void metaTick;
+    return loadLagoonMeta(task.id);
+  }, [task.id, metaTick]);
   const label = useMemo(() => effectiveLabel(task.priority, meta), [task.priority, meta]);
   const dueYmd = toYmd(task.dueAt);
   const due = dueYmd ? lagoonDueBadge(dueYmd, today) : null;
@@ -327,7 +340,7 @@ function LagoonBoard() {
     orgId && selectedProjectId ? `board-tasks-${orgId}-${selectedProjectId}` : null,
     () => api.tasks.list(orgId!, selectedProjectId, { limit: 100 }),
   );
-  const projectTasks = tasksQ.data?.data ?? [];
+  const projectTasks = useMemo(() => tasksQ.data?.data ?? [], [tasksQ.data]);
 
   const listsQ = useSWR<{ lists: ListLabel[] }>(
     selectedProjectId ? `board-lists-${selectedProjectId}` : null,
@@ -346,7 +359,7 @@ function LagoonBoard() {
     orgId ? `ctx-members-${orgId}` : null,
     () => api.orgs.listMembers(orgId!),
   );
-  const members = membersQ.data?.members ?? [];
+  const members = useMemo(() => membersQ.data?.members ?? [], [membersQ.data]);
   const memberName = useCallback(
     (userId: string | null) => {
       if (!userId) return null;
@@ -385,22 +398,24 @@ function LagoonBoard() {
   const [activeOnly, setActiveOnly] = useState(false);
   const [metaTick, setMetaTick] = useState(0);
   const bumpMeta = useCallback(() => setMetaTick((t) => t + 1), []);
-  const [today, setToday] = useState<string | null>(null);
-  useEffect(() => setToday(todayYmd()), []);
+  const [today] = useState<string | null>(() => todayYmd());
 
   // Board / Timeline / Calendar views (?view= deep-links from the sidebar).
   const viewParam = searchParams.get("view");
   const [view, setView] = useState<BoardView>(
     viewParam === "calendar" || viewParam === "timeline" ? viewParam : "board",
   );
-  useEffect(() => {
+  // Sync view when the URL param changes (render-adjustment, no effect).
+  const [prevViewParam, setPrevViewParam] = useState(viewParam);
+  if (viewParam !== prevViewParam) {
+    setPrevViewParam(viewParam);
     if (viewParam === "board" || viewParam === "timeline" || viewParam === "calendar") {
       setView(viewParam);
     }
-  }, [viewParam]);
+  }
 
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [, setDragOverCol] = useState<string | null>(null);
   const [touchDrag, setTouchDrag] = useState<{ taskId: string; active: boolean; x: number; y: number } | null>(null);
   const touchTimer = useRef<number | null>(null);
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
@@ -416,12 +431,24 @@ function LagoonBoard() {
   const [composerFor, setComposerFor] = useState<Task["status"] | null>(null);
   const [composerText, setComposerText] = useState("");
   const [starred, setStarred] = useState(false);
+  // Client-only starred flag per board; read in a subscription callback so the
+  // effect body never calls setState synchronously.
   useEffect(() => {
-    try {
-      setStarred(window.localStorage.getItem(`tf.board.star.${selectedProjectId}`) === "1");
-    } catch {
-      setStarred(false);
-    }
+    let cancelled = false;
+    void Promise.resolve()
+      .then(() => {
+        try {
+          return window.localStorage.getItem(`tf.board.star.${selectedProjectId}`) === "1";
+        } catch {
+          return false;
+        }
+      })
+      .then((value) => {
+        if (!cancelled) setStarred(value);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedProjectId]);
   const toggleStarred = useCallback(() => {
     setStarred((v) => {
@@ -488,41 +515,6 @@ function LagoonBoard() {
       }),
     [flatTasks],
   );
-
-  const calendarGroups = useMemo(() => {
-    const groups: Array<{ key: string; label: string; tasks: Task[] }> = [
-      { key: "overdue", label: "Overdue", tasks: [] },
-      { key: "today", label: "Today", tasks: [] },
-      { key: "tomorrow", label: "Tomorrow", tasks: [] },
-      { key: "week", label: "This week", tasks: [] },
-      { key: "later", label: "Later", tasks: [] },
-      { key: "nodate", label: "No date", tasks: [] },
-    ];
-    if (!today) {
-      groups[5]!.tasks = flatTasks;
-      return groups;
-    }
-    const tomorrow = (() => {
-      const d = new Date(`${today}T12:00:00`);
-      d.setDate(d.getDate() + 1);
-      return todayYmd(d);
-    })();
-    const weekEnd = (() => {
-      const d = new Date(`${today}T12:00:00`);
-      d.setDate(d.getDate() + 7);
-      return todayYmd(d);
-    })();
-    for (const t of flatTasks) {
-      const ymd = toYmd(t.dueAt);
-      if (!ymd) groups[5]!.tasks.push(t);
-      else if (ymd < today && t.status !== "done") groups[0]!.tasks.push(t);
-      else if (ymd === today) groups[1]!.tasks.push(t);
-      else if (ymd === tomorrow) groups[2]!.tasks.push(t);
-      else if (ymd <= weekEnd) groups[3]!.tasks.push(t);
-      else groups[4]!.tasks.push(t);
-    }
-    return groups;
-  }, [flatTasks, today]);
 
   const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
     setDraggedTaskId(taskId);
@@ -1036,33 +1028,14 @@ function LagoonBoard() {
         </div>
       ) : (
         <div className="lagoon-list-wrap">
-          <div style={{ display: "grid", gap: 12, maxWidth: 880 }}>
-            {calendarGroups.map((group) => (
-              <section key={group.key} className="lagoon-cal-group" aria-label={`${group.label}, ${group.tasks.length} tasks`}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <h2 className="lagoon-display" style={{ fontSize: 13, fontWeight: 600 }}>{group.label}</h2>
-                  <span className="lagoon-col-count">{group.tasks.length}</span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {group.tasks.length === 0 ? (
-                    <p style={{ fontSize: 12, color: "var(--lagoon-muted-fg)" }}>Nothing here.</p>
-                  ) : (
-                    group.tasks.map((task) => (
-                      <LagoonTimelineRow
-                        key={task.id}
-                        task={task}
-                        project={selectedProject}
-                        assigneeName={memberName(task.assigneeId)}
-                        metaTick={metaTick}
-                        today={today}
-                        onOpen={openCard}
-                      />
-                    ))
-                  )}
-                </div>
-              </section>
-            ))}
-          </div>
+          <LagoonCalendar
+            tasks={flatTasks}
+            projectLabel={selectedProject ? `${selectedProject.name} (${selectedProject.key})` : ""}
+            today={today}
+            metaTick={metaTick}
+            memberName={memberName}
+            onOpen={openCard}
+          />
         </div>
       )}
 

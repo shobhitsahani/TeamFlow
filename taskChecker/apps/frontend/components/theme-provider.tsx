@@ -57,13 +57,12 @@ function applyTheme(t: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Start light to match SSR; correct on mount (layout inline script
-  // already set the class pre-paint, this just syncs React state).
-  const [theme, setThemeState] = useState<Theme>("light");
-
-  useEffect(() => {
-    setThemeState(getStoredTheme() ?? getSystemTheme());
-  }, []);
+  // Start from the client-only source when available; SSR falls back to light
+  // (layout inline script already set the class pre-paint, this syncs state).
+  // Lazy initializer — no mount effect, no cascading render.
+  const [theme, setThemeState] = useState<Theme>(() =>
+    typeof window === "undefined" ? "light" : (getStoredTheme() ?? getSystemTheme()),
+  );
 
   useEffect(() => {
     applyTheme(theme);

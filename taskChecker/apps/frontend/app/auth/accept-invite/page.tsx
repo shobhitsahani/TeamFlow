@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { IconMail, IconLock, IconUser, IconEye, IconEyeOff, IconFlowMark, IconArrowRight, IconCheck, IconAlertCircle } from "@/components/icons";
+import { IconLock, IconUser, IconEye, IconEyeOff, IconFlowMark, IconArrowRight, IconCheck, IconAlertCircle } from "@/components/icons";
 import { api } from "@/lib/api";
 import { cx } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -102,7 +102,7 @@ function AcceptInviteForm() {
     );
   }
 
-  const expired = preview ? new Date(preview.expiresAt).getTime() < Date.now() : false;
+  const expired = preview ? new Date(preview.expiresAt).getTime() < new Date().getTime() : false;
 
   return (
     <div className="auth-page">

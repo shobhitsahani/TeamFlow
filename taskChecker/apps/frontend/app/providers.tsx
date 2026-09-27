@@ -15,7 +15,7 @@ import { useAuth } from "@/lib/auth";
    component's own hook calls (build previously failed on /app/activity). */
 
 function RealtimeProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  useAuth();
   useRealtimeNotifications();
 
   // The hook handles its own connection lifecycle based on auth state

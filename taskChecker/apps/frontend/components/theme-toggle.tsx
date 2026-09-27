@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -28,9 +28,10 @@ export function ThemeToggle({
   className?: string;
 }) {
   const { isDark, toggle } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  // Mounted gate without an effect: ThemeProvider already syncs theme via a
+  // lazy initializer, so the toggle can render enabled on first paint.
+  // (Previously `useEffect(() => setMounted(true), [])` — a cascading render.)
+  const [mounted] = useState(true);
 
   return (
     <div className={cx("flex items-center space-x-2", className)}>

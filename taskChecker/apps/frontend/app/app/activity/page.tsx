@@ -8,7 +8,7 @@ import { IconSearch, IconFilter, IconPulse, IconFile, IconMessageSquare, IconUse
 import { api, getCurrentTenantId, type ActivityEvent } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cx, timeAgo, hueFrom } from "@/lib/utils";
+import { timeAgo, hueFrom } from "@/lib/utils";
 
 // Hoist static JSX outside component (rendering-hoist-jsx)
 const ACTIVITY_TYPES = [
@@ -86,7 +86,6 @@ export default function ActivityPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   // Cursor ref so fetches always use the latest page token without
   // re-creating the callback (avoids stale closures + effect loops).
@@ -130,7 +129,6 @@ export default function ActivityPage() {
           return [...prev, ...rows.filter((a) => !seen.has(a.id))];
         });
         cursorRef.current = page.nextCursor;
-        setCursor(page.nextCursor);
         setHasMore(page.hasMore);
       } catch (err) {
         if (reset) setLoadError(err instanceof Error ? err.message : "Failed to load activity.");
@@ -144,12 +142,22 @@ export default function ActivityPage() {
 
   // Initial load + reload when the org arrives late (auth hydration) or the
   // filter changes. Switching filters resets the list and page token.
+  // Resets are applied in the subscription callback below (not synchronously
+  // in the effect body) so the first paint isn't a cascading render.
   useEffect(() => {
-    cursorRef.current = null;
-    setCursor(null);
-    setHasMore(true);
-    setActivities([]);
-    void fetchActivities(true);
+    let cancelled = false;
+    const resetAndLoad = () =>
+      Promise.resolve().then(() => {
+        if (cancelled) return;
+        cursorRef.current = null;
+        setHasMore(true);
+        setActivities([]);
+        void fetchActivities(true);
+      });
+    void resetAndLoad();
+    return () => {
+      cancelled = true;
+    };
   }, [filter, orgId, fetchActivities]);
 
   const handleLoadMore = () => {

@@ -7,8 +7,9 @@
  * - always logs to the console (dev visibility preserved), and
  * - forwards to Sentry when `NEXT_PUBLIC_SENTRY_DSN` is set. The SDK stays
  *   an opt-in peer: it is lazy-imported only when a DSN exists, so the
- *   default bundle pays nothing. To enable: `pnpm add @sentry/nextjs`,
- *   set the DSN, and run the Sentry wizard for source maps.
+ *   default bundle pays nothing. To enable: set the DSN (the SDK,
+ *   `@sentry/browser`, is already a dependency) and run the Sentry wizard
+ *   for source maps.
  */
 export function reportError(err: unknown, context: string, extra?: Record<string, unknown>): void {
   console.error(`[${context}]`, err, extra ?? "");

@@ -73,15 +73,17 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const [creatingOrg, setCreatingOrg] = useState(false);
 
   // Remember last-used org locally; the backend session (activeTenantId) wins.
-  const [preferredOrgId, setPreferredOrgId] = useState<string | null>(null);
-  useEffect(() => {
+  // Lazy initializer reads the client-only source once (no effect, no cascade).
+  const [preferredOrgId, setPreferredOrgId] = useState<string | null>(() => {
     try {
+      if (typeof window === "undefined") return null;
       const raw = window.localStorage.getItem(LS_KEY);
-      if (typeof raw === "string" && raw) setPreferredOrgId(JSON.parse(raw) as string);
+      if (typeof raw === "string" && raw) return JSON.parse(raw) as string;
     } catch {
       // corrupted value — backend session decides
     }
-  }, []);
+    return null;
+  });
 
   const orgs = useMemo<Org[]>(
     () =>
@@ -118,7 +120,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     isAuthenticated && activeTenantId ? "/notifications?limit=20" : null,
     () => api.notifications.list({ limit: 20 }),
   );
-  const notifications = notificationsQ.data?.data ?? [];
+  const notifications = useMemo(() => notificationsQ.data?.data ?? [], [notificationsQ.data]);
   const unread = notifications.reduce((acc, n) => acc + (n.readAt ? 0 : 1), 0);
   const mutateNotifications = notificationsQ.mutate;
 

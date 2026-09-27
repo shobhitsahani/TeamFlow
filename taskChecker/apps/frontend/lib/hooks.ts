@@ -2,9 +2,9 @@
 
 import { useCallback, useMemo } from "react";
 import { useSWR, useSWRInfinite } from "./swr";
-import { api, type Task, type Comment, type Project, type Team, type Notification, type ActivityEvent, type Webhook, type Delivery, type ApiKey, type AuditLog, type Usage, type SearchResult, type Attachment, type PaginatedResponse } from "./api";
+import { api, type Task, type Comment, type Project, type Team, type Notification, type ActivityEvent, type Webhook, type Delivery, type ApiKey, type AuditLog, type SearchResult, type PaginatedResponse } from "./api";
 import { getCurrentTenantId } from "./api";
-import type { TaskStatus, Priority, Role } from "./utils";
+import type { TaskStatus, Role } from "./utils";
 
 function getTenantPrefix(): string {
   const tenantId = getCurrentTenantId();
@@ -103,7 +103,7 @@ export function useTasks(projectId: string | null, params?: { status?: TaskStatu
 export function useTask(taskId: string | null) {
   return useSWR<{ task: Task }>(
     taskId ? `/tasks/${taskId}` : null,
-    () => taskId ? api.tasks.get(taskId) : Promise.resolve({ task: null as any })
+    () => taskId ? api.tasks.get(taskId) : Promise.resolve({ task: null as unknown as Task })
   );
 }
 
@@ -203,7 +203,7 @@ export function useSearch(q: string, type?: "task" | "comment" | "all", limit?: 
   );
 }
 
-export function useInfiniteTasks(projectId: string | null, params?: { status?: string; limit?: number }) {
+export function useInfiniteTasks(projectId: string | null, params?: { status?: TaskStatus; limit?: number }) {
   const tenantPrefix = getTenantPrefix();
   
   const getKey = useCallback(
@@ -218,7 +218,7 @@ export function useInfiniteTasks(projectId: string | null, params?: { status?: s
 
   return useSWRInfinite<PaginatedResponse<Task>>(
     getKey,
-    (key) => api.tasks.list(tenantPrefix.replace("/orgs/", ""), projectId!, { cursor: new URL(key).searchParams.get("cursor") ?? undefined, status: params?.status as any, limit: params?.limit })
+    (key) => api.tasks.list(tenantPrefix.replace("/orgs/", ""), projectId!, { cursor: new URL(key).searchParams.get("cursor") ?? undefined, status: params?.status, limit: params?.limit })
   );
 }
 
@@ -229,7 +229,7 @@ export function useInfiniteTasks(projectId: string | null, params?: { status?: s
 export function useTaskDetail(taskId: string | null) {
   const task = useSWR<{ task: Task }>(
     taskId ? `/tasks/${taskId}` : null,
-    () => taskId ? api.tasks.get(taskId) : Promise.resolve({ task: null as any })
+    () => taskId ? api.tasks.get(taskId) : Promise.resolve({ task: null as unknown as Task })
   );
   
   const comments = useSWR<PaginatedResponse<Comment>>(

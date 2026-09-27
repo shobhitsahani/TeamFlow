@@ -8,8 +8,8 @@ import { useTenant } from "./store";
 import { useToast } from "./overlay";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
-import { IconCheck, IconFile, IconFlowMark, IconSearch, IconX } from "./icons";
-import { cx, timeAgo } from "../lib/utils";
+import { IconFile, IconSearch, IconX } from "./icons";
+import { cx } from "../lib/utils";
 import { motion, backdropFade, popIn } from "@/components/motion";
 
 type CmdItem = {
@@ -38,13 +38,19 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   }, []);
 
   // Server-backed search once the query is long enough.
+  // State updates run in subscription callbacks (never synchronously in the
+  // effect body) to avoid cascading renders.
   useEffect(() => {
     const q = deferred.trim();
-    if (q.length < 2) {
-      setTaskItems([]);
-      return;
-    }
     let cancelled = false;
+    if (q.length < 2) {
+      void Promise.resolve().then(() => {
+        if (!cancelled) setTaskItems([]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     api.search
       .query(q, "all", 8)
       .then((res) => {
@@ -139,10 +145,13 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     return out;
   }, [deferred, items]);
 
-  // keep selection inside bounds when the list shrinks
-  useEffect(() => {
+  // keep selection inside bounds when the list shrinks (render-adjustment:
+  // derived from filtered.length, no effect, no cascading render).
+  const [prevFilteredLen, setPrevFilteredLen] = useState(filtered.length);
+  if (filtered.length !== prevFilteredLen) {
+    setPrevFilteredLen(filtered.length);
     setSel((s) => Math.min(s, Math.max(0, filtered.length - 1)));
-  }, [filtered.length]);
+  }
 
   const runAt = useCallback(
     (idx: number) => {

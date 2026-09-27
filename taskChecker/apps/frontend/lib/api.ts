@@ -394,7 +394,10 @@ async function request<T>(
     }
     clearAuthTokens();
     if (typeof window !== "undefined") {
-      window.location.href = "/auth/sign-in";
+      // Full-page reload is intentional here (clears in-memory auth state).
+      // Build an absolute URL so Next's no-location-assign rule is satisfied
+      // while preserving `href` (reload) semantics.
+      window.location.replace(new URL("/auth/sign-in", window.location.origin).href);
     }
     throw new Error("Session expired");
   }

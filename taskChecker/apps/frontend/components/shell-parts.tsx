@@ -36,7 +36,7 @@ import { api, getCurrentTenantId, type ChatMessage, type PaginatedResponse } fro
 import { useSWR } from "../lib/swr";
 import { useRealtime } from "../lib/realtime";
 import { cx, formatChatTime, hueFrom, initials } from "../lib/utils";
-import { AnimatePresence, motion } from "@/components/motion";
+import { motion } from "@/components/motion";
 import {
   IconBell,
   IconBoard,
