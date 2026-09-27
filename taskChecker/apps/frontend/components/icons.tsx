@@ -538,8 +538,8 @@ export function IconFlowMark({ size = 16, className }: IconProps) {
   );
 }
 
-/** Trello board mark: rounded square with two white bars. */
-export function IconTrello({ size = 18, className }: IconProps) {
+/** TeamFlow board mark: rounded square with two white bars. */
+export function IconTeamFlow({ size = 18, className }: IconProps) {
   return (
     <svg
       width={size}
@@ -556,7 +556,10 @@ export function IconTrello({ size = 18, className }: IconProps) {
   );
 }
 
-/** Trello-style star (board favorite). */
+/** @deprecated Use IconTeamFlow instead. */
+export const IconTrello = IconTeamFlow;
+
+/** TeamFlow-style star (board favorite). */
 export function IconStar({ size = 16, className }: IconProps) {
   return (
     <Ico {...{ size, className }}>

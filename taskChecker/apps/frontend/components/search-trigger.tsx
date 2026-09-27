@@ -10,7 +10,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { cn } from "@/lib/utils";
 
 /* ⌘K palette trigger built on the InputGroup + Kbd pattern.
-   Looks like a search field (so it inherits the `.st-search` Trello-bar
+   Looks like a search field (so it inherits the `.st-search` TeamFlow-bar
    styling) but focuses/opens the command palette instead of typing. */
 export function PaletteSearchTrigger({
   onOpen,

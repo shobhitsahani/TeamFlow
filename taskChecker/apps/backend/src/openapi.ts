@@ -17,7 +17,7 @@ export const openApiDoc = {
     title: "TeamFlow API",
     version: "1.0.0",
     description:
-      "Multi-tenant Trello-like SaaS with team chat. Versioning: URL prefix (/v1) + `API-Version` response header. " +
+      "Multi-tenant TeamFlow SaaS with team chat. Versioning: URL prefix (/v1) + `API-Version` response header. " +
       "Breaking changes introduce /v2; deprecated v1 fields get `deprecated: true` plus `Sunset`/`Deprecation` headers " +
       "with ≥90 days notice — v1 behavior is never silently mutated.",
   },
