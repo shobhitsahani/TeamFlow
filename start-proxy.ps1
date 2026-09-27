@@ -1,7 +1,38 @@
 # LiteLLM Proxy Starter for Claude Code
 # Routes Claude Code -> Groq (Free) / Gemini (Free) / OpenRouter (Free)
+# Secrets come from .env (git-ignored) — never commit literal keys.
+# Required: GROQ_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY (see .env.example)
 
 $env:Path += ";C:\Users\shobh\AppData\Roaming\Python\Python314\Scripts"
+
+# Load .env next to this script so `os.environ/*` in litellm_config.yaml resolves.
+$envFile = Join-Path $PSScriptRoot ".env"
+if (Test-Path -LiteralPath $envFile) {
+  Get-Content -LiteralPath $envFile | ForEach-Object {
+    $line = $_.Trim()
+    if ($line -eq "" -or $line.StartsWith("#")) { return }
+    $idx = $line.IndexOf("=")
+    if ($idx -gt 0) {
+      $k = $line.Substring(0, $idx).Trim()
+      $v = $line.Substring($idx + 1).Trim()
+      if ($v.Length -ge 2 -and (($v.StartsWith('"') -and $v.EndsWith('"')) -or ($v.StartsWith("'") -and $v.EndsWith("'")))) {
+        $v = $v.Substring(1, $v.Length - 2)
+      }
+      if (-not [string]::IsNullOrEmpty($k) -and $null -eq (Get-Item "Env:$k" -ErrorAction SilentlyContinue)) {
+        Set-Item -Path "Env:$k" -Value $v
+      }
+    }
+  }
+  Write-Host "Loaded secrets from .env (git-ignored)." -ForegroundColor DarkGray
+} else {
+  Write-Host "WARNING: .env not found — copy .env.example to .env and fill in rotated keys." -ForegroundColor Yellow
+}
+
+foreach ($k in @("GROQ_API_KEY", "GEMINI_API_KEY", "OPENROUTER_API_KEY")) {
+  if ([string]::IsNullOrEmpty((Get-Item "Env:$k" -ErrorAction SilentlyContinue).Value)) {
+    Write-Host "WARNING: $k is unset — that route will fail. Set it in .env." -ForegroundColor Yellow
+  }
+}
 
 Write-Host "Starting LiteLLM proxy on http://localhost:4000 ..." -ForegroundColor Cyan
 Write-Host "Models available:" -ForegroundColor Green
