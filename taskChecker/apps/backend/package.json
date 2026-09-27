@@ -13,15 +13,11 @@
     "test": "bun test",
     "test:integration": "TEAMFLOW_IT=1 bun test test/integration.test.ts",
     "db:migrate": "bun src/db/migrate.ts",
-    "db:seed": "bun src/db/seed.ts",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "db:seed": "bun src/db/seed.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",
     "@hono/node-ws": "^1.1.0",
-    "@prisma/client": "^6.4.1",
     "@supabase/supabase-js": "^2.116.0",
     "bullmq": "^5.34.0",
     "drizzle-orm": "^0.44.0",
@@ -39,7 +35,6 @@
     "@types/node": "^26.0.0",
     "@types/ws": "^8.18.1",
     "eslint": "10.9.1",
-    "prisma": "^6.4.1",
     "typescript": "7.0.2"
   }
 }
