@@ -597,7 +597,13 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
             </span>
           </div>
         ) : null}
-        <div className="st-chat-list">
+        <div
+          className="st-chat-list"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Team messages"
+        >
           {chatQ.isLoading ? (
             <div role="status" aria-label="Loading messages" className="st-chat-skeletons">
               {[0, 1, 2].map((i) => (

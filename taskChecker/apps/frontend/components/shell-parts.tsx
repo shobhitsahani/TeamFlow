@@ -1136,7 +1136,13 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
         <p className="st-chat-sub">
           Direct and channel discussion for {org?.name ?? "this project"} tasks and handoffs.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: 12 }}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Team messages"
+        >
           {chatQ.isLoading ? (
             <div role="status" aria-label="Loading messages" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[0, 1, 2].map((i) => (
