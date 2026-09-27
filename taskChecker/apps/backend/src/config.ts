@@ -28,6 +28,10 @@ export interface Config {
   deadlineSweepMs: number;
   webhookRetries: number;
   logLevel: string;
+  /** Resend outbound email (invite delivery). Optional: when unset, invites
+   * are manual-relay only (link + code returned to the inviter). */
+  resendApiKey?: string;
+  inviteFromEmail?: string;
 }
 
 function need(name: string, fallback?: string): string {
@@ -110,6 +114,8 @@ export function loadConfig(): Config {
     deadlineSweepMs: Number(process.env.DEADLINE_SWEEP_MS ?? 5 * 60 * 1000),
     webhookRetries: Number(process.env.WORKER_WEBHOOK_RETRIES ?? 10),
     logLevel: process.env.LOG_LEVEL ?? "info",
+    resendApiKey: process.env.RESEND_API_KEY,
+    inviteFromEmail: process.env.INVITE_FROM_EMAIL,
   };
 }
 

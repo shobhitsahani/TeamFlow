@@ -69,6 +69,26 @@ export async function lookupInvite(tokenHash: string): Promise<
   };
 }
 
+export async function lookupInviteByCode(codeHash: string): Promise<
+  { tenant_id: string; id: string; email: string; role: Role; expires_at: Date; accepted_at: Date | null } | null
+> {
+  const rows = await sql<{
+    tenant_id: string;
+    id: string;
+    email: string;
+    role: Role;
+    expires_at: Date | string;
+    accepted_at: Date | string | null;
+  }[]>`select * from lookup_invite_by_code(${codeHash})`;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    ...row,
+    expires_at: new Date(row.expires_at),
+    accepted_at: row.accepted_at ? new Date(row.accepted_at) : null,
+  };
+}
+
 export interface MembershipRow {
   tenant_id: string;
   tenant_name: string;

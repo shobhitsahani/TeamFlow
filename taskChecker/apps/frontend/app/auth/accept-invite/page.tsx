@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { IconLock, IconUser, IconEye, IconEyeOff, IconFlowMark, IconArrowRight, IconCheck, IconAlertCircle } from "@/components/icons";
+import { IconLock, IconUser, IconEye, IconEyeOff, IconFlowMark, IconArrowRight, IconCheck, IconAlertCircle, IconKey } from "@/components/icons";
 import { api } from "@/lib/api";
 import { cx } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 
 type Preview = { email: string; orgName: string; role: string; expiresAt: string };
+
+function expiredCode(preview: Preview): boolean {
+  return new Date(preview.expiresAt).getTime() < Date.now();
+}
 
 function AcceptInviteForm() {
   const searchParams = useSearchParams();
@@ -24,6 +28,10 @@ function AcceptInviteForm() {
   const [success, setSuccess] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [previewError, setPreviewError] = useState("");
+  // Join-by-code: the short code from the invite email, typed by hand.
+  const [codeInput, setCodeInput] = useState("");
+  const [resolvedCode, setResolvedCode] = useState("");
+  const [codeLoading, setCodeLoading] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -41,13 +49,36 @@ function AcceptInviteForm() {
     };
   }, [token]);
 
+  const handleCodeLookup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = codeInput.trim().toUpperCase();
+    if (!code || codeLoading) return;
+    setCodeLoading(true);
+    setPreviewError("");
+    try {
+      const res = await api.auth.previewInviteByCode(code);
+      setPreview(res.invite);
+      setResolvedCode(code);
+    } catch (err) {
+      setPreview(null);
+      setResolvedCode("");
+      setPreviewError(err instanceof Error ? err.message : "Invalid invitation code.");
+    } finally {
+      setCodeLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      await api.auth.acceptInvite(token, { name, password });
+      if (token) {
+        await api.auth.acceptInvite(token, { name, password });
+      } else {
+        await api.auth.acceptInviteByCode(resolvedCode, { name, password });
+      }
       setSuccess(true);
       // Redirect after short delay
       setTimeout(() => {
@@ -62,19 +93,113 @@ function AcceptInviteForm() {
   };
 
   if (!token) {
+    // Join-by-code: no link token — the recipient types the short code from
+    // the invite email, we preview it, then the same accept form applies.
     return (
       <div className="auth-page">
         <div className="auth-container">
           <div className="auth-brand">
             <IconFlowMark size={32} />
             <h1>TeamFlow</h1>
-            <p>This invitation link is missing its token.</p>
+            <p>Join with your invite code</p>
           </div>
-          <div className="auth-error">
-            <IconAlertCircle size={16} /> Ask the sender to copy the full invite link again.
-          </div>
+
+          {preview ? (
+            <div className={cx("invite-preview", expiredCode(preview) && "is-expired")}>
+              <p>
+                <strong>{preview.email}</strong> — invited to <strong>{preview.orgName}</strong> as{" "}
+                <strong>{preview.role}</strong>
+              </p>
+              <p className="dim">
+                {expiredCode(preview)
+                  ? "This invite has expired — ask for a fresh one."
+                  : `Invite expires ${new Date(preview.expiresAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`}
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleCodeLookup} className="auth-form">
+              {previewError && (
+                <div className="auth-error">
+                  <IconAlertCircle size={16} /> {previewError}
+                </div>
+              )}
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="invite-code">Invite code</FieldLabel>
+                  <div className="input-with-icon">
+                    <IconKey size={18} />
+                    <Input
+                      id="invite-code"
+                      type="text"
+                      value={codeInput}
+                      onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                      placeholder="ABCDEFGH"
+                      required
+                      autoComplete="one-time-code"
+                      disabled={codeLoading}
+                      maxLength={8}
+                      className="font-mono tracking-[0.2em] uppercase"
+                    />
+                  </div>
+                </Field>
+                <Button type="submit" className="btn-block auth-submit" disabled={!codeInput.trim() || codeLoading}>
+                  {codeLoading ? "Finding invite…" : "Find invite"}
+                  <IconArrowRight size={16} />
+                </Button>
+              </FieldGroup>
+            </form>
+          )}
+
+          {preview ? (
+            <form onSubmit={handleSubmit} className="auth-form">
+              {error && <div className="auth-error">{error}</div>}
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="name">Your name</FieldLabel>
+                  <div className="input-with-icon">
+                    <IconUser size={18} />
+                    <Input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Jane Doe"
+                      required
+                      autoComplete="name"
+                      disabled={loading || expiredCode(preview)}
+                    />
+                  </div>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <div className="input-with-icon">
+                    <IconLock size={18} />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="•••••••• (min 8 characters)"
+                      required
+                      autoComplete="new-password"
+                      disabled={loading || expiredCode(preview)}
+                      minLength={8}
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                      {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                    </Button>
+                  </div>
+                </Field>
+                <Button type="submit" className="btn-block auth-submit" disabled={loading || expiredCode(preview)}>
+                  {loading ? "Accepting invite…" : "Accept invite"}
+                  <IconArrowRight size={16} />
+                </Button>
+              </FieldGroup>
+            </form>
+          ) : null}
+
           <p className="auth-footer">
-            <Link href="/auth/sign-in">Back to sign in</Link>
+            Have the full link instead? Open it directly. <Link href="/auth/sign-in">Back to sign in</Link>
           </p>
         </div>
       </div>
@@ -184,6 +309,8 @@ function AcceptInviteForm() {
 
         <p className="auth-footer">
           Already have an account? <Link href="/auth/sign-in">Sign in instead</Link>
+          {" · "}
+          <Link href="/auth/accept-invite">Have a code instead?</Link>
         </p>
       </div>
     </div>
