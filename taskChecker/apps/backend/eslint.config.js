@@ -14,6 +14,11 @@ export default [
     },
   },
   {
+    // k6 scripts run in the k6 runtime, not Node — declare its globals.
+    files: ["k6/**/*.js"],
+    languageOptions: { globals: { __ENV: "readonly" } },
+  },
+  {
     ignores: ["dist/**", "node_modules/**"],
   },
 ];
