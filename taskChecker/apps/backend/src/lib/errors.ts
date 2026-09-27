@@ -4,6 +4,7 @@
  */
 import type { Context } from "hono";
 import { randomToken } from "./ids.js";
+import { log } from "./log.js";
 
 export class ApiError extends Error {
   constructor(
@@ -67,7 +68,11 @@ export async function errorHandler(err: Error, c: Context) {
   // Dependency-unavailable: fail fast with retryable 503 (docs §7) rather than hanging.
   const dbDown = isDependencyDown(err);
   const status = dbDown ? 503 : 500;
-  console.error(`[error] ${requestId}`, err);
+  log.error("request failed", {
+    requestId,
+    code: dbDown ? "dependency_unavailable" : "internal",
+    error: { name: err?.name, message: err?.message },
+  });
   return c.json(
     {
       error: {

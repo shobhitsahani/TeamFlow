@@ -1,7 +1,7 @@
 /** Core module (part 1): teams + projects. Every path runs in a tenant tx with
  * RLS; write roles enforced; soft-deletable; activity + audit recorded. */
 import { Hono } from "hono";
-import { and, count, eq, isNull, sql } from "drizzle-orm";
+import { and, count, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { inTenant } from "../lib/request.js";
 import type { Tx } from "../lib/tenant.js";
@@ -10,7 +10,6 @@ import { uuidv7 } from "../lib/ids.js";
 import { requireRole, Rbac } from "../lib/rbac.js";
 import { audit } from "../lib/audit.js";
 import { teams, projects, projectListLabels } from "../db/schema.js";
-import { emitEvent } from "../lib/events.js";
 import { cacheKey, invalidate, N } from "../lib/cache.js";
 import { tierLimits } from "../lib/usage.js";
 

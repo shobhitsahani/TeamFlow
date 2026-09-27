@@ -68,8 +68,6 @@ export function useSWR<T>(key: string | null, fetcher: () => T | Promise<T>, con
     revalidateOnReconnect = true,
     refreshInterval = 0,
     dedupingInterval = DEDUPING_INTERVAL,
-    onSuccess,
-    onError,
     fallbackData,
   } = config;
 
@@ -185,15 +183,21 @@ export function useSWR<T>(key: string | null, fetcher: () => T | Promise<T>, con
     [key, executeFetcher]
   );
 
-  // Initial fetch and subscription
+  // Initial fetch and subscription.
+  // The fetch runs in a subscription callback (not synchronously in the
+  // effect body) so the effect never calls setState directly.
   useEffect(() => {
     if (!key) return;
     const unsubscribe = subscribe(key, () => {
       const cached = getCache(key);
       if (cached !== undefined) setData(cached as T);
     });
-    executeFetcher();
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) void executeFetcher();
+    });
     return () => {
+      cancelled = true;
       unsubscribe();
     };
   }, [key, executeFetcher]);
@@ -230,7 +234,6 @@ export function useSWR<T>(key: string | null, fetcher: () => T | Promise<T>, con
 export function useSWRInfinite<T>(
   getKey: (pageIndex: number, previousPageData: T | null) => string | null,
   fetcher: (key: string) => Promise<T>,
-  config: UseSWRConfig<T> = {}
 ) {
   const [pages, setPages] = useState<T[]>([]);
   const [error, setError] = useState<Error | null>(null);

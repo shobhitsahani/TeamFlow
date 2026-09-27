@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, Inter, JetBrains_Mono, Manrope, Sora } from "next/font/google";
+import "./tokens.css";
 import "./globals.css";
 import "./trello.css";
 import "./theme.css";

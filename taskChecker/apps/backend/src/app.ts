@@ -3,6 +3,8 @@
  * principal, and every tenant-scoped handler opens with inTenant(). */
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { config } from "./config.js";
+import { API_VERSION, openApiDoc } from "./openapi.js";
 import { randomToken } from "./lib/ids.js";
 import { authenticate, enforceApiScopes } from "./lib/auth.js";
 import { rateLimit } from "./lib/ratelimit.js";
@@ -26,23 +28,68 @@ const PUBLIC_PATHS = [
   /^\/v1\/invites\/[^/]+$/,
   /^\/v1\/invites\/[^/]+\/preview$/,
   /^\/livez$/,
+  /^\/healthz$/,
   /^\/readyz$/,
+  /^\/v1\/openapi\.json$/,
 ];
+
+/** Explicit CORS allowlist — never reflect arbitrary origins with credentials.
+ * Production: FRONTEND_BASE_URL + CORS_ORIGINS (comma-separated) only.
+ * Non-production additionally allows localhost/127.0.0.1 (any port) for dev.
+ * Cookie audit (2026-09): the API sets no cookies — tokens ride the
+ * Authorization header (WS via ?token=), so no HttpOnly/Secure/SameSite
+ * flags are owed anywhere. */
+function buildOriginAllowlist(nodeEnv: string): Set<string> {
+  const allow = new Set<string>();
+  for (const raw of (process.env.CORS_ORIGINS ?? "").split(",")) {
+    const o = raw.trim().replace(/\/+$/, "");
+    if (o) allow.add(o);
+  }
+  try {
+    allow.add(config().frontendBaseUrl.replace(/\/+$/, ""));
+  } catch {
+    // config() throws in prod without JWT_SECRET — fail closed elsewhere;
+    // CORS just gets no frontend entry here.
+  }
+  if (nodeEnv !== "production") {
+    for (const port of ["3000", "4000", "5173", "8080"]) {
+      allow.add(`http://localhost:${port}`);
+      allow.add(`http://127.0.0.1:${port}`);
+    }
+  }
+  return allow;
+}
+
+function isLoopbackOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin);
+    return (
+      (u.protocol === "http:" || u.protocol === "https:") &&
+      (u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "[::1]")
+    );
+  } catch {
+    return false;
+  }
+}
 
 const RATE_LIMIT = 600; // requests/min per principal
 const RATE_WINDOW = 60; // seconds
 
 export function createApp(): Hono {
   const app = new Hono();
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  const allowlist = buildOriginAllowlist(nodeEnv);
 
-  // CORS support for frontend clients
+  // CORS: explicit allowlist only. Unknown origins get no ACAO header, so
+  // browsers block the read — credentialed reflection is never allowed.
   app.use(
     "*",
     cors({
-      origin: (origin, c) => {
-        // Allow any origin in development; in production, restrict to known origins
-        if (!origin) return "*";
-        return origin;
+      origin: (origin) => {
+        if (!origin) return "*"; // non-browser client (curl/server-to-server)
+        if (allowlist.has(origin.replace(/\/+$/, ""))) return origin;
+        if (nodeEnv !== "production" && isLoopbackOrigin(origin)) return origin;
+        return null;
       },
       allowHeaders: ["Content-Type", "Authorization", "X-TeamFlow-Key", "X-TeamFlow-Signature", "Idempotency-Key", "X-Object-Key", "Upgrade"],
       allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -52,11 +99,34 @@ export function createApp(): Hono {
     }),
   );
 
+  // Baseline security headers (helmet-equivalent for Hono).
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("X-Frame-Options", "DENY");
+    c.header("Referrer-Policy", "no-referrer");
+    c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    c.header("Cross-Origin-Opener-Policy", "same-origin");
+    if (nodeEnv === "production") {
+      c.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+  });
+
   // request id + stable error envelope everywhere
   app.use(async (c, next) => {
     c.set("requestId", randomToken(8));
     await next();
   });
+
+  // version stamp on every /v1 response — the versioning proof alongside
+  // the /v1 URL prefix (see openapi.ts: breaking changes ship as /v2).
+  app.use("/v1/*", async (c, next) => {
+    await next();
+    c.header("API-Version", API_VERSION);
+  });
+
+  // OpenAPI pilot (public, versioned under /v1).
+  app.get("/v1/openapi.json", (c) => c.json(openApiDoc));
 
   // root service info
   app.get("/", (c) =>
@@ -66,14 +136,19 @@ export function createApp(): Hono {
       version: "v1",
       endpoints: {
         livez: "/livez",
+        healthz: "/healthz",
         readyz: "/readyz",
+        openapi: "/v1/openapi.json",
         auth: "/v1/auth/*",
       },
     }),
   );
 
-  // liveness (process only — dependency checks live in readiness)
-  app.get("/livez", (c) => c.json({ ok: true, service: "teamflow-api" }));
+  // liveness (process only — dependency checks live in readiness).
+  // /healthz is the conventional alias; both are public.
+  const livePayload = { ok: true, service: "teamflow-api" };
+  app.get("/livez", (c) => c.json(livePayload));
+  app.get("/healthz", (c) => c.json(livePayload));
 
   // readiness — dependency probes the LB health-gates on
   app.get("/readyz", async (c) => {

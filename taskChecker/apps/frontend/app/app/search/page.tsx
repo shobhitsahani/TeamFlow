@@ -8,7 +8,8 @@ import { useTenant } from "@/components/store";
 import { IconSearch, IconFile, IconMessageSquare } from "@/components/icons";
 import { api, getCurrentTenantId, type SearchResult } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
-import { cx, timeAgo, hueFrom } from "@/lib/utils";
+import { cx } from "@/lib/utils";
+import { reportError } from "@/lib/report";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -116,7 +117,7 @@ function SearchPageContent() {
       if (type !== "all") params.set("type", type);
       router.replace(`/app/search?${params.toString()}`, { scroll: false });
     } catch (err) {
-      console.error("Search failed:", err);
+      reportError(err, "search:query", { query });
       setResults([]);
     } finally {
       setLoading(false);

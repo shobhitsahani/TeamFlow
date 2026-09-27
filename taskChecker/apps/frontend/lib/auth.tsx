@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
-import { api, type User, type ActiveTenant, type TokenBundle, loadAuthFromStorage, clearAuthTokens, getCurrentTenantId, setAuthTokens } from "./api";
+import { api, type User, type ActiveTenant, loadAuthFromStorage, clearAuthTokens, setAuthTokens } from "./api";
 
 // Hydrate the in-memory token store synchronously at import time (browser
 // only). Descendant data-fetch effects run BEFORE this provider's mount
@@ -32,6 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [memberships, setMemberships] = useState<ActiveTenant[]>([]);
   const [activeTenantId, setActiveTenantId] = useState<string | null>(null);
+  // Start blocked to match SSR; the restore effect below unblocks (via a
+  // subscription callback, not a synchronous setState).
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
@@ -52,11 +54,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadAuthFromStorage();
+    // Session restore runs in a subscription callback so the effect body
+    // never calls setState synchronously (refreshUser / setIsLoading set state).
+    let cancelled = false;
     if (getAccessToken()) {
-      refreshUser();
+      void Promise.resolve().then(() => {
+        if (!cancelled) void refreshUser();
+      });
     } else {
-      setIsLoading(false);
+      void Promise.resolve().then(() => {
+        if (!cancelled) setIsLoading(false);
+      });
     }
+    return () => {
+      cancelled = true;
+    };
   }, [refreshUser]);
 
   const login = async (email: string, password: string) => {

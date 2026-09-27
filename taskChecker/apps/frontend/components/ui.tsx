@@ -125,10 +125,8 @@ const STATUS_VARIANT: Record<TaskStatus, "secondary" | "default" | "outline"> = 
 
 export function StatusBadge({
   status,
-  size,
 }: {
   status: TaskStatus;
-  size?: "sm";
 }) {
   const meta = STATUS_META[status];
   return (

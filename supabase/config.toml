@@ -40,8 +40,10 @@ health_timeout = "2m"
 # server_version;` on the remote database to check.
 major_version = 17
 
+# Enabled: the backend supports the pooler connection string (see
+# apps/backend/.env.example). Use port 54329 with ?pgbouncer=true.
 [db.pooler]
-enabled = false
+enabled = true
 # Port to use for the local connection pooler.
 port = 54329
 # Specifies when a server connection can be reused by other clients.

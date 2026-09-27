@@ -17,8 +17,6 @@ export function tierLimits(plan: string): (typeof TIER_LIMITS)[Plan] {
   return TIER_LIMITS[(plan as Plan) ?? "free"] ?? TIER_LIMITS.free;
 }
 
-const dayKey = (): string => new Date().toISOString().slice(0, 10);
-
 // /**
 //  * Meters one API call for the tenant; returns whether the tier still allows it.
 //  * Redis-degraded => fail OPEN for the meter (call granted) — a quota blowout is

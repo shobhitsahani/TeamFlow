@@ -12,7 +12,6 @@ import {
   IconUsers,
   IconMail,
   IconTrash,
-  IconX,
   IconCopy,
   IconCheck,
   IconLink,
@@ -178,7 +177,7 @@ export default function MembersPage() {
     orgId ? `members-${orgId}` : null,
     () => api.orgs.listMembers(orgId!),
   );
-  const members = membersQ.data?.members ?? [];
+  const members = useMemo(() => membersQ.data?.members ?? [], [membersQ.data]);
   const currentUser = useMemo(
     () => members.find((m) => m.userId === user?.id),
     [members, user?.id]

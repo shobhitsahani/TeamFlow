@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { AppShell } from "@/components/app-shell";
-import { IconPlus, IconKey, IconWebhook, IconCopy, IconTrash, IconCheck, IconRotateCw, IconExternalLink, IconEye, IconEyeOff, IconChevronRight, IconCheck as IconCheckSmall } from "@/components/icons";
+import { IconPlus, IconKey, IconWebhook, IconCopy, IconTrash, IconRotateCw, IconExternalLink, IconEye, IconEyeOff, IconChevronRight } from "@/components/icons";
 import { api, getCurrentTenantId, type Webhook, type ApiKey, type Delivery } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { cx } from "@/lib/utils";
@@ -146,7 +146,7 @@ export default function IntegrationsPage() {
     () => api.webhooks.list(),
     { refreshInterval: 60_000 },
   );
-  const webhooks = webhooksQ.data?.webhooks ?? [];
+  const webhooks = useMemo(() => webhooksQ.data?.webhooks ?? [], [webhooksQ.data]);
 
   const apiKeysQ = useSWR<{ apiKeys: ApiKey[] }>(
     orgId ? `api-keys-${orgId}` : null,

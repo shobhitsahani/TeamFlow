@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useTenant } from "@/components/store";
 import { AppShell } from "@/components/app-shell";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { IconUsers, IconCreditCard, IconWebhook, IconFileText, IconShield, IconSettings, IconChevronRight } from "@/components/icons";
-import { cx } from "@/lib/utils";
+import { IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight } from "@/components/icons";
 import { memo } from "react";
 
 // Hoist static JSX outside component (rendering-hoist-jsx)

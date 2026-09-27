@@ -33,7 +33,7 @@
 
 | Requirement | Target | Notes |
 |---|---|---|
-| **Scale (DAU)** | 50,000 | 500 orgs × 100 users avg; 3× peak factor |
+| **Scale (DAU)** | 50,000 (future headroom — MVP baseline is `requirements.md`: 2,500 DAU) | 500 orgs × 100 users avg; 3× peak factor |
 | **Scale (MAU)** | 150,000 | |
 | **Growth (12mo)** | 10× | Design for 500K DAU headroom |
 | **Read:Write ratio** | 90:10 | Read-heavy (feeds, lists, search) |

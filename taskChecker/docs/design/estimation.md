@@ -3,7 +3,7 @@
 ## Inputs
 | Parameter | Value | Source |
 |-----------|-------|--------|
-| DAU | 10,000 | Requirements (startup target) |
+| DAU | 10,000 (growth headroom — MVP baseline is `requirements.md`: 2,500 DAU) | Requirements (startup target) |
 | Actions/user/day | 50 | Requirements (balanced read/write) |
 | Peak factor | 2x | Standard assumption |
 | Avg object size (text) | 2 KB | Task + metadata |

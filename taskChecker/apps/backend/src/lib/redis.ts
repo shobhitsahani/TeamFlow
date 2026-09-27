@@ -4,6 +4,7 @@
  * own connection in queue.ts (blocking commands need maxRetriesPerRequest null). */
 import { Redis } from "ioredis";
 import { config } from "../config.js";
+import { log } from "./log.js";
 
 let _redis: Redis | undefined;
 let _lastRedisErrorLog = 0;
@@ -27,7 +28,7 @@ export function redis(): Redis {
       const now = Date.now();
       if (now - _lastRedisErrorLog > 30_000) {
         _lastRedisErrorLog = now;
-        console.error(`[redis] unavailable; degraded fallbacks active: ${err.message}`);
+        log.error("redis unavailable; degraded fallbacks active", { error: err.message });
       }
     });
   }
@@ -77,7 +78,9 @@ export async function redisHealthy(): Promise<boolean> {
   } catch {
     try {
       await probe?.quit().catch(() => {});
-    } catch {}
+    } catch {
+      // probe already dead — nothing to clean up.
+    }
     return false;
   }
 }

@@ -38,8 +38,8 @@ function LagoonDashboard() {
     orgId ? `dash-teams-${orgId}` : null,
     () => api.teams.list(orgId!),
   );
-  const projects = projectsQ.data?.projects ?? [];
-  const teams = teamsQ.data?.teams ?? [];
+  const projects = useMemo(() => projectsQ.data?.projects ?? [], [projectsQ.data]);
+  const teams = useMemo(() => teamsQ.data?.teams ?? [], [teamsQ.data]);
   const teamName = useMemo(() => {
     const map = new Map(teams.map((t) => [t.id, t.name]));
     return (id: string | null) => (id ? (map.get(id) ?? null) : null);

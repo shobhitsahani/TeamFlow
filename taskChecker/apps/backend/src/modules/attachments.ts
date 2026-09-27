@@ -11,7 +11,7 @@ import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { uuidv7 } from "../lib/ids.js";
 import { requireRole, Rbac } from "../lib/rbac.js";
 import { audit } from "../lib/audit.js";
-import { attachments, tasks } from "../db/schema.js";
+import { attachments } from "../db/schema.js";
 import { config } from "../config.js";
 import { memGet, memPut, presignUrl, uploadBackend } from "../lib/blobs.js";
 

@@ -18,6 +18,7 @@ import {
   users,
 } from "./schema.js";
 import { withTenant } from "../lib/tenant.js";
+import { log } from "../lib/log.js";
 
 interface SeedUser {
   email: string;
@@ -135,7 +136,7 @@ async function seedOrg(opts: { slug: string; name: string; owner: SeedUser; memb
     }
   });
 
-  console.log(`seeded org: ${opts.slug} (tenant_id=${tenantId})`);
+  log.info("seeded org", { slug: opts.slug, tenantId });
   return tenantId;
 }
 
@@ -152,11 +153,11 @@ async function main() {
     owner: { email: "carol@globex.io", name: "Carol Owns" },
     members: [{ email: "dave@globex.io", name: "Dave Member" }],
   });
-  console.log(`demo password for all seeded users: ${PASSWORD}`);
+  log.info("demo password for all seeded users", { password: PASSWORD });
   await sql.end();
 }
 
 main().catch((err) => {
-  console.error("seed failed:", err);
+  log.error("seed failed", { error: (err as Error)?.message ?? String(err) });
   process.exit(1);
 });

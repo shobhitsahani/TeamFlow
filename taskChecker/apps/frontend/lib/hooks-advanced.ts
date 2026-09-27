@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback, useState, useSyncExternalStore } from "react";
 
 /**
  * advanced-use-latest: useLatest for stable callback refs
@@ -9,7 +9,10 @@ import { useRef, useEffect, useCallback, useState } from "react";
  */
 export function useLatest<T>(value: T): { current: T } {
   const ref = useRef(value);
-  ref.current = value;
+  // Sync in an effect (not during render) so render stays pure.
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
   return ref;
 }
 
@@ -21,8 +24,10 @@ export function useEventCallback<Args extends unknown[], R>(
   fn: (...args: Args) => R
 ): (...args: Args) => R {
   const ref = useRef(fn);
-  ref.current = fn;
-  
+  useEffect(() => {
+    ref.current = fn;
+  }, [fn]);
+
   return useCallback((...args: Args) => {
     return ref.current(...args);
   }, []);
@@ -32,7 +37,7 @@ export function useEventCallback<Args extends unknown[], R>(
  * advanced-init-once: Initialize once per app load
  * Runs the initialization function only once across all component instances
  */
-let initOnceMap = new Map<string, boolean>();
+const initOnceMap = new Map<string, boolean>();
 
 export function useInitOnce(key: string, initFn: () => void | Promise<void>): void {
   const initializedRef = useRef(false);
@@ -65,8 +70,12 @@ export function useGlobalEventListener<K extends keyof WindowEventMap>(
   options?: boolean | AddEventListenerOptions
 ): void {
   const listenerRef = useRef(listener);
-  listenerRef.current = listener;
-  
+  // Keep the latest listener without re-subscribing; sync in an effect so
+  // render stays pure.
+  useEffect(() => {
+    listenerRef.current = listener;
+  }, [listener]);
+
   useEffect(() => {
     const handler = (event: WindowEventMap[K]) => listenerRef.current(event);
     window.addEventListener(type, handler, options);
@@ -78,20 +87,34 @@ export function useGlobalEventListener<K extends keyof WindowEventMap>(
  * Hook for media query matching with SSR support
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
-  
+  // Lazy initializer reads the client-only source once (no sync setState).
+  const [matches, setMatches] = useState(
+    () =>
+      typeof window !== "undefined" && typeof window.matchMedia !== "undefined"
+        ? window.matchMedia(query).matches
+        : false,
+  );
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-    
+
     const mediaQuery = window.matchMedia(query);
-    setMatches(mediaQuery.matches);
-    
+    // Sync the current value in a subscription callback (not synchronously
+    // in the effect body) to avoid a cascading render.
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) setMatches(mediaQuery.matches);
+    });
+
     const handler = (event: MediaQueryListEvent) => setMatches(event.matches);
     mediaQuery.addEventListener("change", handler);
-    
-    return () => mediaQuery.removeEventListener("change", handler);
+
+    return () => {
+      cancelled = true;
+      mediaQuery.removeEventListener("change", handler);
+    };
   }, [query]);
-  
+
   return matches;
 }
 
@@ -111,27 +134,29 @@ export function useDebouncedValue<T>(value: T, delay: number): T {
 
 /**
  * Hook for previous value
+ * Render-adjustment pattern: no refs, no effects, stays pure.
  */
 export function usePrevious<T>(value: T): T | undefined {
-  const ref = useRef<T | undefined>(undefined);
-  useEffect(() => {
-    ref.current = value;
-  }, [value]);
-  return ref.current;
+  const [prev, setPrev] = useState<T | undefined>(undefined);
+  const [current, setCurrent] = useState(value);
+  if (value !== current) {
+    setPrev(current);
+    setCurrent(value);
+  }
+  return prev;
 }
 
 /**
  * Hook for mounted state (useful for avoiding SSR hydration mismatches)
+ * Subscription-based (no setState-in-effect): false on the server, true once
+ * subscribed on the client.
  */
 export function useIsMounted(): boolean {
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-  
-  return mounted;
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 }
 
 /**
@@ -141,7 +166,7 @@ export function useIsMounted(): boolean {
 export function useRefCallback<T>(
   callback: (ref: React.MutableRefObject<T>) => void
 ): React.MutableRefObject<T> {
-  const ref = useRef<T>(null as any);
+  const ref = useRef<T>(null as unknown as T);
   
   useEffect(() => {
     callback(ref);

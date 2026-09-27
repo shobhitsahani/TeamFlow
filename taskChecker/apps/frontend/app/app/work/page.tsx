@@ -6,19 +6,13 @@ import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/store";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { IconFile, IconClock, IconUser, IconPulse, IconSearch, IconPlus } from "@/components/icons";
+import { IconFile, IconClock, IconSearch, IconPlus } from "@/components/icons";
 import { api, getCurrentTenantId, type Task, type Project } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSWR } from "@/lib/swr";
-import { cx, timeAgo, hueFrom, isOverdue } from "@/lib/utils";
+import { cx, hueFrom, isOverdue } from "@/lib/utils";
 import { AnimatePresence, motion, PageEnter } from "@/components/motion";
 
-const STATUS_COLORS: Record<string, string> = {
-  backlog: "var(--muted)",
-  todo: "hsl(210 80% 50%)",
-  in_progress: "hsl(35 90% 50%)",
-  done: "hsl(140 60% 45%)",
-};
 const PRIORITY_COLORS: Record<string, string> = {
   critical: "hsl(0 75% 55%)",
   high: "hsl(35 90% 50%)",

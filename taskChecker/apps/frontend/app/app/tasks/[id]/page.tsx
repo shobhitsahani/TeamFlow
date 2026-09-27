@@ -32,7 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { buttonVariants } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { cx, timeAgo, hueFrom, isOverdue, initials } from "@/lib/utils";
-import { AnimatePresence, motion, backdropFade, popIn, PageEnter } from "@/components/motion";
+import { AnimatePresence, motion, PageEnter } from "@/components/motion";
 
 const STATUSES = ["backlog", "todo", "in_progress", "done"] as const;
 const PRIORITIES = ["critical", "high", "medium", "low", "none"] as const;
@@ -243,7 +243,7 @@ export default function TaskDetailPage() {
   /** Set the deadline N days from now (same time of day), as a local
    * datetime-local value for the existing save path. */
   const applyDueInDays = (days: number, preset: "1" | "3" | "7" | "custom") => {
-    const d = new Date(Date.now() + days * 86_400_000);
+    const d = new Date(new Date().getTime() + days * 86_400_000);
     const pad = (n: number) => String(n).padStart(2, "0");
     setEditDueAt(
       `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,

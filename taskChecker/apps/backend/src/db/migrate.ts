@@ -6,6 +6,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { config } from "../config.js";
+import { log } from "../lib/log.js";
 import postgres from "postgres";
 
 async function main() {
@@ -18,7 +19,7 @@ async function main() {
     .sort();
 
   if (files.length === 0) {
-    console.log("no migrations found");
+    log.info("no migrations found");
     await sql.end();
     return;
   }
@@ -40,25 +41,24 @@ async function main() {
   if (schemaExists.length > 0 && first && !applied.has(first)) {
     await sql`insert into schema_migrations (name) values (${first}) on conflict do nothing`;
     applied.add(first);
-    console.log(`baseline: ${first} already applied (schema present)`);
+    log.info("baseline already applied (schema present)", { migration: first });
   }
 
   for (const file of files) {
     if (applied.has(file)) {
-      console.log(`skipping ${file} (applied)`);
+      log.info("skipping applied migration", { migration: file });
       continue;
     }
-    process.stdout.write(`applying ${file} ... `);
+    log.info("applying migration", { migration: file });
     const body = readFileSync(`${dir}/${file}`, "utf8");
     await sql.unsafe(body).simple();
     await sql`insert into schema_migrations (name) values (${file})`;
-    process.stdout.write("ok\n");
   }
-  console.log(`done: ${files.length} migration(s), ${applied.size} previously applied`);
+  log.info("migrations done", { total: files.length, previouslyApplied: applied.size });
   await sql.end();
 }
 
 main().catch((err) => {
-  console.error("migration failed:", err);
+  log.error("migration failed", { error: (err as Error)?.message ?? String(err) });
   process.exit(1);
 });
