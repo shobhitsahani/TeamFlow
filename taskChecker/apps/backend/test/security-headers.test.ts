@@ -43,3 +43,19 @@ describe("health endpoints", () => {
     expect(await res.json()).toEqual({ ok: true, service: "teamflow-api" });
   });
 });
+
+describe("openapi + versioning", () => {
+  it("serves a valid OpenAPI 3.1 pilot doc", async () => {
+    const res = await app.request("/v1/openapi.json");
+    expect(res.status).toBe(200);
+    const doc = (await res.json()) as { openapi: string; info: { version: string }; paths: Record<string, unknown> };
+    expect(doc.openapi).toMatch(/^3\.1/);
+    expect(doc.info.version).toBe("1.0.0");
+    expect(Object.keys(doc.paths)).toContain("/v1/auth/login");
+  });
+
+  it("stamps API-Version on /v1 responses", async () => {
+    const res = await app.request("/v1/openapi.json");
+    expect(res.headers.get("api-version")).toBe("v1");
+  });
+});

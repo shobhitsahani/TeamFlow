@@ -4,6 +4,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { config } from "./config.js";
+import { API_VERSION, openApiDoc } from "./openapi.js";
 import { randomToken } from "./lib/ids.js";
 import { authenticate, enforceApiScopes } from "./lib/auth.js";
 import { rateLimit } from "./lib/ratelimit.js";
@@ -29,6 +30,7 @@ const PUBLIC_PATHS = [
   /^\/livez$/,
   /^\/healthz$/,
   /^\/readyz$/,
+  /^\/v1\/openapi\.json$/,
 ];
 
 /** Explicit CORS allowlist — never reflect arbitrary origins with credentials.
@@ -116,6 +118,16 @@ export function createApp(): Hono {
     await next();
   });
 
+  // version stamp on every /v1 response — the versioning proof alongside
+  // the /v1 URL prefix (see openapi.ts: breaking changes ship as /v2).
+  app.use("/v1/*", async (c, next) => {
+    await next();
+    c.header("API-Version", API_VERSION);
+  });
+
+  // OpenAPI pilot (public, versioned under /v1).
+  app.get("/v1/openapi.json", (c) => c.json(openApiDoc));
+
   // root service info
   app.get("/", (c) =>
     c.json({
@@ -126,6 +138,7 @@ export function createApp(): Hono {
         livez: "/livez",
         healthz: "/healthz",
         readyz: "/readyz",
+        openapi: "/v1/openapi.json",
         auth: "/v1/auth/*",
       },
     }),
