@@ -5,6 +5,7 @@ import { Queue } from "bullmq";
 import type { JobsOptions } from "bullmq";
 import { blockingRedis } from "./redis.js";
 import { uuidv7 } from "./ids.js";
+import { log } from "./log.js";
 
 export const QUEUE_NAME = "teamflow";
 
@@ -42,7 +43,7 @@ export async function enqueue<T extends Record<string, unknown>>(
   try {
     await queue.add(name, data, jobOptions);
   } catch (err) {
-    console.error(`[queue] enqueue failed for ${name}:`, (err as Error).message);
+    log.error("queue enqueue failed", { name, error: (err as Error).message });
   }
 }
 
@@ -63,6 +64,6 @@ export async function ensureDeadlineSweepSchedule(everyMs: number): Promise<void
       { jobId: "deadline-sweep-repeat", repeat: { every: everyMs } },
     );
   } catch (err) {
-    console.error("[queue] failed to schedule deadline-sweep:", (err as Error).message);
+    log.error("queue failed to schedule deadline-sweep", { error: (err as Error).message });
   }
 }

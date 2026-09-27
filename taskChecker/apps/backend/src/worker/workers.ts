@@ -10,6 +10,7 @@ import { notifications, deliveries } from "../db/schema.js";
 import { decryptSecret, signPayload } from "../lib/password.js";
 import { deterministicUuid } from "../lib/ids.js";
 import { config } from "../config.js";
+import { log } from "../lib/log.js";
 import { sweepOverdueTasks } from "./deadlines.js";
 
 export interface EventJob {
@@ -60,7 +61,10 @@ export async function handleNotify(event: EventJob): Promise<number> {
       .onConflictDoNothing();
   });
   // Email digest stub — swap for a provider client (docs §9: transports ready).
-  console.log(`[worker:notify] ${event.type} → ${targets.length} recipient(s) (email transport stubbed)`);
+  log.info("worker notify fanned out (email transport stubbed)", {
+    type: event.type,
+    recipients: targets.length,
+  });
   return targets.length;
 }
 
@@ -124,7 +128,8 @@ export async function handleWebhookEvent(job: Job, event: EventJob): Promise<voi
           },
         });
     });
-    console.log(`[worker:webhook] ${event.type} → ${endpoint.url} ${ok ? "ok" : `failed: ${error}`}`);
+    if (ok) log.info("worker webhook delivered", { type: event.type, endpoint: endpoint.id });
+    else log.warn("worker webhook attempt failed", { type: event.type, endpoint: endpoint.id, error });
   }
 }
 
@@ -147,7 +152,11 @@ export async function handleUsage(_jobData: UsageJob): Promise<void> {
  * "summarize this thread" enqueue here; a configured provider (OpenAI/Anthropic)
  * plugs into this handler without touching the request path. No-op today. */
 export async function handleAi(event: EventJob): Promise<void> {
-  console.log(`[worker:ai] ${event.type} for ${event.entityType} ${event.entityId} queued (provider not configured — no-op)`);
+  log.info("worker ai job queued (provider not configured — no-op)", {
+    type: event.type,
+    entityType: event.entityType,
+    entityId: event.entityId,
+  });
 }
 
 export function startWorkers(): Worker[] {
@@ -163,7 +172,7 @@ export function startWorkers(): Worker[] {
         //   return handleUsage(job.data as unknown as UsageJob);
         case "deadline-sweep": {
           const moved = await sweepOverdueTasks();
-          if (moved > 0) console.log(`[worker:deadlines] moved ${moved} overdue task(s) to backlog`);
+          if (moved > 0) log.info("worker deadlines moved overdue tasks to backlog", { moved });
           return moved;
         }
         case "ai":
@@ -175,7 +184,12 @@ export function startWorkers(): Worker[] {
     { connection: blockingRedis(), concurrency: 10 },
   );
   worker.on("failed", (job, err) => {
-    console.error(`[worker] job ${job?.name}/${job?.id} failed (attempt ${job?.attemptsMade}):`, err.message);
+    log.error("worker job failed", {
+      job: job?.name,
+      jobId: job?.id,
+      attempt: job?.attemptsMade,
+      error: err.message,
+    });
   });
   return [worker];
 }

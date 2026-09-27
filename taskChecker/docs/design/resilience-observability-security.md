@@ -182,6 +182,34 @@
 | DiskSpaceLow | `disk_free_bytes / disk_total_bytes < 0.15` | Warning | Cleanup, expand volume |
 | CertificateExpiring | `ssl_cert_expiry_days < 30` | Warning | Rotate cert |
 
+**Starter rules (wired to the built endpoints — `GET /healthz` for liveness,
+`GET /readyz` for Postgres+Redis readiness; backend logs are JSON lines with
+`{ts, level, msg, requestId, …}` via `apps/backend/src/lib/log.ts`):**
+```yaml
+# PrometheusRule — drop into your kube-prometheus-stack values.
+groups:
+  - name: teamflow-starter
+    rules:
+      - alert: TeamFlowApiDown
+        expr: probe_success{job="teamflow-healthz"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "teamflow-api liveness failing (/healthz)"
+      - alert: TeamFlowNotReady
+        expr: teamflow_readyz_ok == 0
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "teamflow-api readiness failing (/readyz: postgres or redis down)"
+      - alert: TeamFlowDependencyErrors
+        expr: rate(teamflow_log_error_total{code="dependency_unavailable"}[5m]) > 0.01
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "auth/dependency 503s rising — check DB/Redis before users notice"
+```
+
 ---
 
 ## Security

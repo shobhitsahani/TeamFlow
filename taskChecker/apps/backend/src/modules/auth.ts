@@ -12,6 +12,7 @@ import { randomToken, uuidv7 } from "../lib/ids.js";
 import { signAccessToken } from "../lib/tokens.js";
 import { badRequest, unauthorized } from "../lib/errors.js";
 import { membershipsForUser } from "../lib/auth.js";
+import { log } from "../lib/log.js";
 import { withTenant } from "../lib/tenant.js";
 import { audit } from "../lib/audit.js";
 
@@ -20,8 +21,9 @@ export const authRoutes = new Hono();
 const json = async (c: { req: { json: () => Promise<unknown> } }) => {
   try {
     return await c.req.json();
-  } catch (e) {
-    console.error("[auth] JSON parse error:", e);
+  } catch {
+    // Client sent malformed JSON — warn without logging the body (may hold a password).
+    log.warn("auth JSON parse error");
     return null;
   }
 };

@@ -8,6 +8,7 @@ import { Redis } from "ioredis";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { config } from "../config.js";
 import { verifyAccessToken, type AccessClaims } from "../lib/tokens.js";
+import { log } from "../lib/log.js";
 
 // Bun ships its own node:http typings for `serve()`'s return, while `ws`
 // types target Node's Server — the gateway only needs `.on("upgrade")`.
@@ -40,10 +41,9 @@ function ensureSubscriber(): Redis {
       // Re-issuing psubscribe on an already-subscribed pattern is harmless
       // (Redis dedupes it), so every reconnect re-arms the fan-out.
       sub.psubscribe("org:*").catch((err: unknown) => {
-        console.error(
-          "[realtime] psubscribe failed, will retry on reconnect:",
-          (err as Error)?.message ?? err,
-        );
+        log.error("realtime psubscribe failed, will retry on reconnect", {
+          error: (err as Error)?.message ?? String(err),
+        });
       });
     };
     // NOTE: subscribe on BOTH ready and connect. 'ready' fires when the
@@ -66,7 +66,7 @@ function ensureSubscriber(): Redis {
         }
       }
     });
-    sub.on("error", (err) => console.error("[realtime] subscriber error:", err.message));
+    sub.on("error", (err) => log.error("realtime subscriber error", { error: err.message }));
     return sub;
   })();
   return subscriber;
@@ -88,7 +88,7 @@ function ensureSubscriber(): Redis {
 export function startRealtimeGateway(server: UpgradeServer, _app: Hono): void {
   void _app;
   const wss = new WebSocketServer({ noServer: true });
-  wss.on("error", (err: Error) => console.error("[realtime] gateway error:", err.message));
+  wss.on("error", (err: Error) => log.error("realtime gateway error", { error: err.message }));
 
   server.on("upgrade", (request, socket, head) => {
     const url = new URL(request.url ?? "/v1/ws", "http://localhost");
@@ -231,7 +231,7 @@ function attachGatewaySocket(ws: WebSocket, tenantId: string): void {
   try {
     ensureSubscriber();
   } catch (err) {
-    console.error("[realtime] subscriber init failed:", (err as Error)?.message ?? err);
+    log.error("realtime subscriber init failed", { error: (err as Error)?.message ?? String(err) });
   }
 
   ws.on("message", (data: RawData) => {

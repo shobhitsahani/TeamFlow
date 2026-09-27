@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, memo } from "react";
-import { useTenant } from "@/components/store";
 import { AppShell } from "@/components/app-shell";
-import { IconFileText, IconSearch, IconFilter, IconChevronRight, IconUser, IconClock, IconArrowLeft, IconArrowRight } from "@/components/icons";
+import { IconFileText, IconSearch, IconUser } from "@/components/icons";
 import { api, getCurrentTenantId, type AuditLog } from "@/lib/api";
-import { useSWR } from "@/lib/swr";
-import { cx, timeAgo } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
+import { reportError } from "@/lib/report";
 
 const AuditRow = memo(function AuditRow({ log }: { log: AuditLog }) {
   return (
@@ -56,7 +55,7 @@ export default function AuditPage() {
       setCursor(page?.nextCursor ?? null);
       setHasMore(page?.hasMore ?? false);
     } catch (err) {
-      console.error("Failed to fetch audit logs:", err);
+      reportError(err, "audit:fetch");
     } finally {
       setLoading(false);
     }
@@ -64,10 +63,19 @@ export default function AuditPage() {
 
   // Initial load (effect, not render — render-time fetch double-fires under
   // StrictMode and can setState during another component's render).
+  // The fetch itself runs in a subscription callback so the effect body never
+  // calls setState synchronously.
   useEffect(() => {
     if ((logs?.length ?? 0) === 0 && !loading && orgId) {
-      void fetchLogs(true);
+      let cancelled = false;
+      void Promise.resolve().then(() => {
+        if (!cancelled) void fetchLogs(true);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
+    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 

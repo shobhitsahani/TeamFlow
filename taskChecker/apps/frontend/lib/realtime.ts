@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { getAccessToken, getWsUrl, type Notification } from "@/lib/api";
+import { reportError } from "@/lib/report";
 import { useTenant } from "@/components/store";
 
 interface WSMessage {
@@ -99,7 +100,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
             break;
         }
       } catch (err) {
-        console.error("[realtime] Failed to parse message:", err);
+        reportError(err, "realtime:parse");
       }
     };
 
@@ -117,7 +118,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
         reconnectAttempts.current++;
         reconnectTimeoutRef.current = setTimeout(() => connectRef.current(), delay);
       } else {
-        console.error("[realtime] Max reconnect attempts reached");
+        reportError(new Error("max reconnect attempts reached"), "realtime:reconnect");
       }
     };
 
@@ -183,7 +184,6 @@ export function useRealtimeNotifications() {
         (payload as { targetUserIds?: string[] } | undefined)?.targetUserIds;
       if (Array.isArray(targeted) && targeted.length > 0) {
         try {
-          const tid = localStorage.getItem("tf_tenant_id");
           // we can't easily get userId synchronously here without auth store,
           // so let the server-side DB filter be the source of truth and just
           // allow the optimistc add — the next fetch will correct it. If the

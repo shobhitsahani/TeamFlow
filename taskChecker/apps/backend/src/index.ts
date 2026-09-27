@@ -5,6 +5,7 @@ import { serve } from "@hono/node-server";
 import { startRealtimeGateway } from "./realtime/ws.js";
 import { createApp } from "./app.js";
 import { config } from "./config.js";
+import { log } from "./lib/log.js";
 import { startWorkers } from "./worker/workers.js";
 import { closeQueue, ensureDeadlineSweepSchedule } from "./lib/queue.js";
 import { closeRedis } from "./lib/redis.js";
@@ -18,7 +19,7 @@ let workers: ReturnType<typeof startWorkers> = [];
 // The callback below only fires on successful listen; workers and the deadline
 // sweep therefore never start if the port is already taken.
 const server = serve({ fetch: app.fetch, port: config().port }, (info) => {
-  console.log(`[teamflow-api] listening on :${info.port} (${config().nodeEnv})`);
+  log.info("teamflow-api listening", { port: info.port, nodeEnv: config().nodeEnv });
   // The WS upgrade is wired at the raw Node layer (see realtime/ws.ts): Bun's
   // node:http port invalidates the socket for ws.handleUpgrade() after the
   // first await, and the app's auth middleware necessarily awaits — so the
@@ -26,22 +27,22 @@ const server = serve({ fetch: app.fetch, port: config().port }, (info) => {
   startRealtimeGateway(server, app);
 
   workers = startWorkers();
-  console.log(`[teamflow-api] worker pool started (${workers.length} worker)`);
+  log.info("teamflow-api worker pool started", { workers: workers.length });
   // Overdue-task → backlog sweep (repeatable BullMQ job; best-effort schedule).
   void ensureDeadlineSweepSchedule(config().deadlineSweepMs);
 });
 
 server.on("error", (err: NodeJS.ErrnoException) => {
   if ((err as NodeJS.ErrnoException)?.code === "EADDRINUSE") {
-    console.error(`[teamflow-api] port ${config().port} already in use — is another dev server running? Kill it (lsof -i :${config().port} or netstat -ano | findstr :${config().port}) or set PORT env var.`);
+    log.error("teamflow-api port already in use", { port: config().port, error: err.message });
   } else {
-    console.error("[teamflow-api] server error:", err);
+    log.error("teamflow-api server error", { error: err.message });
   }
   process.exit(1);
 });
 
 async function shutdown(signal: string) {
-  console.log(`[teamflow-api] ${signal} received — draining`);
+  log.info("teamflow-api draining", { signal });
   for (const w of workers) await w.close();
   await closeQueue();
   server.close();

@@ -2,6 +2,7 @@
  * App-environment config — reads process.env with dev-friendly defaults.
  * Never logs secrets.
  */
+import { log } from "./lib/log.js";
 export interface Config {
   port: number;
   nodeEnv: string;
@@ -81,11 +82,11 @@ function resolveJwtSecret(nodeEnv: string): string {
     return candidate;
   }
   if (!candidate) {
-    console.warn("[config] WARNING: JWT_SECRET unset — using dev-only fallback. Never use this in production.");
+    log.warn("JWT_SECRET unset — using dev-only fallback. Never use this in production.");
     return DEV_JWT_FALLBACK;
   }
   if (!hasEntropy(candidate)) {
-    console.warn("[config] WARNING: JWT_SECRET looks weak (<32 chars or low entropy). Use a strong random value in production.");
+    log.warn("JWT_SECRET looks weak (<32 chars or low entropy). Use a strong random value in production.");
   }
   return candidate;
 }
