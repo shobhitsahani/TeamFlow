@@ -39,7 +39,7 @@ export function createApp(): Hono {
   app.use(
     "*",
     cors({
-      origin: (origin, c) => {
+      origin: (origin) => {
         // Allow any origin in development; in production, restrict to known origins
         if (!origin) return "*";
         return origin;

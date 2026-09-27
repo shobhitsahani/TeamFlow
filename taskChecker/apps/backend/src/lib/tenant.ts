@@ -11,7 +11,6 @@
  */
 import { db } from "../db/client.js";
 import type { Tx } from "../db/client.js";
-import { sql as pgSql } from "../db/client.js";
 import { sql } from "drizzle-orm";
 import { ApiError } from "./errors.js";
 import type { Membership } from "../db/schema.js";

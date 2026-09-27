@@ -7,7 +7,7 @@ import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { uuidv7 } from "../lib/ids.js";
 import { requireRole, Rbac } from "../lib/rbac.js";
 import { audit } from "../lib/audit.js";
-import { activityEvents, comments, tasks } from "../db/schema.js";
+import { activityEvents, comments } from "../db/schema.js";
 import { emitEvent } from "../lib/events.js";
 import { decodeCursor, encodeCursor, keysetBefore, parseLimit } from "../lib/cursor.js";
 

@@ -2,7 +2,7 @@
  * (shown once, stored hashed, scoped), audit logs (admin+), and usage meters
  * vs tier limits. */
 import { Hono } from "hono";
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { inTenant } from "../lib/request.js";
 import { badRequest, notFound } from "../lib/errors.js";

@@ -210,7 +210,7 @@ describe.skipIf(!redisUp)("realtime gateway", () => {
 
       await waitForOwnSubscription(sock, TENANT_A);
       const marker = `gateway-test-${Date.now()}`;
-      const published = await probe!.publish(`org:${TENANT_A}`, JSON.stringify({ tenantId: TENANT_A, type: "task.created", marker }));
+      await probe!.publish(`org:${TENANT_A}`, JSON.stringify({ tenantId: TENANT_A, type: "task.created", marker }));
       const event = await nextFrame(sock, "task.created");
       expect(event.marker).toBe(marker);
     } finally {

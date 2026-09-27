@@ -77,7 +77,9 @@ export async function redisHealthy(): Promise<boolean> {
   } catch {
     try {
       await probe?.quit().catch(() => {});
-    } catch {}
+    } catch {
+      // probe already dead — nothing to clean up.
+    }
     return false;
   }
 }

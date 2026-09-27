@@ -9,6 +9,7 @@
     "start": "bun src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target node",
     "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
     "test": "bun test",
     "test:integration": "TEAMFLOW_IT=1 bun test test/integration.test.ts",
     "db:migrate": "bun src/db/migrate.ts",
@@ -32,10 +33,12 @@
     "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/bun": "^1.2.0",
     "@types/node": "^26.0.0",
     "@types/ws": "^8.18.1",
+    "eslint": "10.9.1",
     "prisma": "^6.4.1",
     "typescript": "7.0.2"
   }

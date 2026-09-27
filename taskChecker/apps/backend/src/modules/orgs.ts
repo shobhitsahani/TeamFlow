@@ -22,7 +22,6 @@ import { tierLimits } from "../lib/usage.js";
 export const orgRoutes = new Hono();
 
 const ROLE_VALUES: Role[] = ["owner", "admin", "member", "viewer"];
-const isRole = (v: unknown): v is Role => typeof v === "string" && (ROLE_VALUES as string[]).includes(v);
 
 // POST /v1/orgs — authenticated user creates a new organization (becomes owner).
 // This is the in-app equivalent of signup's auto-provisioning, for users who

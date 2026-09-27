@@ -5,9 +5,8 @@ import { Worker, type Job } from "bullmq";
 import { QUEUE_NAME } from "../lib/queue.js";
 import { blockingRedis } from "../lib/redis.js";
 import { withTenant } from "../lib/tenant.js";
-import { notifications, memberships, webhooks, deliveries } from "../db/schema.js";
+import { notifications, deliveries } from "../db/schema.js";
 // import { usageMeter } from "../db/schema.js"; // usage commented out
-import { and, eq } from "drizzle-orm";
 import { decryptSecret, signPayload } from "../lib/password.js";
 import { deterministicUuid } from "../lib/ids.js";
 import { config } from "../config.js";
