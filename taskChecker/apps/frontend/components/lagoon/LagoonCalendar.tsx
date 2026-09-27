@@ -78,13 +78,11 @@ export function LagoonCalendar({
   const month = viewDate.getMonth();
   const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = useMemo(
-    () =>
-      Array.from(
-        { length: Math.ceil((firstDay + daysInMonth) / 7) * 7 },
-        (_, index) => index - firstDay + 1,
-      ),
-    [daysInMonth, firstDay],
+  // Trivial derivation (≤42 numbers) — deliberately unmemoized so the
+  // React Compiler can optimize this component.
+  const cells = Array.from(
+    { length: Math.ceil((firstDay + daysInMonth) / 7) * 7 },
+    (_, index) => index - firstDay + 1,
   );
 
   const visibleTasks = useMemo(() => {

@@ -459,8 +459,19 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
+    acceptInviteByCode: (code: string, data: { name: string; password: string }) =>
+      request<{ ok: boolean; tenantId: string }>(`/invites/code/${code.trim().toUpperCase()}`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
     previewInvite: (token: string) =>
       request<{ invite: { email: string; orgName: string; role: Role; expiresAt: string } }>(`/invites/${token}/preview`),
+
+    previewInviteByCode: (code: string) =>
+      request<{ invite: { email: string; orgName: string; role: Role; expiresAt: string } }>(
+        `/invites/code/${code.trim().toUpperCase()}/preview`,
+      ),
   },
 
   orgs: {
@@ -477,6 +488,8 @@ export const api = {
       request<{
         invite: { id: string; email: string; role: Role; expiresAt: string };
         invitationUrl: string;
+        code: string;
+        email: { sent: boolean; error?: string };
       }>(`/orgs/${orgId}/invites`, {
         method: "POST",
         body: JSON.stringify(data),

@@ -27,6 +27,8 @@ const PUBLIC_PATHS = [
   /^\/v1\/auth\/(signup|login|refresh|logout)$/,
   /^\/v1\/invites\/[^/]+$/,
   /^\/v1\/invites\/[^/]+\/preview$/,
+  /^\/v1\/invites\/code\/[^/]+$/,
+  /^\/v1\/invites\/code\/[^/]+\/preview$/,
   /^\/livez$/,
   /^\/healthz$/,
   /^\/readyz$/,

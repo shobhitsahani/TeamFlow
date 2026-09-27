@@ -24,7 +24,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 type TaskWithProject = { task: Task; project: Project | null };
 
 /**
- * Trello-style task card for Work page
+ * TeamFlow-style task card for Work page
  */
 const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
   const { task, project } = item;

@@ -50,7 +50,7 @@ import {
   IconSearch,
   IconSend,
   IconTrash,
-  IconTrello,
+  IconTeamFlow,
   IconUsers,
   IconZap,
 } from "./icons";
@@ -153,7 +153,7 @@ export function Rail() {
   return (
     <nav className="st-rail" aria-label="Primary">
       <div className="st-rail-top">
-        <Link href="/app/work" className="st-logo" title="Signal Board home">
+        <Link href="/app/work" className="st-logo" title="TeamFlow home">
           <IconFlowMark size={16} />
         </Link>
         <motion.button
@@ -519,7 +519,7 @@ export function ContextBar() {
               </Link>
             ))}
             {teams.length === 0 ? (
-              <span className="ctx-tenant" style={{ padding: "4px 10px", display: "block" }}>
+              <span className="st-empty-label">
                 {teamsQ.isLoading ? "Loading…" : "No teams yet"}
               </span>
             ) : null}
@@ -617,7 +617,7 @@ export function ContextBar() {
               );
             })}
             {projects.length === 0 ? (
-              <span className="ctx-tenant" style={{ padding: "4px 10px", display: "block" }}>
+              <span className="st-empty-label">
                 {projectsQ.isLoading ? "Loading…" : "No projects yet"}
               </span>
             ) : null}
@@ -790,19 +790,19 @@ export function ScopeStrip({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
     >
-      <Link href="/app/work" className="trello-brand" aria-label="Trello home">
+      <Link href="/app/work" className="trello-brand" aria-label="TeamFlow home">
         <span className="trello-logo-tile">
-          <IconTrello size={18} />
+          <IconTeamFlow size={18} />
         </span>
-        <span className="trello-word">Trello</span>
+        <span className="trello-word">TeamFlow</span>
       </Link>
 
       <PaletteSearchTrigger onOpen={onOpenPalette} />
 
       <div className="topbar-right">
-        <ThemeToggle id="topbar-theme-mode" showLabel={false} />
+        <ThemeToggle id="topbar-theme-mode" showLabel={false} className="topbar-theme" />
         <Link href="/app/board" className={buttonVariants({ variant: "default", size: "sm" }) + " trello-create-btn"}>
-          <IconPlus size={14} /> Create
+          <IconPlus size={14} /><span className="trello-create-label">Create</span>
         </Link>
         <motion.button
           className="topbar-bell"
@@ -1136,7 +1136,13 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
         <p className="st-chat-sub">
           Direct and channel discussion for {org?.name ?? "this project"} tasks and handoffs.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: 12 }}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Team messages"
+        >
           {chatQ.isLoading ? (
             <div role="status" aria-label="Loading messages" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[0, 1, 2].map((i) => (

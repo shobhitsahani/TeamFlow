@@ -41,9 +41,8 @@ jobs:
         run: pnpm run check-types
 
       - name: lint
-        # Backend fails on ANY warning (its script passes --max-warnings 0);
-        # frontend currently reports warnings (111-warning backlog tracked
-        # separately) without failing — see audit P1.
+        # Both workspaces gate on zero warnings (each lint script passes
+        # --max-warnings 0), so any new warning fails the build.
         run: pnpm run lint
 
       - name: unit tests (bun, no infra — DB suites self-skip)

@@ -2,21 +2,22 @@
  * management (role changes, deactivation). All query paths run inside
  * `withTenant`, so RLS scopes every row to the caller's org; admin surfaces
  * additionally require admin+ (owner for minting owners). */
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { Tx } from "../lib/tenant.js";
 import { inTenant, withTenant, evictMembership } from "../lib/request.js";
 import { requireRole, Rbac, type Role } from "../lib/rbac.js";
 import { hashPassword, hashSecret } from "../lib/password.js";
-import { randomToken, uuidv7 } from "../lib/ids.js";
+import { INVITE_CODE_RE, normalizeInviteCode, randomInviteCode, randomToken, uuidv7 } from "../lib/ids.js";
 import { badRequest, forbidden, notFound, quotaExceeded, unauthorized } from "../lib/errors.js";
 import { audit } from "../lib/audit.js";
+import { sendInviteEmail } from "../lib/email.js";
 import { signAccessToken } from "../lib/tokens.js";
 import { config } from "../config.js";
 import { db } from "../db/client.js";
 import { invites, memberships, projects, tasks, tenants, users } from "../db/schema.js";
-import { lookupInvite } from "../lib/auth.js";
+import { lookupInvite, lookupInviteByCode } from "../lib/auth.js";
 import { tierLimits } from "../lib/usage.js";
 
 export const orgRoutes = new Hono();
@@ -84,7 +85,7 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
     throw badRequest(`role must be one of ${ROLE_VALUES.join(", ")}`);
   }
 
-  return inTenant(c, async (tx) => {
+  const created = await inTenant(c, async (tx) => {
     assertCanRoleScale(p.role, parsed.data.role);
     // Usage limit: seat cap per subscription tier (active members + pending invites).
     const tenant = await tx.query.tenants.findFirst({ where: (t, { eq: e }) => e(t.id, orgId) });
@@ -104,6 +105,17 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
     }
     const emailLower = parsed.data.email.toLowerCase();
     const token = randomToken(32);
+    // Short shareable code (typable from an email/chat/whiteboard). Hash at
+    // rest like the token; regenerate on the (astronomical) hash collision.
+    let code = "";
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = randomInviteCode();
+      if (!(await lookupInviteByCode(hashSecret(candidate)))) {
+        code = candidate;
+        break;
+      }
+    }
+    if (!code) throw badRequest("Could not mint an invite code; retry.");
     // Invite links live 24 hours — the expiry is enforced on accept/preview
     // and surfaced to the inviter so they can relay the deadline.
     const expiresAt = new Date(Date.now() + 24 * 3600 * 1000);
@@ -115,6 +127,7 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
         email: emailLower,
         role: parsed.data.role,
         tokenHash: hashSecret(token),
+        codeHash: hashSecret(code),
         expiresAt,
         invitedById: p.userId,
       })
@@ -130,16 +143,55 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
       after: { email: emailLower, role: parsed.data.role },
     });
     // Absolute web-app link (copyable + emailable) — never the raw /v1 API path.
+    // The short code is the human-relayable twin: same invite, typable form.
     const invitationUrl = `${config().frontendBaseUrl}/auth/accept-invite?token=${token}`;
-    return c.json({ invite: { id: invite[0].id, email: emailLower, role: parsed.data.role, expiresAt: expiresAt.toISOString() }, invitationUrl }, 201);
+    return {
+      invite: { id: invite[0].id, email: emailLower, role: parsed.data.role, expiresAt: expiresAt.toISOString() },
+      invitationUrl,
+      code,
+      orgName: tenant?.name ?? "a workspace",
+      expiresAt,
+    };
   });
+
+  // Deliver the invite email AFTER the tx commits — best-effort: a failed send
+  // never fails creation. The link + code are always returned for manual relay.
+  const inviter = await db.select({ name: users.name }).from(users).where(eq(users.id, p.userId)).limit(1);
+  const email = await sendInviteEmail({
+    to: created.invite.email,
+    orgName: created.orgName,
+    role: created.invite.role,
+    invitationUrl: created.invitationUrl,
+    code: created.code,
+    expiresAt: created.expiresAt,
+    inviterName: inviter[0]?.name ?? undefined,
+  });
+  return c.json(
+    { invite: created.invite, invitationUrl: created.invitationUrl, code: created.code, email: { sent: email.sent, error: email.sent ? undefined : email.error } },
+    201,
+  );
 });
 
 // GET /v1/invites/{token}/preview — public: lets the accept page show who the
 // invite is for (org, email, role, expiry) without leaking the token hash.
 orgRoutes.get("/invites/:token/preview", async (c) => {
   const invite = await lookupInvite(hashSecret(c.req.param("token")));
-  if (!invite) throw notFound("Invalid or expired invitation token.");
+  return previewPayload(c, invite);
+});
+
+// GET /v1/invites/code/{code}/preview — public: same preview, resolved by the
+// short shareable code (typed from an email/chat/whiteboard).
+orgRoutes.get("/invites/code/:code/preview", async (c) => {
+  const code = normalizeInviteCode(c.req.param("code"));
+  if (!INVITE_CODE_RE.test(code)) throw notFound("Invalid invitation code.");
+  const invite = await lookupInviteByCode(hashSecret(code));
+  return previewPayload(c, invite);
+});
+
+type InviteRow = Awaited<ReturnType<typeof lookupInvite>>;
+
+async function previewPayload(c: Context, invite: InviteRow) {
+  if (!invite) throw notFound("Invalid or expired invitation.");
   if (invite.expires_at.getTime() < Date.now()) throw badRequest("Invitation has expired.");
   if (invite.accepted_at) throw badRequest("Invitation already accepted.");
   const org = await db.select({ name: tenants.name }).from(tenants).where(eq(tenants.id, invite.tenant_id)).limit(1);
@@ -151,13 +203,26 @@ orgRoutes.get("/invites/:token/preview", async (c) => {
       expiresAt: invite.expires_at.toISOString(),
     },
   });
-});
+}
 
 // POST /v1/invites/{token} — public: token resolved by the SECURITY DEFINER
 // lookup (no tenant context exists yet), then enrollment runs in the tenant.
 orgRoutes.post("/invites/:token", async (c) => {
   const invite = await lookupInvite(hashSecret(c.req.param("token")));
-  if (!invite) throw notFound("Invalid or expired invitation token.");
+  return acceptInvite(c, invite);
+});
+
+// POST /v1/invites/code/{code} — public: same enrollment, resolved by the
+// short shareable code.
+orgRoutes.post("/invites/code/:code", async (c) => {
+  const code = normalizeInviteCode(c.req.param("code"));
+  if (!INVITE_CODE_RE.test(code)) throw notFound("Invalid invitation code.");
+  const invite = await lookupInviteByCode(hashSecret(code));
+  return acceptInvite(c, invite);
+});
+
+async function acceptInvite(c: Context, invite: InviteRow) {
+  if (!invite) throw notFound("Invalid or expired invitation.");
   if (invite.expires_at.getTime() < Date.now()) throw badRequest("Invitation has expired.");
   if (invite.accepted_at) throw badRequest("Invitation already accepted.");
 
@@ -186,7 +251,7 @@ orgRoutes.post("/invites/:token", async (c) => {
     await audit(tx, { tenantId: invite.tenant_id, actorId: userId!, action: "invite.accepted", entityType: "membership", entityId: userId! });
   });
   return c.json({ ok: true, tenantId: invite.tenant_id });
-});
+}
 
 // GET /v1/orgs/{orgId}/members — member+: list members with roles.
 orgRoutes.get("/orgs/:orgId/members", async (c) => {

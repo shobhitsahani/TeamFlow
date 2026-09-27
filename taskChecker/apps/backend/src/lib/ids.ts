@@ -41,6 +41,26 @@ export function randomToken(bytes = 32): string {
   return Buffer.from(buf).toString("base64url");
 }
 
+/** 8-char unambiguous alphabet for human-typable invite codes
+ * (no 0/O/1/I/L — reads clean off a whiteboard or email). */
+const INVITE_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+export const INVITE_CODE_RE = /^[A-HJ-KM-NP-Z2-9]{8}$/;
+
+/** Short shareable invite code, e.g. "KQ7M2XDA". Normalize with
+ * `normalizeInviteCode` before lookup (trims, uppercases, strips spaces). */
+export function randomInviteCode(): string {
+  const buf = crypto.getRandomValues(new Uint8Array(8));
+  // 31-symbol alphabet (not a power of two) — modulo, not bitmask, so every
+  // byte maps to a real symbol and codes are always exactly 8 chars.
+  return [...buf].map((b) => INVITE_CODE_ALPHABET[(b as number) % INVITE_CODE_ALPHABET.length]).join("");
+}
+
+/** Normalize user-typed codes: uppercase, strip whitespace/dashes. */
+export function normalizeInviteCode(raw: string): string {
+  return raw.toUpperCase().replace(/[\s-]+/g, "");
+}
+
 /**
  * Deterministic, uuid7-shaped id derived ONLY from the seed — same seed ⇒ same
  * id, which is what makes consumer writes idempotent under at-least-once

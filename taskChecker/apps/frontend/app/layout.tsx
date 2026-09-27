@@ -45,9 +45,9 @@ const lagoonBody = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Signal Board · TeamFlow",
+  title: "TeamFlow",
   description:
-    "Purple Trello-clone board — projects, kanban, members and live team chat.",
+    "TeamFlow board — projects, kanban, members and live team chat.",
 };
 
 export default function RootLayout({

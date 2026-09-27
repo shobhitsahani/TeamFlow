@@ -15,6 +15,7 @@ import {
   IconCopy,
   IconCheck,
   IconLink,
+  IconKey,
   IconClock,
 } from "@/components/icons";
 import { api, getCurrentTenantId, type Role } from "@/lib/api";
@@ -167,11 +168,11 @@ export default function MembersPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<Role>("member");
   const [inviting, setInviting] = useState(false);
-  // Last created invite — shown inline so the link can be copied/sent.
-  // Links live 24h (backend-enforced); email delivery is intentionally
-  // skipped, the inviter relays the link directly.
-  const [lastInvite, setLastInvite] = useState<{ email: string; role: Role; url: string; expiresAt: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  // Last created invite — shown inline so the link + code can be copied/sent.
+  // Links/codes live 24h (backend-enforced). The backend also emails the
+  // invite via Resend when configured; otherwise the inviter relays manually.
+  const [lastInvite, setLastInvite] = useState<{ email: string; role: Role; url: string; code: string; expiresAt: string; emailSent: boolean } | null>(null);
+  const [copiedWhat, setCopiedWhat] = useState<"link" | "code" | null>(null);
 
   const membersQ = useSWR<{ members: Member[] }>(
     orgId ? `members-${orgId}` : null,
@@ -205,11 +206,16 @@ export default function MembersPage() {
     setInviting(true);
     try {
       const res = await api.orgs.invite(orgId, { email, role: inviteRole });
-      setLastInvite({ email: res.invite.email, role: res.invite.role, url: res.invitationUrl, expiresAt: res.invite.expiresAt });
-      setCopied(false);
+      setLastInvite({ email: res.invite.email, role: res.invite.role, url: res.invitationUrl, code: res.code, expiresAt: res.invite.expiresAt, emailSent: res.email.sent });
+      setCopiedWhat(null);
       setInviteEmail("");
       await membersQ.mutate();
-      toast({ title: "Invite link ready", msg: `Send the link to ${email} — it expires in 24 hours.` });
+      toast({
+        title: res.email.sent ? "Invite emailed" : "Invite ready",
+        msg: res.email.sent
+          ? `${email} got the join link + code by email (expires in 24 hours).`
+          : `Email isn't configured — send the link or code to ${email} yourself (expires in 24 hours).`,
+      });
     } catch (err) {
       toast({ title: "Invite failed", msg: err instanceof Error ? err.message : "Try again." });
     } finally {
@@ -219,18 +225,18 @@ export default function MembersPage() {
 
   const openInviteModal = () => {
     setLastInvite(null);
-    setCopied(false);
+    setCopiedWhat(null);
     setShowInviteModal(true);
   };
 
-  const handleCopyLink = async () => {
+  const handleCopy = async (what: "link" | "code") => {
     if (!lastInvite) return;
     try {
-      await navigator.clipboard.writeText(lastInvite.url);
-      setCopied(true);
-      toast({ title: "Copied", msg: "Invite link copied to clipboard." });
+      await navigator.clipboard.writeText(what === "link" ? lastInvite.url : lastInvite.code);
+      setCopiedWhat(what);
+      toast({ title: "Copied", msg: what === "link" ? "Invite link copied to clipboard." : "Invite code copied to clipboard." });
     } catch {
-      toast({ title: "Copy failed", msg: "Select the link and copy it manually." });
+      toast({ title: "Copy failed", msg: "Select the text and copy it manually." });
     }
   };
 
@@ -396,7 +402,7 @@ export default function MembersPage() {
                 {lastInvite ? "Done" : "Cancel"}
               </Button>
               {lastInvite ? (
-                <Button variant="secondary" onClick={() => { setLastInvite(null); setCopied(false); }}>
+                <Button variant="secondary" onClick={() => { setLastInvite(null); setCopiedWhat(null); }}>
                   <IconPlus size={14} /> Invite another
                 </Button>
               ) : (
@@ -415,7 +421,8 @@ export default function MembersPage() {
                         <IconCheck size={16} />
                       </span>
                       <p>
-                        Invite link ready for <strong>{lastInvite.email}</strong> ({lastInvite.role}).
+                        Invite ready for <strong>{lastInvite.email}</strong> ({lastInvite.role}).
+                        {lastInvite.emailSent ? " They were emailed the link + code." : " Email isn't configured, so share it yourself."}
                       </p>
                     </div>
                     <Field>
@@ -423,15 +430,26 @@ export default function MembersPage() {
                       <div className="input-with-icon invite-link-row">
                         <IconLink size={16} />
                         <Input id="invite-link" type="text" value={lastInvite.url} readOnly onFocus={(e) => e.target.select()} aria-label="Invite link" />
-                        <Button variant="secondary" size="sm" onClick={handleCopyLink} aria-label="Copy invite link">
-                          {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                          {copied ? "Copied" : "Copy"}
+                        <Button variant="secondary" size="sm" onClick={() => void handleCopy("link")} aria-label="Copy invite link">
+                          {copiedWhat === "link" ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                          {copiedWhat === "link" ? "Copied" : "Copy"}
+                        </Button>
+                      </div>
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="invite-code">Or share this code — they type it on the join page</FieldLabel>
+                      <div className="input-with-icon invite-link-row">
+                        <IconKey size={16} />
+                        <Input id="invite-code" type="text" value={lastInvite.code} readOnly onFocus={(e) => e.target.select()} aria-label="Invite code" className="font-mono tracking-[0.2em]" />
+                        <Button variant="secondary" size="sm" onClick={() => void handleCopy("code")} aria-label="Copy invite code">
+                          {copiedWhat === "code" ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                          {copiedWhat === "code" ? "Copied" : "Copy"}
                         </Button>
                       </div>
                       <FieldDescription>
                         <IconClock size={12} /> Expires{" "}
                         {new Date(lastInvite.expiresAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}{" "}
-                        (24 hours). Send it to them however you like — chat, SMS, or your own email.
+                        (24 hours). Send it however you like — chat, SMS, or your own email.
                       </FieldDescription>
                     </Field>
                   </>
