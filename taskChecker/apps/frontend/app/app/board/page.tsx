@@ -30,7 +30,7 @@ import { useAuth } from "@/lib/auth";
 import { useTenant } from "@/components/store";
 import { useSWR } from "@/lib/swr";
 import { useUpdateTask } from "@/lib/mutations";
-import { AnimatePresence, DUR, motion } from "@/components/motion";
+import { AnimatePresence, DUR, LAYOUT_SPRING, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cx } from "@/lib/utils";
@@ -81,6 +82,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   draggable,
   dragging,
   touchActive,
+  layoutReady,
   canWrite,
   isDone,
   today,
@@ -99,6 +101,9 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   draggable: boolean;
   dragging: boolean;
   touchActive: boolean;
+  /** False on first paint / board switch: skips layout swirl, animates only
+   *  real user-driven moves afterwards. */
+  layoutReady: boolean;
   canWrite: boolean;
   isDone: boolean;
   today: string | null;
@@ -124,7 +129,10 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
 
   return (
     <motion.div
-      layout
+      // Position-only layout: text never stretches while the card settles.
+      // Disabled while dragging (fights the drag) and before first paint
+      // (mount/refetch swirl) — only real user-driven moves animate.
+      layout={layoutReady && !dragging && !touchActive ? "position" : false}
       data-slot="lagoon-card"
       role="listitem"
       tabIndex={0}
@@ -141,7 +149,13 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       onClick={() => onOpen(task)}
       style={touchActive ? { touchAction: "none", userSelect: "none" } : { touchAction: "pan-y" }}
       onKeyDown={(e) => {
-        if (e.key === "Enter") onOpen(task);
+        // Inner controls (e.g. the Done button) handle their own activation;
+        // ignore bubbled keys so they don't also open the modal.
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(task);
+        }
       }}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -156,7 +170,16 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       {label ? (
         <Badge variant="secondary" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)}>{label.text}</Badge>
       ) : null}
-      <h3 className="lagoon-card-title text-[13px] font-semibold leading-snug">{task.title}</h3>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <h3 className="lagoon-card-title text-[13px] font-semibold leading-snug" />
+          }
+        >
+          {task.title}
+        </TooltipTrigger>
+        <TooltipContent>{task.title}</TooltipContent>
+      </Tooltip>
       {task.description ? <p className="lagoon-card-desc mt-1 line-clamp-2 text-[11px]">{task.description}</p> : null}
       <div className="lagoon-card-foot mt-3 flex min-h-6 items-center gap-2">
         {assigneeName ? (
@@ -251,6 +274,18 @@ function LagoonListTitle({
             setEditing(true);
           }
         }}
+        // Rename is click-driven; expose it to keyboard users identically.
+        tabIndex={canWrite ? 0 : undefined}
+        role={canWrite ? "button" : undefined}
+        aria-label={canWrite ? `Rename list ${title}` : undefined}
+        onKeyDown={(e) => {
+          if (!canWrite) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setDraft(title);
+            setEditing(true);
+          }
+        }}
         style={canWrite ? { cursor: "pointer" } : undefined}
       >
         {title}
@@ -271,7 +306,7 @@ function LagoonListTitle({
       value={draft}
       maxLength={50}
       aria-label="List name"
-      className="h-7 px-2 py-0.5 text-[13px] font-semibold"
+      className="h-7 px-2 py-1 text-[13px] font-semibold"
       onChange={(e) => setDraft(e.target.value)}
       onFocus={(e) => e.target.select()}
       onBlur={commit}
@@ -289,8 +324,9 @@ function LagoonListTitle({
   );
 }
 
-/** Flat timeline row — same card data, sorted by due date. */
-function LagoonTimelineRow({
+/** Flat timeline row — same card data, sorted by due date. Memoized so typing
+ *  in search or opening a menu doesn't re-render every row. */
+const LagoonTimelineRow = memo(function LagoonTimelineRow({
   task,
   project,
   assigneeName,
@@ -333,7 +369,7 @@ function LagoonTimelineRow({
       </ItemMedia>
       <ItemContent>
         <ItemTitle className="block w-full min-w-0 truncate text-[13px]">{task.title}</ItemTitle>
-        <ItemDescription className="font-mono text-[10px]">
+        <ItemDescription className="font-mono text-[10px] tabular-nums">
           {project ? `${project.key} · ` : ""}{STATUS_LABELS[task.status] ?? task.status}
         </ItemDescription>
       </ItemContent>
@@ -352,7 +388,45 @@ function LagoonTimelineRow({
       ) : null}
     </Item>
   );
-}
+});
+
+/** Touch-drag ghost — hoisted to module level (never defined inline in
+ *  render) so it mounts once per drag instead of remounting every pointer
+ *  move and killing the column's layout animations. */
+const LagoonTouchGhost = memo(function LagoonTouchGhost({
+  title,
+  x,
+  y,
+}: {
+  title: string;
+  x: number;
+  y: number;
+}) {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "fixed",
+        left: x,
+        top: y,
+        translate: "-50% -115%",
+        zIndex: 200,
+        pointerEvents: "none",
+        minWidth: 180,
+        maxWidth: 260,
+        background: "var(--lagoon-card)",
+        border: "1px solid var(--lagoon-border)",
+        borderRadius: 8,
+        padding: "8px 12px",
+        boxShadow: "var(--lagoon-shadow-md)",
+        fontSize: 13,
+        fontWeight: 600,
+      }}
+    >
+      {title}
+    </div>
+  );
+});
 
 function LagoonBoard() {
   const toast = useToast();
@@ -458,10 +532,19 @@ function LagoonBoard() {
   }
 
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [, setDragOverCol] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [touchDrag, setTouchDrag] = useState<{ taskId: string; active: boolean; x: number; y: number } | null>(null);
   const touchTimer = useRef<number | null>(null);
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
+  // Element that opened the card modal — focus returns here on close.
+  const openerRef = useRef<HTMLElement | null>(null);
+  const restoreOpenerFocus = useCallback(() => {
+    const el = openerRef.current;
+    openerRef.current = null;
+    if (el && document.contains(el)) {
+      requestAnimationFrame(() => el.focus({ preventScroll: true }));
+    }
+  }, []);
   const TOUCH_HOLD_MS = 280;
   const TOUCH_MOVE_TOLERANCE = 12;
 
@@ -748,16 +831,39 @@ function LagoonBoard() {
         await api.tasks.delete(task.id);
         clearLagoonMeta(task.id);
         setSelectedTaskId(null);
+        restoreOpenerFocus();
         await tasksQ.mutate();
         toast({ title: "Card deleted", msg: "Task moved to trash." });
       } catch (err) {
         toast({ title: "Delete failed", msg: err instanceof Error ? err.message : "Try again." });
       }
     },
-    [tasksQ, toast],
+    [tasksQ, toast, restoreOpenerFocus],
   );
 
-  const openCard = useCallback((task: Task) => setSelectedTaskId(task.id), []);
+  const openCard = useCallback((task: Task) => {
+    // Remember the trigger so focus can return to the exact card/row/chip
+    // on close (Base UI has no Trigger here to return to on its own).
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSelectedTaskId(task.id);
+  }, []);
+
+  const closeCard = useCallback(() => {
+    setSelectedTaskId(null);
+    // onClose fires from the modal's onExitComplete, so the card is settled
+    // and ready to take focus back.
+    restoreOpenerFocus();
+  }, [restoreOpenerFocus]);
+
+  // Layout animations stay off through first paint and board switches —
+  // only real user-driven moves (drop, add, delete) animate afterwards.
+  const layoutReady = useLayoutReady(selectedProjectId);
+
+  // Touch-drag ghost task, derived once per render (stable props for the
+  // memoized ghost below — no inline IIFE in the JSX).
+  const touchGhostTask = touchDrag?.active
+    ? projectTasks.find((t) => t.id === touchDrag.taskId) ?? null
+    : null;
 
   if (projectsQ.isLoading) {
     return (
@@ -768,8 +874,17 @@ function LagoonBoard() {
         onProjectsChanged={() => projectsQ.mutate()}
       >
         <div className="lagoon-list-wrap" style={{ paddingTop: 32 }}>
-          <div className="lagoon-empty">
-            <p style={{ fontSize: 13, color: "var(--lagoon-muted-fg)" }}>Loading boards…</p>
+          <div className="lagoon-board-scroll">
+            <div className="lagoon-cols" role="status" aria-label="Loading boards">
+              {[0, 1, 2].map((c) => (
+                <div key={c} className="flex flex-none flex-col gap-2.5" style={{ width: 280 }} aria-hidden>
+                  <Skeleton className="h-5 w-24 rounded" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </LagoonShell>
@@ -785,7 +900,7 @@ function LagoonBoard() {
         onProjectsChanged={() => projectsQ.mutate()}
       >
         <div className="lagoon-list-wrap" style={{ paddingTop: 32 }}>
-          <div className="lagoon-empty">
+          <PageEnter className="lagoon-empty">
             <h3 className="lagoon-display" style={{ fontSize: 16, fontWeight: 600 }}>Couldn&apos;t load boards</h3>
             <p style={{ marginTop: 8, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>
               {projectsQ.error instanceof Error ? projectsQ.error.message : "Something went wrong."}
@@ -800,7 +915,7 @@ function LagoonBoard() {
             >
               Try again
             </Button>
-          </div>
+          </PageEnter>
         </div>
       </LagoonShell>
     );
@@ -815,7 +930,7 @@ function LagoonBoard() {
         onProjectsChanged={() => projectsQ.mutate()}
       >
         <div className="lagoon-list-wrap" style={{ paddingTop: 32 }}>
-          <div className="lagoon-empty">
+          <PageEnter className="lagoon-empty">
             <h3 className="lagoon-display" style={{ fontSize: 16, fontWeight: 600 }}>No boards yet</h3>
             <p style={{ marginTop: 8, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>
               Create your first board to start adding cards.
@@ -823,7 +938,7 @@ function LagoonBoard() {
             <Button type="button" size="sm" className="lagoon-create-btn border-0" style={{ marginTop: 16 }} onClick={openNewBoard}>
               <IconPlus size={14} /> New board
             </Button>
-          </div>
+          </PageEnter>
         </div>
       </LagoonShell>
     );
@@ -936,17 +1051,26 @@ function LagoonBoard() {
 
       <div className="lagoon-filterbar">
         <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
-          <Button type="button" variant={view === "board" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border", view === "board" && "is-on")} aria-pressed={view === "board"} onClick={() => setView("board")}>
+          <Button type="button" variant={view === "board" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "board" && "is-on")} aria-pressed={view === "board"} onClick={() => setView("board")}>
+            {view === "board" ? (
+              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-primary" />
+            ) : null}
             <IconColumns size={14} /> Board
           </Button>
-          <Button type="button" variant={view === "timeline" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border", view === "timeline" && "is-on")} aria-pressed={view === "timeline"} onClick={() => setView("timeline")}>
+          <Button type="button" variant={view === "timeline" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "timeline" && "is-on")} aria-pressed={view === "timeline"} onClick={() => setView("timeline")}>
+            {view === "timeline" ? (
+              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-primary" />
+            ) : null}
             <IconList size={14} /> Timeline
           </Button>
-          <Button type="button" variant={view === "calendar" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border", view === "calendar" && "is-on")} aria-pressed={view === "calendar"} onClick={() => setView("calendar")}>
+          <Button type="button" variant={view === "calendar" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "calendar" && "is-on")} aria-pressed={view === "calendar"} onClick={() => setView("calendar")}>
+            {view === "calendar" ? (
+              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-primary" />
+            ) : null}
             <IconCalendar size={14} /> Calendar
           </Button>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {LAGOON_TONES.map((tone) => (
             <Tooltip key={tone}>
               <TooltipTrigger
@@ -1003,6 +1127,10 @@ function LagoonBoard() {
         </div>
       ) : null}
 
+      {/* View switch: short opacity crossfade (fast in, instant out), no slide.
+          Skipped on first paint; tab indicator above shows the direction. */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={view} variants={viewFade} initial="hidden" animate="show" exit="exit">
       {view === "board" ? (
         <div className="lagoon-board-scroll">
           <div className="lagoon-cols">
@@ -1027,7 +1155,7 @@ function LagoonBoard() {
                   />
                   <Badge variant="secondary" className="lagoon-col-count border-0 text-[11px]">{col.tasks.length}</Badge>
                 </div>
-                <div className={cx("lagoon-col-body", draggedTaskId && "is-dragging")} role="list">
+                <div className={cx("lagoon-col-body", draggedTaskId && "is-dragging", dragOverCol === col.status && "is-dragover")} role="list">
                   <AnimatePresence initial={false} mode="popLayout">
                     {col.tasks.map((task) => (
                       <LagoonTaskCard
@@ -1038,6 +1166,7 @@ function LagoonBoard() {
                         draggable={canWrite}
                         dragging={draggedTaskId === task.id || (touchDrag?.active === true && touchDrag.taskId === task.id)}
                         touchActive={touchDrag?.active === true && touchDrag.taskId === task.id}
+                        layoutReady={layoutReady}
                         canWrite={canWrite}
                         isDone={col.status === "done"}
                         today={today}
@@ -1128,9 +1257,9 @@ function LagoonBoard() {
         <div className="lagoon-list-wrap">
           <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 880 }}>
             {timelineTasks.length === 0 ? (
-              <div className="lagoon-empty">
+              <PageEnter className="lagoon-empty">
                 <p style={{ fontSize: 13, color: "var(--lagoon-muted-fg)" }}>Nothing scheduled — add due dates to line up the work.</p>
-              </div>
+              </PageEnter>
             ) : (
               timelineTasks.map((task) => (
                 <LagoonTimelineRow
@@ -1158,37 +1287,12 @@ function LagoonBoard() {
           />
         </div>
       )}
+        </motion.div>
+      </AnimatePresence>
 
-      {touchDrag?.active
-        ? (() => {
-            const ghostTask = projectTasks.find((t) => t.id === touchDrag.taskId);
-            if (!ghostTask) return null;
-            return (
-              <div
-                aria-hidden
-                style={{
-                  position: "fixed",
-                  left: touchDrag.x,
-                  top: touchDrag.y,
-                  translate: "-50% -115%",
-                  zIndex: 200,
-                  pointerEvents: "none",
-                  minWidth: 180,
-                  maxWidth: 260,
-                  background: "var(--lagoon-card)",
-                  border: "1px solid var(--lagoon-border)",
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  boxShadow: "0 12px 24px -4px rgb(15 23 42 / 0.25)",
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                {ghostTask.title}
-              </div>
-            );
-          })()
-        : null}
+      {touchGhostTask && touchDrag?.active ? (
+        <LagoonTouchGhost title={touchGhostTask.title} x={touchDrag.x} y={touchDrag.y} />
+      ) : null}
 
       {!canWrite && projectTasks.length > 0 ? (
         <p style={{ padding: "0 20px 12px", fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
@@ -1203,7 +1307,7 @@ function LagoonBoard() {
           project={selectedProject}
           members={members}
           canWrite={canWrite}
-          onClose={() => setSelectedTaskId(null)}
+          onClose={closeCard}
           onPatch={patchTask}
           onDelete={handleDeleteTask}
           onMetaChanged={bumpMeta}
@@ -1215,7 +1319,7 @@ function LagoonBoard() {
 
 export default function BoardPageWrapper() {
   return (
-    <Suspense fallback={<div className="lagoon" style={{ padding: 24, fontSize: 13 }}>Loading…</div>}>
+    <Suspense fallback={<div className="lagoon" style={{ padding: 24 }} role="status" aria-label="Loading board"><Skeleton className="h-6 w-40 rounded" /><div style={{ display: "flex", gap: 16, marginTop: 16 }} aria-hidden><Skeleton className="h-48 rounded-lg" style={{ width: 280 }} /><Skeleton className="h-48 rounded-lg" style={{ width: 280 }} /><Skeleton className="h-48 rounded-lg" style={{ width: 280 }} /></div></div>}>
       <LagoonBoard />
     </Suspense>
   );

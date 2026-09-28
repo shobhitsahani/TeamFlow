@@ -12,6 +12,8 @@ import { IconCheck, IconClock, IconLayers, IconPlus, IconSearch } from "@/compon
 import { api, getCurrentTenantId, type Project, type Task, type Team } from "@/lib/api";
 import { useTenant } from "@/components/store";
 import { useSWR } from "@/lib/swr";
+import { motion, PageEnter, contentFade } from "@/components/motion";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toYmd, todayYmd } from "@/components/lagoon/lagoon-utils";
 
 const BOARD_TONES = ["teal", "coral", "ocean"] as const;
@@ -156,9 +158,15 @@ function LagoonDashboard() {
           </div>
 
           {projectsQ.isLoading ? (
-            <p style={{ paddingTop: 32, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>Loading boards…</p>
+            <section aria-label="Loading boards" role="status" style={{ display: "grid", gap: 16, paddingTop: 32, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} aria-hidden style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <Skeleton className="h-52 w-full rounded-xl" />
+                </div>
+              ))}
+            </section>
           ) : filtered.length === 0 ? (
-            <div className="lagoon-empty" style={{ marginTop: 32 }}>
+            <PageEnter className="lagoon-empty" style={{ marginTop: 32 }}>
               <h3 className="lagoon-display" style={{ fontSize: 16, fontWeight: 600 }}>
                 {search ? "No boards match" : "No boards yet"}
               </h3>
@@ -170,9 +178,9 @@ function LagoonDashboard() {
                   <IconPlus size={14} /> New board
                 </button>
               ) : null}
-            </div>
+            </PageEnter>
           ) : (
-            <>
+            <motion.div variants={contentFade} initial="hidden" animate="show">
               <section aria-label="All boards" style={{ display: "grid", gap: 16, paddingTop: 32, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
                 {filtered.map((b) => (
                   <Link
@@ -224,7 +232,7 @@ function LagoonDashboard() {
                   <p style={{ marginTop: 4, fontSize: 11, color: "var(--lagoon-muted-fg)" }}>Ready to celebrate</p>
                 </div>
               </section>
-            </>
+            </motion.div>
           )}
         </div>
       </div>
@@ -234,7 +242,7 @@ function LagoonDashboard() {
 
 export default function ProjectsPageWrapper() {
   return (
-    <Suspense fallback={<div className="lagoon" style={{ padding: 24, fontSize: 13 }}>Loading…</div>}>
+    <Suspense fallback={<div className="lagoon" style={{ padding: 24 }} role="status" aria-label="Loading boards"><Skeleton className="h-6 w-40 rounded" /><div style={{ display: "grid", gap: 16, marginTop: 16, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }} aria-hidden><Skeleton className="h-52 w-full rounded-xl" /><Skeleton className="h-52 w-full rounded-xl" /><Skeleton className="h-52 w-full rounded-xl" /></div></div>}>
       <LagoonDashboard />
     </Suspense>
   );

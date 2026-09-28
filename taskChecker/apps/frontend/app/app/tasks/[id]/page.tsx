@@ -343,7 +343,11 @@ export default function TaskDetailPage() {
     return (
       <AppShell>
         <div className="page">
-          <div className="loading">Loading…</div>
+          <div className="flex max-w-3xl flex-col gap-3" role="status" aria-label="Loading task">
+            <Skeleton className="h-8 w-2/3 rounded" />
+            <Skeleton className="h-4 w-1/3 rounded" />
+            <Skeleton className="h-40 w-full rounded-lg" />
+          </div>
         </div>
       </AppShell>
     );
@@ -353,10 +357,10 @@ export default function TaskDetailPage() {
     return (
       <AppShell>
         <div className="page">
-          <div className="empty-state">
+          <PageEnter className="empty-state">
             <h3>Task not found</h3>
             <p>It may be deleted, or belong to another organization.</p>
-          </div>
+          </PageEnter>
         </div>
       </AppShell>
     );
@@ -512,8 +516,9 @@ export default function TaskDetailPage() {
                       <Button
                         type="submit"
                         disabled={!commentBody.trim() || postingComment}
+                        loading={postingComment}
                       >
-                        <IconMessageSquare size={14} /> {postingComment ? "Posting…" : "Add comment"}
+                        <IconMessageSquare size={14} /> Add comment
                       </Button>
                     </div>
                   </form>
@@ -616,8 +621,8 @@ export default function TaskDetailPage() {
               <Button variant="ghost" onClick={() => setShowEdit(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={() => void handleSaveEdit()} disabled={!editTitle.trim() || saving}>
-                {saving ? "Saving…" : "Save changes"}
+              <Button onClick={() => void handleSaveEdit()} disabled={!editTitle.trim() || saving} loading={saving}>
+                Save changes
               </Button>
             </>
           }
@@ -805,8 +810,8 @@ export default function TaskDetailPage() {
               <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={() => void handleDelete()} disabled={deleting}>
-                <IconTrash size={14} /> {deleting ? "Deleting…" : "Delete task"}
+              <Button variant="destructive" onClick={() => void handleDelete()} disabled={deleting} loading={deleting}>
+                <IconTrash size={14} /> Delete task
               </Button>
             </>
           }

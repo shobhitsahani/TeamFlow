@@ -4,7 +4,7 @@
    Wired to the real API — projects/teams/members/activity from the
    tenant-scoped backend, user from the auth session. */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTenant } from "./store";
@@ -461,8 +461,9 @@ export function ContextBar() {
                 <Button
                   onClick={() => void handleCreateOrg()}
                   disabled={!newOrgName.trim() || creatingOrg}
+                  loading={creatingOrg}
                 >
-                  <IconPlus size={14} /> {creatingOrg ? "Creating…" : "Create organization"}
+                  <IconPlus size={14} /> Create organization
                 </Button>
               </>
             }
@@ -555,8 +556,9 @@ export function ContextBar() {
                 <Button
                   onClick={() => void handleCreateProject()}
                   disabled={!newProjectName.trim() || !(keyTouched ? newProjectKey.trim() : suggestKey(newProjectName)) || creatingProject}
+                  loading={creatingProject}
                 >
-                  <IconPlus size={14} /> {creatingProject ? "Creating…" : "Create project"}
+                  <IconPlus size={14} /> Create project
                 </Button>
               </>
             }
@@ -668,8 +670,9 @@ export function ContextBar() {
                 <Button
                   onClick={() => void handleRenameProject()}
                   disabled={renaming || !renameName.trim() || renameName.trim() === renamingProj?.name}
+                  loading={renaming}
                 >
-                  <IconEdit size={14} /> {renaming ? "Renaming…" : "Rename project"}
+                  <IconEdit size={14} /> Rename project
                 </Button>
               </>
             }
@@ -700,8 +703,8 @@ export function ContextBar() {
                 <Button variant="ghost" onClick={() => setDeletingProj(null)} disabled={deleting}>
                   Cancel
                 </Button>
-                <Button variant="destructive" onClick={() => void handleDeleteProject()} disabled={deleting}>
-                  <IconTrash size={14} /> {deleting ? "Deleting…" : "Delete project"}
+                <Button variant="destructive" onClick={() => void handleDeleteProject()} disabled={deleting} loading={deleting}>
+                  <IconTrash size={14} /> Delete project
                 </Button>
               </>
             }
@@ -1193,7 +1196,8 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
   );
 }
 
-function ChatBubble({
+/* Memoized so sidebar state (typing, resize) doesn't re-render every bubble. */
+const ChatBubble = memo(function ChatBubble({
   who,
   isOwn,
   time,
@@ -1217,7 +1221,8 @@ function ChatBubble({
   return (
     <motion.div
       className="st-msg"
-      layout
+      // Position-only: message text must not stretch while the list settles.
+      layout="position"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
@@ -1245,7 +1250,7 @@ function ChatBubble({
       </div>
     </motion.div>
   );
-}
+});
 
 function ChatInput({
   onSend,

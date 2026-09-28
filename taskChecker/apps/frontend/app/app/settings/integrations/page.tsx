@@ -12,6 +12,8 @@ import { IconPlus, IconKey, IconWebhook, IconCopy, IconTrash, IconRotateCw, Icon
 import { api, getCurrentTenantId, type Webhook, type ApiKey, type Delivery } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { cx } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageEnter } from "@/components/motion";
 
 const ALL_EVENTS = [
   "task.created",
@@ -166,9 +168,12 @@ export default function IntegrationsPage() {
 
   const [akName, setAkName] = useState("");
   const [akScopes, setAkScopes] = useState<string[]>(["read", "write"]);
+  const [creatingWebhook, setCreatingWebhook] = useState(false);
+  const [creatingApiKey, setCreatingApiKey] = useState(false);
 
   const handleCreateWebhook = useCallback(async () => {
-    if (!whName || !whUrl) return;
+    if (!whName || !whUrl || creatingWebhook) return;
+    setCreatingWebhook(true);
     try {
       await api.webhooks.create({ name: whName, url: whUrl, events: whEvents });
       setShowWebhookModal(false);
@@ -179,11 +184,14 @@ export default function IntegrationsPage() {
       toast({ title: "Webhook created", msg: `${whName} is now active` });
     } catch (err) {
       toast({ title: "Create failed", msg: err instanceof Error ? err.message : "Try again." });
+    } finally {
+      setCreatingWebhook(false);
     }
-  }, [whName, whUrl, whEvents, webhooksQ, toast]);
+  }, [whName, whUrl, whEvents, webhooksQ, toast, creatingWebhook]);
 
   const handleCreateApiKey = useCallback(async () => {
-    if (!akName) return;
+    if (!akName || creatingApiKey) return;
+    setCreatingApiKey(true);
     try {
       const res = await api.apiKeys.create({ name: akName, scopes: akScopes });
       toast({ title: "API key created", msg: `Key: ${res.key} (shown once)` });
@@ -193,8 +201,10 @@ export default function IntegrationsPage() {
       await apiKeysQ.mutate();
     } catch (err) {
       toast({ title: "Create failed", msg: err instanceof Error ? err.message : "Try again." });
+    } finally {
+      setCreatingApiKey(false);
     }
-  }, [akName, akScopes, apiKeysQ, toast]);
+  }, [akName, akScopes, apiKeysQ, toast, creatingApiKey]);
 
   const handleWebhookToggle = useCallback(async (id: string) => {
     const wh = webhooks.find((w) => w.id === id);
@@ -301,10 +311,10 @@ export default function IntegrationsPage() {
                 />
               ))}
               {webhooks.length === 0 ? (
-                <div className="empty-state inline">
+                <PageEnter className="empty-state inline">
                   <IconWebhook size={32} className="dim" />
                   <p>No webhooks configured. Add one to receive real-time events.</p>
-                </div>
+                </PageEnter>
               ) : null}
             </div>
           </section>
@@ -326,10 +336,10 @@ export default function IntegrationsPage() {
                 />
               ))}
               {apiKeys.length === 0 ? (
-                <div className="empty-state inline">
+                <PageEnter className="empty-state inline">
                   <IconKey size={32} className="dim" />
                   <p>No API keys created. Generate one for server-to-server access.</p>
-                </div>
+                </PageEnter>
               ) : null}
             </div>
           </section>
@@ -341,7 +351,7 @@ export default function IntegrationsPage() {
             footer={
               <>
                 <Button variant="ghost" onClick={() => setShowWebhookModal(false)}>Cancel</Button>
-                <Button onClick={handleCreateWebhook} disabled={!whName || !whUrl}>
+                <Button onClick={handleCreateWebhook} disabled={!whName || !whUrl || creatingWebhook} loading={creatingWebhook}>
                   <IconWebhook size={14} /> Create webhook
                 </Button>
               </>
@@ -382,7 +392,7 @@ export default function IntegrationsPage() {
             footer={
               <>
                 <Button variant="ghost" onClick={() => setShowApiKeyModal(false)}>Cancel</Button>
-                <Button onClick={handleCreateApiKey} disabled={!akName}>
+                <Button onClick={handleCreateApiKey} disabled={!akName || creatingApiKey} loading={creatingApiKey}>
                   <IconKey size={14} /> Create API key
                 </Button>
               </>
@@ -423,7 +433,10 @@ export default function IntegrationsPage() {
                 </div>
                 <div className="modal-body">
                   {deliveriesQ.isLoading ? (
-                    <div className="loading">Loading…</div>
+                    <div className="flex flex-col gap-2" role="status" aria-label="Loading deliveries" style={{ padding: "12px 0" }}>
+                      <Skeleton className="h-10 w-full rounded-lg" />
+                      <Skeleton className="h-10 w-full rounded-lg" />
+                    </div>
                   ) : (
                     <div className="deliveries-table">
                       <table>

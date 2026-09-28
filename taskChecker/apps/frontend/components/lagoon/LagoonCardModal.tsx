@@ -6,7 +6,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import { AnimatePresence, motion, popIn } from "@/components/motion";
+import { AnimatePresence, motion, popIn, staggerChild, staggerParent } from "@/components/motion";
 import { api, type Comment, type Member, type PaginatedResponse, type Project, type Task } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { useToast } from "@/components/overlay";
@@ -34,6 +34,8 @@ import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   LAGOON_TONES,
@@ -80,6 +82,7 @@ export function LagoonCardModal({
   const [tone, setTone] = useState<LagoonTone | undefined>(meta.tone);
   const [checklist, setChecklist] = useState<LagoonCheckItem[]>(meta.checklist);
   const [saving, setSaving] = useState(false);
+  const [commentSending, setCommentSending] = useState(false);
   const [visible, setVisible] = useState(true);
   const [closeFired, setCloseFired] = useState(false);
 
@@ -169,14 +172,17 @@ export function LagoonCardModal({
   const handleAddComment = async (e: FormEvent) => {
     e.preventDefault();
     const text = commentText.trim();
-    if (!text) return;
+    if (!text || commentSending) return;
     setCommentText("");
+    setCommentSending(true);
     try {
       await api.comments.create(task.id, text);
       await commentsQ.mutate();
     } catch (err) {
       setCommentText(text);
       toast({ title: "Comment failed", msg: err instanceof Error ? err.message : "Try again." });
+    } finally {
+      setCommentSending(false);
     }
   };
 
@@ -237,7 +243,7 @@ export function LagoonCardModal({
           <DialogContent
             aria-label="Card details"
             showCloseButton
-            className="max-w-lg gap-0 overflow-y-auto p-5 duration-0 data-open:animate-none sm:max-w-lg"
+            className="lagoon-scroll-fade max-w-lg gap-0 overflow-y-auto p-5 duration-0 data-open:animate-none sm:max-w-lg"
             style={{ maxHeight: "85dvh" }}
           >
             <motion.div variants={popIn} initial="hidden" animate="show" exit="exit">
@@ -259,7 +265,11 @@ export function LagoonCardModal({
                 </div>
               </DialogHeader>
 
-              <div className="mt-4 grid gap-4">
+              {/* Body sections stagger in subtly on open (30ms stagger, mount
+                  only — typing/editing never replays it). Header and footer
+                  ride the panel pop; they are not stagger children. */}
+              <motion.div variants={staggerParent} initial="hidden" animate="show" exit="exit">
+              <motion.div variants={staggerChild} className="mt-4 grid gap-4">
                 <Field>
                   <FieldLabel>Description</FieldLabel>
                   <Textarea
@@ -284,7 +294,7 @@ export function LagoonCardModal({
                         disabled={!canWrite}
                       />
                     </Field>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       {LAGOON_TONES.map((t) => (
                         <button
                           key={t}
@@ -344,22 +354,35 @@ export function LagoonCardModal({
                           const display = m.name ?? m.email ?? m.userId.slice(0, 4);
                           const active = task.assigneeId === m.userId;
                           return (
-                            <Avatar
+                            // Real button (not a clickable span): keyboard
+                            // reachable with a visible ring + pressed state.
+                            // ring-2 ring-background preserves the avatar
+                            // separator ring lost by nesting under the button.
+                            <button
                               key={m.userId}
+                              type="button"
                               title={display}
+                              aria-label={`Assign ${display}`}
+                              aria-pressed={active}
+                              disabled={!canWrite}
                               data-active={active}
-                              className="cursor-pointer"
+                              onClick={() => void handleMember(m.userId)}
+                              className="cursor-pointer rounded-full ring-2 ring-background transition-opacity disabled:cursor-not-allowed"
                               style={{
-                                background: lagoonAvatarTone(m.userId),
                                 opacity: active || task.assigneeId === null ? 1 : 0.6,
                               }}
-                              onClick={() => void handleMember(m.userId)}
-                              aria-disabled={!canWrite}
                             >
-                              <AvatarFallback className="bg-transparent text-[10px] font-semibold text-white">
-                                {lagoonInitials(display)}
-                              </AvatarFallback>
-                            </Avatar>
+                              <Avatar
+                                title={display}
+                                style={{
+                                  background: lagoonAvatarTone(m.userId),
+                                }}
+                              >
+                                <AvatarFallback className="bg-transparent text-[10px] font-semibold text-white">
+                                  {lagoonInitials(display)}
+                                </AvatarFallback>
+                              </Avatar>
+                            </button>
                           );
                         })}
                       </AvatarGroup>
@@ -385,18 +408,19 @@ export function LagoonCardModal({
                     </Field>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
+          <motion.div variants={staggerChild}>
           <Field>
-            <FieldLabel>
+            <FieldLabel className="tabular-nums">
               Checklist{checklist.length > 0 ? ` · ${doneCount}/${checklist.length}` : ""}
             </FieldLabel>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1">
               {checklist.map((item) => (
                 <label
                   key={item.id}
                   data-done={item.done}
-                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted data-[done=true]:text-muted-foreground data-[done=true]:[&>span]:line-through"
+                  className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-[background-color,color,opacity] duration-150 hover:bg-muted data-[done=true]:text-muted-foreground data-[done=true]:[&>span]:line-through"
                 >
                   <Checkbox
                     checked={item.done}
@@ -412,7 +436,7 @@ export function LagoonCardModal({
               ))}
             </div>
             {canWrite ? (
-              <form onSubmit={handleAddCheck} className="mt-1.5 flex gap-1.5">
+              <form onSubmit={handleAddCheck} className="mt-2 flex gap-2">
                 <Input name="checkItem" aria-label="New checklist item" placeholder="Add an item" />
                 <Button type="submit" variant="secondary">
                   Add
@@ -420,12 +444,17 @@ export function LagoonCardModal({
               </form>
             ) : null}
           </Field>
+          </motion.div>
 
+          <motion.div variants={staggerChild}>
           <Field>
-            <FieldLabel>Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</FieldLabel>
-            <div className="flex flex-col gap-1.5">
+            <FieldLabel className="tabular-nums">Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</FieldLabel>
+            <div className="flex flex-col gap-2">
               {commentsQ.isLoading ? (
-                <p className="text-xs text-muted-foreground">Loading comments…</p>
+                <div className="flex flex-col gap-1.5" role="status" aria-label="Loading comments">
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                </div>
               ) : comments.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No comments yet.</p>
               ) : (
@@ -435,19 +464,26 @@ export function LagoonCardModal({
                       <span className="text-[11px] font-semibold">
                         {names.get(c.authorId) ?? "Someone"}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[10px] tabular-nums text-muted-foreground">
                         {new Date(c.createdAt).toLocaleString()}
                       </span>
                       {canWrite ? (
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          aria-label="Delete comment"
-                          onClick={() => void handleDeleteComment(c.id)}
-                          className="ml-auto text-muted-foreground"
-                        >
-                          <IconTrash size={12} />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label="Delete comment"
+                                onClick={() => void handleDeleteComment(c.id)}
+                                className="ml-auto text-muted-foreground"
+                              />
+                            }
+                          >
+                            <IconTrash size={12} />
+                          </TooltipTrigger>
+                          <TooltipContent>Delete comment</TooltipContent>
+                        </Tooltip>
                       ) : null}
                     </div>
                     <p className="whitespace-pre-wrap">{c.body}</p>
@@ -456,19 +492,26 @@ export function LagoonCardModal({
               )}
             </div>
             {canWrite ? (
-              <form onSubmit={handleAddComment} className="mt-1.5 flex gap-1.5">
+              <form onSubmit={handleAddComment} className="mt-2 flex gap-2">
                 <Input
                   aria-label="Write a comment"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Write a comment…"
                 />
-                <Button type="submit" variant="secondary" disabled={!commentText.trim()}>
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  disabled={!commentText.trim() || commentSending}
+                  loading={commentSending}
+                >
                   Send
                 </Button>
               </form>
             ) : null}
           </Field>
+          </motion.div>
+          </motion.div>
 
           <Separator />
 
@@ -480,8 +523,8 @@ export function LagoonCardModal({
             ) : (
               <span />
             )}
-            <Button onClick={() => void handleDone()} disabled={saving}>
-              {saving ? "Saving…" : "Done"}
+            <Button onClick={() => void handleDone()} disabled={saving} loading={saving}>
+              Done
             </Button>
           </DialogFooter>
           </motion.div>

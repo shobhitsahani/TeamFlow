@@ -1,17 +1,34 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * bundle-dynamic-imports: Heavy components loaded on demand
  * Reduces initial bundle size by code-splitting
  */
 
+/** Route-level code-split fallback: skeleton blocks, never bare text. */
+function RouteSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      className="page-skeleton"
+      role="status"
+      aria-label={label}
+      style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "stretch", textAlign: "left" }}
+    >
+      <Skeleton className="h-8 w-48 rounded" />
+      <Skeleton className="h-32 w-full rounded-lg" />
+      <Skeleton className="h-32 w-full rounded-lg" />
+    </div>
+  );
+}
+
 // Board page - heavy with drag/drop, multiple columns, task cards
 export const DynamicBoardPage = dynamic(
   () => import("@/app/app/board/page").then((mod) => mod.default),
   {
-    loading: () => <div className="page-skeleton">Loading board…</div>,
+    loading: () => <RouteSkeleton label="Loading board" />,
     ssr: false,
   }
 );
@@ -20,7 +37,7 @@ export const DynamicBoardPage = dynamic(
 export const DynamicTaskDetailPage = dynamic(
   () => import("@/app/app/tasks/[id]/page").then((mod) => mod.default),
   {
-    loading: () => <div className="page-skeleton">Loading task…</div>,
+    loading: () => <RouteSkeleton label="Loading task" />,
     ssr: false,
   }
 );
@@ -29,7 +46,7 @@ export const DynamicTaskDetailPage = dynamic(
 export const DynamicIntegrationsPage = dynamic(
   () => import("@/app/app/settings/integrations/page").then((mod) => mod.default),
   {
-    loading: () => <div className="page-skeleton">Loading integrations…</div>,
+    loading: () => <RouteSkeleton label="Loading integrations" />,
     ssr: false,
   }
 );
@@ -38,7 +55,7 @@ export const DynamicIntegrationsPage = dynamic(
 export const DynamicActivityPage = dynamic(
   () => import("@/app/app/activity/page").then((mod) => mod.default),
   {
-    loading: () => <div className="page-skeleton">Loading activity…</div>,
+    loading: () => <RouteSkeleton label="Loading activity" />,
     ssr: false,
   }
 );
@@ -47,7 +64,7 @@ export const DynamicActivityPage = dynamic(
 export const DynamicAuditPage = dynamic(
   () => import("@/app/app/settings/audit/page").then((mod) => mod.default),
   {
-    loading: () => <div className="page-skeleton">Loading audit log…</div>,
+    loading: () => <RouteSkeleton label="Loading audit log" />,
     ssr: false,
   }
 );
@@ -56,7 +73,7 @@ export const DynamicAuditPage = dynamic(
 export const DynamicMembersPage = dynamic(
   () => import("@/app/app/settings/members/page").then((mod) => mod.default),
   {
-    loading: () => <div className="page-skeleton">Loading members…</div>,
+    loading: () => <RouteSkeleton label="Loading members" />,
     ssr: false,
   }
 );
@@ -65,7 +82,7 @@ export const DynamicMembersPage = dynamic(
 export const DynamicCommandPalette = dynamic(
   () => import("@/components/command-palette").then((mod) => mod.CommandPalette),
   {
-    loading: () => <div className="cmdk-loading">Loading command palette…</div>,
+    loading: () => <div className="cmdk-loading" role="status" aria-label="Loading command palette"><Skeleton className="mx-auto h-10 w-full max-w-md rounded-md" /></div>,
     ssr: false,
   }
 );

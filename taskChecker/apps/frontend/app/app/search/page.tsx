@@ -13,6 +13,8 @@ import { reportError } from "@/lib/report";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion, PageEnter, contentFade } from "@/components/motion";
 
 const RESULT_TYPES = [
   { value: "all", label: "All", icon: IconSearch },
@@ -166,7 +168,7 @@ function SearchPageContent() {
                 autoFocus
                 aria-label="Search tasks and comments"
               />
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} loading={loading}>
                 <IconSearch size={14} /> Search
               </Button>
             </Field>
@@ -188,16 +190,20 @@ function SearchPageContent() {
 
           <div className="search-results">
             {loading ? (
-              <div className="loading">Searching…</div>
+              <div className="flex flex-col gap-3" role="status" aria-label="Searching">
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+              </div>
             ) : hasSearched ? (
               results.length === 0 ? (
-                <div className="empty-state">
+                <PageEnter className="empty-state">
                   <IconSearch size={48} className="dim" />
                   <h3>No results found</h3>
                   <p>Try a different search term or filter</p>
-                </div>
+                </PageEnter>
               ) : (
-                <div className="results-list">
+                <motion.div variants={contentFade} initial="hidden" animate="show" className="results-list">
                   <p className="results-count">{results.length} result{results.length !== 1 ? "s" : ""} for "{query}"</p>
                   {results.map((result) => (
                     <SearchResultItem
@@ -207,7 +213,7 @@ function SearchPageContent() {
                       authorName={result.authorId ? nameById.get(result.authorId) ?? undefined : undefined}
                     />
                   ))}
-                </div>
+                </motion.div>
               )
             ) : (
               <div className="search-hints">

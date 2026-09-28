@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { cx } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 
 type Preview = { email: string; orgName: string; role: string; expiresAt: string };
@@ -142,8 +143,8 @@ function AcceptInviteForm() {
                     />
                   </div>
                 </Field>
-                <Button type="submit" className="btn-block auth-submit" disabled={!codeInput.trim() || codeLoading}>
-                  {codeLoading ? "Finding invite…" : "Find invite"}
+                <Button type="submit" className="btn-block auth-submit" disabled={!codeInput.trim() || codeLoading} loading={codeLoading}>
+                  Find invite
                   <IconArrowRight size={16} />
                 </Button>
               </FieldGroup>
@@ -190,8 +191,8 @@ function AcceptInviteForm() {
                     </Button>
                   </div>
                 </Field>
-                <Button type="submit" className="btn-block auth-submit" disabled={loading || expiredCode(preview)}>
-                  {loading ? "Accepting invite…" : "Accept invite"}
+                <Button type="submit" className="btn-block auth-submit" disabled={loading || expiredCode(preview)} loading={loading}>
+                  Accept invite
                   <IconArrowRight size={16} />
                 </Button>
               </FieldGroup>
@@ -300,8 +301,8 @@ function AcceptInviteForm() {
             </div>
           </Field>
 
-          <Button type="submit" className="btn-block auth-submit" disabled={loading || expired}>
-            {loading ? "Accepting invite…" : "Accept invite"}
+          <Button type="submit" className="btn-block auth-submit" disabled={loading || expired} loading={loading}>
+            Accept invite
             <IconArrowRight size={16} />
           </Button>
           </FieldGroup>
@@ -319,7 +320,7 @@ function AcceptInviteForm() {
 
 export default function AcceptInvitePage() {
   return (
-    <Suspense fallback={<div className="loading">Loading…</div>}>
+    <Suspense fallback={<div className="auth-page"><div className="auth-container flex flex-col gap-3" role="status" aria-label="Loading invite"><Skeleton className="h-8 w-48 rounded" /><Skeleton className="h-12 w-full rounded-lg" /><Skeleton className="h-12 w-full rounded-lg" /></div></div>}>
       <AcceptInviteForm />
     </Suspense>
   );

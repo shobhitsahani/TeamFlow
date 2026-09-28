@@ -125,8 +125,8 @@ export default function SignInPage() {
               </div>
             </Field>
 
-            <Button type="submit" className="mt-1 w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
+            <Button type="submit" className="mt-1 w-full" disabled={loading} loading={loading}>
+              Sign in
               <IconArrowRight size={16} />
             </Button>
             </FieldGroup>

@@ -8,6 +8,7 @@ import { IconSearch, IconFilter, IconPulse, IconFile, IconMessageSquare, IconUse
 import { api, getCurrentTenantId, type ActivityEvent } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageEnter } from "@/components/motion";
 import { timeAgo, hueFrom } from "@/lib/utils";
 
 // Hoist static JSX outside component (rendering-hoist-jsx)
@@ -255,20 +256,20 @@ export default function ActivityPage() {
               ))}
             </div>
           ) : loadError && activities.length === 0 ? (
-            <div className="empty-state">
+            <PageEnter className="empty-state">
               <IconPulse size={48} className="dim" />
-              <h3>Couldn't load activity</h3>
+              <h3>Couldn&apos;t load activity</h3>
               <p>{loadError}</p>
               <button className="btn btn-primary btn-sm" onClick={() => void fetchActivities(true)}>
                 Retry
               </button>
-            </div>
+            </PageEnter>
           ) : filteredActivities.length === 0 ? (
-            <div className="empty-state">
+            <PageEnter className="empty-state">
               <IconPulse size={48} className="dim" />
               <h3>No activity</h3>
               <p>{search ? "No matching activity found" : "Activity will appear here as your team works"}</p>
-            </div>
+            </PageEnter>
           ) : (
             <>
               {filteredActivities.map((event) => (
@@ -286,7 +287,12 @@ export default function ActivityPage() {
                   Load more
                 </button>
               ) : null}
-              {loading ? <div className="loading">Loading…</div> : null}
+              {loading ? (
+                <div className="flex flex-col gap-3" role="status" aria-label="Loading more activity">
+                  <Skeleton className="h-14 w-full rounded-lg" />
+                  <Skeleton className="h-14 w-full rounded-lg" />
+                </div>
+              ) : null}
             </>
           )}
         </div>

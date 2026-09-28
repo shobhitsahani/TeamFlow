@@ -178,21 +178,41 @@ export function LagoonCalendar({ tasks, projectLabel, today, metaTick, memberNam
             </CardDescription>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              aria-label="Previous month"
-              onClick={() => moveMonth(-1)}
-            >
-              <ChevronLeft size={16} aria-hidden />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Previous month"
+                    onClick={() => moveMonth(-1)}
+                  />
+                }
+              >
+                <ChevronLeft size={16} aria-hidden />
+              </TooltipTrigger>
+              <TooltipContent>Previous month</TooltipContent>
+            </Tooltip>
             <Button type="button" variant="secondary" size="sm" onClick={goToday}>
               Today
             </Button>
-            <Button type="button" variant="outline" size="icon-sm" aria-label="Next month" onClick={() => moveMonth(1)}>
-              <ChevronRight size={16} aria-hidden />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Next month"
+                    onClick={() => moveMonth(1)}
+                  />
+                }
+              >
+                <ChevronRight size={16} aria-hidden />
+              </TooltipTrigger>
+              <TooltipContent>Next month</TooltipContent>
+            </Tooltip>
           </div>
         </CardHeader>
 
@@ -222,7 +242,9 @@ export function LagoonCalendar({ tasks, projectLabel, today, metaTick, memberNam
               const isToday = !!today && key === today;
               return (
                 <div
-                  key={`${key}-${index}`}
+                  // Real days key on their stable date; placeholder cells get
+                  // positional keys (they remount with the month anyway).
+                  key={validDay ? key : `outside-${index}`}
                   className={cn(
                     "min-h-28 border-b border-r border-border/60 bg-card/35 p-1.5 sm:min-h-36 sm:p-2",
                     !validDay && "bg-muted/50",

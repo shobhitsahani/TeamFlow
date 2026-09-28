@@ -165,8 +165,8 @@ export default function SignUpPage() {
               <FieldDescription>This creates your organization workspace. You can invite teammates after.</FieldDescription>
             </Field>
 
-            <Button type="submit" className="mt-1 w-full" disabled={loading}>
-              {loading ? "Creating account…" : "Create account"}
+            <Button type="submit" className="mt-1 w-full" disabled={loading} loading={loading}>
+              Create account
               <IconArrowRight size={16} />
             </Button>
             </FieldGroup>

@@ -5,6 +5,8 @@ import { useTenant } from "@/components/store";
 import { Modal, useToast } from "@/components/overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageEnter, Stagger, StaggerItem } from "@/components/motion";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { AppShell } from "@/components/app-shell";
 import { IconPlus, IconSearch, IconUsers } from "@/components/icons";
@@ -53,6 +55,7 @@ export default function TeamsPage() {
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const orgId = getCurrentTenantId();
   const teamsQ = useSWR<{ teams: Team[] }>(
@@ -67,7 +70,8 @@ export default function TeamsPage() {
   const projects = projectsQ.data?.projects ?? [];
 
   const handleCreate = async () => {
-    if (!newName.trim() || !orgId) return;
+    if (!newName.trim() || !orgId || creating) return;
+    setCreating(true);
     try {
       await api.teams.create(orgId, newName.trim());
       setShowNew(false);
@@ -76,6 +80,8 @@ export default function TeamsPage() {
       toast({ title: "Team created", msg: `${newName} is ready.` });
     } catch (err) {
       toast({ title: "Create failed", msg: err instanceof Error ? err.message : "Try again." });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -119,22 +125,30 @@ export default function TeamsPage() {
           </div>
         </div>
 
-        <div className="teams-grid">
+        <Stagger className="teams-grid">
           {teamsQ.isLoading ? (
-            <div className="loading">Loading…</div>
+            <div className="flex flex-col gap-3" role="status" aria-label="Loading teams">
+              <Skeleton className="h-20 w-full rounded-lg" />
+              <Skeleton className="h-20 w-full rounded-lg" />
+              <Skeleton className="h-20 w-full rounded-lg" />
+            </div>
           ) : filteredTeams.length === 0 ? (
-            <div className="empty-state">
+            <PageEnter className="empty-state">
               <IconUsers size={48} className="dim" />
               <h3>No teams found</h3>
               <p>{search ? "Try a different search term" : "Create your first team to get started"}</p>
               <Button onClick={() => setShowNew(true)}>
                 <IconPlus size={14} /> New team
               </Button>
-            </div>
+            </PageEnter>
           ) : (
-            filteredTeams.map((team) => <TeamCard key={team.id} team={team} projects={projects} />)
+            filteredTeams.map((team) => (
+              <StaggerItem key={team.id}>
+                <TeamCard team={team} projects={projects} />
+              </StaggerItem>
+            ))
           )}
-        </div>
+        </Stagger>
 
         <Modal
           open={showNew}
@@ -144,7 +158,7 @@ export default function TeamsPage() {
           footer={
             <>
               <Button variant="ghost" onClick={() => setShowNew(false)}>Cancel</Button>
-              <Button onClick={() => void handleCreate()} disabled={!newName.trim()}>
+              <Button onClick={() => void handleCreate()} disabled={!newName.trim() || creating} loading={creating}>
                 <IconPlus size={14} /> Create team
               </Button>
             </>

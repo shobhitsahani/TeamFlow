@@ -5,7 +5,7 @@
    reaction patching (no list revalidate), sticky auto-scroll, typing
    presence, day dividers, image lightbox, drag-drop/paste uploads. */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "../lib/auth";
 import { useTenant } from "./store";
 import { useToast } from "./overlay";
@@ -236,6 +236,15 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
   useEffect(() => {
     mutateRef.current = chatQ.mutate;
   });
+  // Esc closes the image lightbox (keyboard equivalent of clicking away).
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
   const userIdRef = useRef(user?.id);
   useEffect(() => {
     userIdRef.current = user?.id;
@@ -725,7 +734,9 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
 
 /* ---------------- bubble ---------------- */
 
-function ChatBubble({
+/* Memoized: parent re-renders on typing/resize/scroll state, but settled
+   bubbles keep stable props and must not re-render (or re-run layout). */
+const ChatBubble = memo(function ChatBubble({
   message: m,
   who,
   fullName,
@@ -770,7 +781,8 @@ function ChatBubble({
   return (
     <motion.div
       className={cx("st-msg", compact && "is-compact", mentionedMe && "is-mentioned")}
-      layout
+      // Position-only: message text must not stretch while the list settles.
+      layout="position"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.98 }}
@@ -913,7 +925,7 @@ function ChatBubble({
               <motion.button
                 key={g.emoji}
                 type="button"
-                layout
+                layout="position"
                 className={cx("st-reaction-chip", g.reactedByMe && "is-me")}
                 title={`${g.count} · ${g.userIds.slice(0, 5).join(", ")}${g.userIds.length > 5 ? "…" : ""}`}
                 onClick={() => onReact(m, g.emoji)}
@@ -928,7 +940,7 @@ function ChatBubble({
       </div>
     </motion.div>
   );
-}
+});
 
 /* ---------------- composer ---------------- */
 
@@ -1073,6 +1085,12 @@ function ChatInput({
         return;
       }
     }
+    // Esc closes the emoji popover (keyboard equivalent of toggling it shut).
+    if (e.key === "Escape" && showEmoji) {
+      e.preventDefault();
+      setShowEmoji(false);
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void send();
@@ -1097,7 +1115,7 @@ function ChatInput({
       {pending.length > 0 ? (
         <div className="st-pending-strip" aria-label="Images to send">
           {pending.map((a, i) => (
-            <div key={`${i}-${a.name}`} className="st-pending-thumb">
+            <div key={a.url || `${a.name}-${a.size ?? 0}`} className="st-pending-thumb">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.url} alt={a.name} />
               <button

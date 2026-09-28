@@ -75,7 +75,7 @@ export function useLagoonChrome(): LagoonChrome {
 
 const DynamicCommandPalette = dynamic(
   () => import("@/components/command-palette").then((mod) => mod.CommandPalette),
-  { loading: () => <div className="cmdk-loading">Loading…</div>, ssr: false },
+  { loading: () => <div className="cmdk-loading" role="status" aria-label="Loading command palette"><Skeleton className="mx-auto h-10 w-full max-w-md rounded-md" /></div>, ssr: false },
 );
 
 const DynamicNotifSheet = dynamic(
@@ -96,7 +96,11 @@ function LagoonAuthGate({ children }: { children: ReactNode }) {
     return (
       <div className="lagoon" style={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
         {isLoading ? (
-          <span style={{ color: "var(--lagoon-muted-fg)", fontSize: 13 }}>Loading session…</span>
+          <div className="flex flex-col items-center gap-3" role="status" aria-label="Loading session">
+            <Skeleton className="size-10 rounded-xl" />
+            <Skeleton className="h-4 w-40 rounded" />
+            <Skeleton className="h-3 w-28 rounded" />
+          </div>
         ) : (
           <a href="/auth/sign-in" className="lagoon-create-btn">
             <IconFlowMark size={14} /> Sign in to continue
@@ -421,8 +425,13 @@ export function LagoonShell({
                       />
                     </Field>
                     <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-                      <Button type="submit" size="sm" disabled={!newBoardName.trim() || !effectiveKey || creating}>
-                        {creating ? "Creating…" : "Create"}
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={!newBoardName.trim() || !effectiveKey || creating}
+                        loading={creating}
+                      >
+                        Create
                       </Button>
                       <Tooltip>
                         <TooltipTrigger

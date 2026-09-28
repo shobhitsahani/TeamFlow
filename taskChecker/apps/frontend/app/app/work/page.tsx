@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/store";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { IconFile, IconClock, IconSearch, IconPlus } from "@/components/icons";
 import { api, getCurrentTenantId, type Task, type Project } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSWR } from "@/lib/swr";
 import { cx, hueFrom, isOverdue } from "@/lib/utils";
-import { AnimatePresence, motion, PageEnter } from "@/components/motion";
+import { AnimatePresence, listItem, motion, PageEnter } from "@/components/motion";
 
 const PRIORITY_COLORS: Record<string, string> = {
   critical: "hsl(0 75% 55%)",
@@ -33,12 +34,14 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -2 }}
+      // Position-only layout so card text never distorts on filter changes.
+      // Shared listItem variant keeps one motion language; hover lift stays
+      // in CSS (motion.* is reserved for mount/unmount + layout).
+      layout="position"
+      variants={listItem}
+      initial="hidden"
+      animate="show"
+      exit="exit"
     >
       <Link href={`/app/tasks/${task.id}`} className="task-card trello-card" style={{ display: "block" }}>
         <div className="trello-card-labels">
@@ -177,7 +180,11 @@ export default function WorkPage() {
 
         <div className="task-grid">
           {isLoading ? (
-            <div className="loading">Loading…</div>
+            <div className="flex flex-col gap-3" role="status" aria-label="Loading tasks">
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+            </div>
           ) : filteredTasks.length === 0 ? (
             <motion.div
               className="empty-state"

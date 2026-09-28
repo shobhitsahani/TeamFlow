@@ -27,6 +27,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageEnter } from "@/components/motion";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Item,
   ItemActions,
@@ -141,15 +143,21 @@ const MemberRow = memo(function MemberRow({
           <Badge variant={elevated ? "default" : "secondary"}>{ROLE_LABELS[member.role]}</Badge>
         )}
         {!isSelf && member.status === "active" && canManage ? (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onDeactivate(member.userId)}
-            aria-label={`Remove ${member.email ?? member.name}`}
-            title="Remove from organization"
-          >
-            <IconTrash size={14} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onDeactivate(member.userId)}
+                  aria-label={`Remove ${member.email ?? member.name}`}
+                />
+              }
+            >
+              <IconTrash size={14} />
+            </TooltipTrigger>
+            <TooltipContent>Remove from organization</TooltipContent>
+          </Tooltip>
         ) : isSelf ? (
           <span className="dim dir-hint">Current user</span>
         ) : !canManage ? (
@@ -358,7 +366,7 @@ export default function MembersPage() {
                 </tbody>
               </table>
             ) : filteredMembers.length === 0 ? (
-              <div className="empty-state">
+              <PageEnter className="empty-state">
                 <IconUsers size={32} className="dim" />
                 <p>{search ? "No matching members" : "No members yet"}</p>
                 {search ? null : (
@@ -366,7 +374,7 @@ export default function MembersPage() {
                     <PlusIcon size={14} /> Invite Member
                   </Button>
                 )}
-              </div>
+              </PageEnter>
             ) : (
               <ItemGroup>
                 {filteredMembers.map((member) => (
@@ -408,8 +416,8 @@ export default function MembersPage() {
                   <IconPlus size={14} /> Invite another
                 </Button>
               ) : (
-                <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting}>
-                  <IconMail size={14} /> {inviting ? "Creating…" : "Create invite link"}
+                <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting} loading={inviting}>
+                  <IconMail size={14} /> Create invite link
                 </Button>
               )}
             </>

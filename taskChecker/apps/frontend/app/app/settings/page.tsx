@@ -166,8 +166,8 @@ function DangerZone() {
               <Button variant="ghost" onClick={close} disabled={deleting}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={() => void handleDelete()} disabled={!password || !code.replace(/[\s-]+/g, "") || deleting}>
-                <IconTrash size={14} /> {deleting ? "Deleting…" : "Delete forever"}
+              <Button variant="destructive" onClick={() => void handleDelete()} disabled={!password || !code.replace(/[\s-]+/g, "") || deleting} loading={deleting}>
+                <IconTrash size={14} /> Delete forever
               </Button>
             </>
           ) : (
@@ -175,8 +175,8 @@ function DangerZone() {
               <Button variant="ghost" onClick={close} disabled={sending}>
                 Cancel
               </Button>
-              <Button onClick={() => void handleSendCode()} disabled={sending}>
-                <IconMail size={14} /> {sending ? "Sending…" : "Send verification code"}
+              <Button onClick={() => void handleSendCode()} disabled={sending} loading={sending}>
+                <IconMail size={14} /> Send verification code
               </Button>
             </>
           )
@@ -240,8 +240,8 @@ function DangerZone() {
                 </div>
                 <FieldDescription>Didn&apos;t get it? You can request a new code — the old one stops working.</FieldDescription>
               </Field>
-              <Button variant="secondary" size="sm" onClick={() => void handleSendCode()} disabled={sending}>
-                <IconMail size={14} /> {sending ? "Sending…" : "Resend code"}
+              <Button variant="secondary" size="sm" onClick={() => void handleSendCode()} disabled={sending} loading={sending}>
+                <IconMail size={14} /> Resend code
               </Button>
             </>
           )}

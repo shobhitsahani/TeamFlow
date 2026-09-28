@@ -10,6 +10,7 @@ import { ContextBar, Rail, ScopeStrip } from "./shell-parts";
 import { ChatRail } from "./chat-rail";
 import { IconFlowMark } from "./icons";
 import { AnimatePresence, motion } from "@/components/motion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Route guard — the whole /app tree requires a live session. */
 function AuthGate({ children }: { children: ReactNode }) {
@@ -24,7 +25,11 @@ function AuthGate({ children }: { children: ReactNode }) {
     return (
       <div style={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
         {isLoading ? (
-          <span className="dim">Loading session…</span>
+          <div className="flex flex-col items-center gap-3" role="status" aria-label="Loading session">
+            <Skeleton className="size-10 rounded-xl" />
+            <Skeleton className="h-4 w-40 rounded" />
+            <Skeleton className="h-3 w-28 rounded" />
+          </div>
         ) : (
           <a href="/auth/sign-in" className="btn btn-primary">
             <IconFlowMark size={14} /> Sign in to continue
@@ -39,7 +44,7 @@ function AuthGate({ children }: { children: ReactNode }) {
 // Dynamic imports for heavy overlays (bundle-dynamic-imports)
 const DynamicCommandPalette = dynamic(
   () => import("./command-palette").then((mod) => mod.CommandPalette),
-  { loading: () => <div className="cmdk-loading">Loading…</div>, ssr: false }
+  { loading: () => <div className="cmdk-loading" role="status" aria-label="Loading command palette"><Skeleton className="mx-auto h-10 w-full max-w-md rounded-md" /></div>, ssr: false }
 );
 
 const DynamicNotifSheet = dynamic(
@@ -119,7 +124,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <AnimatePresence>
         {paletteOpen ? (
-          <Suspense fallback={<div className="cmdk-loading">Loading…</div>}>
+          <Suspense fallback={<div className="cmdk-loading" role="status" aria-label="Loading command palette"><Skeleton className="mx-auto h-10 w-full max-w-md rounded-md" /></div>}>
             <DynamicCommandPalette onClose={() => setPaletteOpen(false)} />
           </Suspense>
         ) : null}

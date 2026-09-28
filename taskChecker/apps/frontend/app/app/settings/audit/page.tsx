@@ -6,6 +6,8 @@ import { IconFileText, IconSearch, IconUser } from "@/components/icons";
 import { api, getCurrentTenantId, type AuditLog } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
 import { reportError } from "@/lib/report";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageEnter } from "@/components/motion";
 
 const AuditRow = memo(function AuditRow({ log }: { log: AuditLog }) {
   return (
@@ -139,12 +141,16 @@ export default function AuditPage() {
               <span className="audit-col-details">Details</span>
             </div>
             {loading && (logs?.length ?? 0) === 0 ? (
-              <div className="loading" role="status">Loading audit log…</div>
+              <div className="flex flex-col gap-2" role="status" aria-label="Loading audit log" style={{ padding: "12px 0" }}>
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+              </div>
             ) : filteredLogs.length === 0 ? (
-              <div className="empty-state inline">
+              <PageEnter className="empty-state inline">
                 <IconFileText size={32} className="dim" />
                 <p>{search || filterAction ? "No matching entries" : "No audit entries yet"}</p>
-              </div>
+              </PageEnter>
             ) : (
               <>
                 {filteredLogs.map((log) => (
@@ -155,7 +161,11 @@ export default function AuditPage() {
                     Load more
                   </button>
                 ) : null}
-                {loading && <div className="loading">Loading…</div>}
+                {loading && (
+                  <div className="flex flex-col gap-2" role="status" aria-label="Loading more entries" style={{ padding: "12px 0" }}>
+                    <Skeleton className="h-10 w-full rounded-lg" />
+                  </div>
+                )}
               </>
             )}
           </div>
