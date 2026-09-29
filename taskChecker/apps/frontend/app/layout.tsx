@@ -1,5 +1,16 @@
 import type { Metadata } from "next";
-import { Hanken_Grotesk, Inter, JetBrains_Mono, Manrope, Sora } from "next/font/google";
+// Self-hosted variable fonts (Fontsource): the same five Google typefaces
+// next/font/google used to fetch at build time. next/font's Turbopack
+// pipeline shells out to fonts.googleapis.com during `next build`, which
+// fails in offline/sandboxed builders with
+// "Can't resolve '@vercel/turbopack-next/internal/font/google/font'".
+// Local woff2 files remove the network step entirely — the build is
+// deterministic and the CSS vars below keep every consumer unchanged.
+import "@fontsource-variable/inter/index.css";
+import "@fontsource-variable/hanken-grotesk/index.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
+import "@fontsource-variable/sora/index.css";
+import "@fontsource-variable/manrope/index.css";
 import "./tokens.css";
 import "./globals.css";
 import "./trello.css";
@@ -7,42 +18,6 @@ import "./theme.css";
 import "./lagoon.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toast";
-
-const sans = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const display = Hanken_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-mono",
-  display: "swap",
-});
-
-/* Lagoon joyful theme fonts (ported from treloo-joyful-design). */
-const lagoonDisplay = Sora({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-lagoon-display",
-  display: "swap",
-});
-
-const lagoonBody = Manrope({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-lagoon-body",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "TeamFlow",
@@ -56,11 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${sans.variable} ${display.variable} ${mono.variable} ${lagoonDisplay.variable} ${lagoonBody.variable}`}
-    >
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Set .dark pre-paint to avoid a light flash (matches ThemeProvider key). */}
         <script

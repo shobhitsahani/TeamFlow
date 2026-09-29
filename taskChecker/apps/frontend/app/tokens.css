@@ -27,6 +27,13 @@
 
   /* Type — one workhorse sans (Inter, already in the stack). */
   --font-ui: var(--font-sans), "Inter", system-ui, sans-serif;
+  /* Self-hosted variable fonts (see app/layout.tsx): same families
+     next/font/google injected as --font-* variables on <html>. */
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-display: "Hanken Grotesk Variable", "Hanken Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --font-lagoon-display: "Sora Variable", "Sora", system-ui, sans-serif;
+  --font-lagoon-body: "Manrope Variable", "Manrope", system-ui, sans-serif;
   --fs-xs: 13px;
   --fs-sm: 15px;
   --fs-md: 18px;
