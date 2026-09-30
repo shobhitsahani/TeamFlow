@@ -17,6 +17,7 @@ interface UseRealtimeOptions {
   onChat?: (event: WSMessage) => void;
   onChatUpdated?: (event: WSMessage) => void;
   onChatTyping?: (event: WSMessage) => void;
+  onDm?: (event: WSMessage) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
@@ -93,6 +94,11 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
           case "chat.typing":
             // Ephemeral typing presence.
             optionsRef.current.onChatTyping?.(msg);
+            break;
+          case "dm.message":
+          case "dm.created":
+            // E2E DM fan-out carries ids only — clients refetch ciphertext.
+            optionsRef.current.onDm?.(msg);
             break;
           case "error":
             break;

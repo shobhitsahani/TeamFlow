@@ -220,6 +220,24 @@ export interface SearchResult {
   snippet: string;
 }
 
+export interface DmConversation {
+  id: string;
+  peerId: string;
+  peerName: string | null;
+  peerEmail: string | null;
+  createdAt: string;
+  lastMessageAt: string | null;
+}
+
+export interface DmMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  ciphertext: string;
+  iv: string;
+  createdAt: string;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   nextCursor: string | null;
@@ -634,6 +652,39 @@ export const api = {
         method: "POST",
         body: JSON.stringify(displayName ? { displayName } : {}),
       }).catch(() => ({ ok: false as const })),
+  },
+
+  dm: {
+    publishKey: (publicJwk: JsonWebKey) =>
+      request<{ ok: boolean }>(`/dm/keys`, {
+        method: "PUT",
+        body: JSON.stringify({ publicJwk }),
+      }),
+
+    peerKey: (userId: string) =>
+      request<{ userId: string; publicJwk: JsonWebKey }>(`/dm/keys/${userId}`),
+
+    openConversation: (peerId: string) =>
+      request<{ conversation: DmConversation }>(`/dm/conversations`, {
+        method: "POST",
+        body: JSON.stringify({ peerId }),
+      }),
+
+    listConversations: () =>
+      request<{ conversations: DmConversation[] }>(`/dm/conversations`),
+
+    listMessages: (conversationId: string, params?: { limit?: number; cursor?: string }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.set("limit", String(params.limit));
+      if (params?.cursor) searchParams.set("cursor", params.cursor);
+      return request<PaginatedResponse<DmMessage>>(`/dm/conversations/${conversationId}/messages?${searchParams}`);
+    },
+
+    sendMessage: (conversationId: string, payload: { ciphertext: string; iv: string }) =>
+      request<{ message: DmMessage }>(`/dm/conversations/${conversationId}/messages`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
   },
 
   attachments: {
