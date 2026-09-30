@@ -3,21 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { IconMail, IconLock, IconEye, IconEyeOff, IconFlowMark, IconArrowRight } from "@/components/icons";
+import { IconMail, IconLock, IconEye, IconEyeOff, IconArrowRight } from "@/components/icons";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AnimatePresence, motion } from "@/components/motion";
-
-function FieldIcon({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">
-      {children}
-    </span>
-  );
-}
+import { CardContent } from "@/components/ui/card";
+import { AuthCard, AuthError, AuthFieldIcon } from "../card";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -45,44 +37,26 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="auth-page flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/[0.08] via-background to-muted/70 p-4 sm:p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md"
-      >
-      <Card className="auth-card w-full max-w-md overflow-hidden border-border/70 bg-card/95 p-2 shadow-xl shadow-primary/5 backdrop-blur-sm">
-        <CardHeader className="items-center text-center">
-          <span className="grid size-11 place-items-center rounded-xl bg-primary text-primary-foreground">
-            <IconFlowMark size={22} />
-          </span>
-          <CardTitle className="text-2xl">TeamFlow</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
-        </CardHeader>
-
-        <form onSubmit={handleSubmit}>
-          <CardContent>
-            <FieldGroup>
-            <AnimatePresence mode="wait">
-              {error ? (
-                <motion.p
-                  key={error}
-                  role="alert"
-                  className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-[13px] text-destructive"
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0 }}
-                >
-                  {error}
-                </motion.p>
-              ) : null}
-            </AnimatePresence>
+    <AuthCard
+      sub="Sign in to your account"
+      footer={
+        <p className="text-[13px] text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link href="/auth/sign-up" className="font-semibold text-primary hover:underline">
+            Sign up
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit}>
+        <CardContent>
+          <FieldGroup>
+            {error ? <AuthError message={error} /> : null}
 
             <Field>
               <FieldLabel htmlFor="email">Email</FieldLabel>
               <div className="relative">
-                <FieldIcon><IconMail size={16} /></FieldIcon>
+                <AuthFieldIcon><IconMail size={16} /></AuthFieldIcon>
                 <Input
                   id="email"
                   type="email"
@@ -100,7 +74,7 @@ export default function SignInPage() {
             <Field>
               <FieldLabel htmlFor="password">Password</FieldLabel>
               <div className="relative">
-                <FieldIcon><IconLock size={16} /></FieldIcon>
+                <AuthFieldIcon><IconLock size={16} /></AuthFieldIcon>
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -129,20 +103,9 @@ export default function SignInPage() {
               Sign in
               <IconArrowRight size={16} />
             </Button>
-            </FieldGroup>
-          </CardContent>
-        </form>
-
-        <CardFooter className="justify-center border-t py-4">
-          <p className="text-[13px] text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/auth/sign-up" className="font-semibold text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-      </motion.div>
-    </div>
+          </FieldGroup>
+        </CardContent>
+      </form>
+    </AuthCard>
   );
 }
