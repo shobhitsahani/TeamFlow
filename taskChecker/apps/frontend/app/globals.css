@@ -8,7 +8,11 @@
 /* ================================================================
    shadcn/base-nova theme tokens — maps shadcn primitives
    (bg-primary, bg-card, text-muted-foreground, border-border…)
-   onto the TeamFlow brand (violet #7c3aed family).
+   onto the TeamFlow brand (Trello blue #0c66e4 family).
+   CANONICAL SOURCE for shared vars: bg, brand scale, slate scale,
+   st scale (status), p scale (priority). Later stylesheets
+   (trello.css, theme.css .dark, lagoon.css .lagoon) only override
+   within their scope — never restate base geometry.
    ================================================================ */
 
 :root {
@@ -130,6 +134,22 @@
    TeamFlow — Stitch purple board theme (light)
    Utility rail + workspace sidebar + topbar + kanban + chat rail.
    Backend wiring untouched — pure visual replacement.
+
+   UNIFIED GRAMMAR (enforced; see phases 2-13 for per-screen rollout):
+   - Type: Inter UI (--stack-sans), JetBrains Mono data (--stack-mono),
+     Hanken display (--stack-display); Sora/Manrope ONLY inside .lagoon.
+     Hierarchy through size/weight, never extra families.
+   - Spacing: 4px scale ONLY — --s-1..7 (4/8/12/16/24/32/48). No ad-hoc px.
+   - Radius: --r-sm 2px details, --r-md 6px controls, --r-lg 8px cards,
+     --r-xl 12px dialogs; pill = semantic pills, circle = avatars.
+   - Surfaces (exactly 3): canvas --bg, trough --col-bg, card --card-bg.
+   - Borders: 1px --border-subtle; skip the border when spacing or surface
+     contrast already separates. Never outline every element.
+   - Shadows: --shadow-xs resting, --shadow-1 raised, --shadow-2 overlay.
+     Elevation or interaction only — never decoration.
+   - Rules: this :root is the ONLY light-token source. theme.css .dark is
+     the ONLY dark source. No bare shadcn names (--muted etc.) redefined
+     here — shadcn utilities must keep resolving to the shadcn block above.
    ================================================================ */
 
 :root {
@@ -190,7 +210,6 @@
   --accent-h: 262;
   --accent-hi: var(--brand-700);
   --info: var(--brand-600);
-  --muted: var(--slate-400);
 
   /* status dots — Trello label hues */
   --st-backlog: #8590a2;
@@ -210,6 +229,16 @@
   --stack-sans: var(--font-sans), Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --stack-display: var(--font-display), "Hanken Grotesk", var(--font-sans), Inter, system-ui, sans-serif;
   --stack-mono: var(--font-mono), "JetBrains Mono", "Fira Code", Menlo, monospace;
+
+  /* Font families — single source of truth (self-hosted variable fonts,
+     imported in app/layout.tsx; previously injected by next/font, then by
+     the removed tokens.css). Consumers reference these ONLY through the
+     --stack-* aliases above or the --font-lagoon-* vars below. */
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-display: "Hanken Grotesk Variable", "Hanken Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --font-lagoon-display: "Sora Variable", "Sora", system-ui, sans-serif;
+  --font-lagoon-body: "Manrope Variable", "Manrope", system-ui, sans-serif;
 
   --fs-11: 0.6875rem;
   --fs-12: 0.75rem;
@@ -328,39 +357,13 @@ h4 { font-size: var(--fs-13); font-weight: 600; }
 .divider { height: 1px; background: var(--slate-200); border: 0; }
 
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes pop { from { opacity: 0; transform: scale(0.97) translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes throb { 50% { opacity: 0.45; } }
-
-/* ================================================================
-   PRIMITIVES — buttons, badges, avatars, inputs
-   ================================================================ */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  height: 34px; padding: 0 13px; border-radius: var(--r-md);
-  border: 1px solid var(--slate-200); background: #fff; color: var(--slate-700);
-  font-size: var(--fs-13); font-weight: 500; white-space: nowrap;
-  transition: background var(--anim-fast), border-color var(--anim-fast), color var(--anim-fast), box-shadow var(--anim-fast);
-  user-select: none;
-}
-.btn:hover { background: var(--slate-50); border-color: var(--slate-300); color: var(--slate-900); }
-.btn:active { transform: translateY(1px); }
-.btn[disabled] { opacity: 0.45; pointer-events: none; }
-.btn svg { flex: none; }
-.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--brand-500); }
-.btn-primary { background: var(--brand-600); border-color: transparent; color: #fff; font-weight: 600; box-shadow: none; }
-.btn-primary:hover { background: var(--brand-700); border-color: transparent; color: #fff; }
-.btn-ghost { background: transparent; border-color: transparent; color: var(--slate-600); }
-.btn-ghost:hover { background: var(--slate-100); border-color: transparent; color: var(--slate-900); }
 .btn-danger { background: #fef2f2; border-color: #fecdd3; color: #be123c; }
 .btn-danger:hover { background: #ffe4e6; border-color: #fda4af; }
 .btn-ink { background: var(--slate-100); border-color: transparent; }
 .btn-ink:hover { background: var(--slate-200); }
-.btn-sm { height: 28px; padding: 0 10px; font-size: var(--fs-12); border-radius: 7px; }
 .btn-xs { height: 24px; padding: 0 8px; font-size: var(--fs-11); border-radius: 6px; }
 .btn-lg { height: 42px; padding: 0 18px; }
-.btn-icon { width: 34px; padding: 0; }
-.btn-icon.btn-sm { width: 28px; }
-.btn-block { width: 100%; }
 
 .chip {
   display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px;
@@ -419,10 +422,6 @@ h4 { font-size: var(--fs-13); font-weight: 600; }
 
 select, textarea, input[type="text"], input[type="email"], input[type="password"], input[type="search"] {
   font: inherit;
-}
-.select, select {
-  height: 34px; padding: 0 10px; border-radius: var(--r-md);
-  border: 1px solid var(--slate-200); background: #fff; color: var(--slate-800); font-size: var(--fs-13);
 }
 .field label, label { font-size: var(--fs-12); font-weight: 500; color: var(--slate-600); }
 .field { display: flex; flex-direction: column; gap: 6px; }
@@ -526,10 +525,10 @@ select, textarea, input[type="text"], input[type="email"], input[type="password"
 .st-rail-btn:hover { color: var(--brand-600); background: var(--brand-50); }
 .st-rail-btn.is-on { color: var(--brand-700); background: var(--brand-50); }
 .st-rail-badge {
-  position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; padding: 0 4px;
-  background: var(--brand-600); color: #fff; font-size: 10px; font-weight: 600;
-  border-radius: 9999px; display: grid; place-items: center; border: 2px solid #fff;
+  position: absolute; top: -2px; right: -2px; width: 10px; height: 10px;
+  background: var(--brand-600); border-radius: 9999px; border: 2px solid #fff;
 }
+/* Unread is a quiet dot by design (counts live in the notifications sheet). */
 .st-rail-bottom { display: flex; flex-direction: column; align-items: center; }
 
 /* legacy rail aliases */
@@ -1047,7 +1046,6 @@ select, textarea, input[type="text"], input[type="email"], input[type="password"
 
 /* ---------- board layout ---------- */
 .st-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
-.view { flex: 1; min-height: 0; animation: rise var(--anim-slow) both; display: flex; flex-direction: column; }
 .board, .stage { display: flex; flex: 1; min-height: 0; min-width: 0; }
 .board { display: grid; grid-template-columns: minmax(0, 1fr) var(--chat-w); height: 100%; }
 .stage { min-width: 0; overflow-x: auto; overflow-y: hidden; }
@@ -1056,18 +1054,9 @@ select, textarea, input[type="text"], input[type="email"], input[type="password"
 /* Stitch kanban */
 .st-board { flex: 1; overflow-x: auto; overflow-y: hidden; background: var(--bg-soft); padding: 16px 20px; min-width: 0; }
 .st-cols { height: 100%; display: flex; gap: 16px; align-items: flex-start; min-width: min-content; }
-.columns { display: flex; gap: 16px; height: 100%; padding: 16px; align-items: flex-start; overflow-x: auto; }
-.board-grid { display: flex; gap: 16px; padding: 20px; overflow-x: auto; flex: 1; align-items: flex-start; background: var(--bg-soft); min-height: 0; }
-
-.st-col, .board-column, .bcol {
-  flex: 1; min-width: 280px; max-width: 340px; display: flex; flex-direction: column; max-height: 100%;
-  background: var(--col-bg); border: 1px solid var(--border-subtle); border-radius: var(--r-lg);
-  padding: 10px; box-shadow: none; animation: rise var(--anim-slow) both;
-}
 .st-col.is-lit, .st-col.in_progress, .board-column.bcol-lit {
   border-color: var(--brand-400); background: linear-gradient(180deg, rgba(124, 58, 237, 0.05), var(--col-bg));
 }
-.board-column { background: var(--col-bg); }
 .bcol-lit { background: linear-gradient(180deg, rgba(124, 58, 237, 0.05), var(--col-bg)); border-color: var(--brand-400); }
 .st-col-head, .board-column-head, .bcol-head {
   display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 8px; margin-bottom: 10px;
@@ -1093,11 +1082,7 @@ select, textarea, input[type="text"], input[type="email"], input[type="password"
 
 .st-drop, .column-dropzone, .bcol-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px; border-radius: var(--r-lg); min-height: 60px; }
 .st-drop.drag-over, .column-dropzone.drag-over { background: rgba(237, 233, 254, 0.65); border: 1px dashed var(--brand-400); }
-.st-empty, .empty-placeholder {
-  height: 96px; border-radius: var(--r-lg); border: 1px dashed var(--border-strong); background: rgba(255,255,255,.4);
-  display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--slate-400);
-}
-.st-empty.drag-over-target, .empty-placeholder.drag-over-target { border-color: var(--brand-600); background: var(--brand-100); color: var(--brand-700); }
+.st-empty-quiet { margin: 0; padding: 20px 16px; text-align: center; font-size: 12px; line-height: 1.6; color: var(--slate-400); }
 .hidden { display: none !important; }
 
 /* Stitch cards (Lumina: white, hairline #e9e5f5, 6px, micro hover lift) */
@@ -1154,7 +1139,7 @@ button.board-card-due:disabled { cursor: default; }
 .filter-dropdown { margin-left: auto; }
 
 /* ---------- right chat / activity rail ---------- */
-.st-chat, .flow {
+.st-chat {
   width: var(--chat-w); flex: none; background: #fff; border-left: 1px solid var(--slate-200);
   display: flex; flex-direction: column; min-height: 0; position: relative;
 }
@@ -1172,10 +1157,6 @@ button.board-card-due:disabled { cursor: default; }
 body:has(.st-chat-resize.is-dragging) { cursor: grabbing !important; }
 body:has(.st-chat-resize.is-dragging) * { cursor: grabbing !important; }
 .st-chat.is-resizing { user-select: none; }
-.st-chat.is-resizing::before {
-  content: ""; position: absolute; inset: 0 auto 0 -1px; width: 2px; pointer-events: none;
-  background: var(--primary); opacity: .8; box-shadow: 0 0 16px 2px color-mix(in srgb, var(--primary) 55%, transparent);
-}
 /* Legacy ::after fallback — content only, Tailwind paints the rail. */
 .st-chat-resize::after { content: ""; border-radius: 2px; }
 .st-chat-resize:focus-visible { box-shadow: 0 0 0 2px rgba(139,92,246,.35); border-radius: 4px; }
@@ -1186,38 +1167,21 @@ body:has(.st-chat-resize.is-dragging) * { cursor: grabbing !important; }
 .st-chat-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .st-chat-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--slate-900); text-transform: uppercase; }
 .st-chat-sub { font-size: 11px; color: var(--slate-500); line-height: 1.5; margin-bottom: 16px; }
-.flow-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 0; }
-.flow-name { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.flow-lag { margin-left: auto; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--stack-mono); color: var(--slate-400); }
-.flow-sub { margin: 10px 14px 0; font-size: 12px; line-height: 1.55; color: var(--slate-500); }
-.flow-list { flex: 1; min-height: 0; overflow-y: auto; margin-top: 12px; padding: 0 14px; display: flex; flex-direction: column; gap: 12px; }
 .st-msg { display: flex; align-items: flex-start; gap: 10px; }
-.flow-row { display: grid; grid-template-columns: 34px 18px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 8px 6px; border-radius: 8px; border-bottom: 1px solid var(--slate-100); }
-.flow-row.is-new { background: var(--brand-50); border-bottom-color: transparent; }
-.flow-time { font-size: 10px; color: var(--slate-400); font-family: var(--stack-mono); }
-.flow-icon { color: var(--slate-400); display: grid; place-items: center; }
-.flow-text { font-size: 12.5px; line-height: 1.45; color: var(--slate-600); }
-.flow-row.is-new .flow-text { color: var(--slate-900); }
 .st-msg-body { flex: 1; min-width: 0; }
 .st-msg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .st-msg-who { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--slate-900); }
-.st-mention { padding: 1px 6px; border-radius: 4px; background: var(--brand-50); color: var(--brand-700); font-size: 10px; font-weight: 600; border: 1px solid var(--brand-200); }
 .st-msg-time { font-size: 10px; font-family: var(--stack-mono); color: var(--slate-400); }
+/* Timestamps stay quiet until needed: hover-reveal on precise pointers,
+   always visible on touch (no hover) and for keyboard focus. */
+@media (hover: hover) {
+  .st-msg-time { opacity: 0; transition: opacity .15s ease; }
+  .st-msg:hover .st-msg-time, .st-msg:focus-within .st-msg-time { opacity: 1; }
+}
 .st-bubble { padding: 10px; border-radius: 12px; border-top-left-radius: 0; font-size: 12px; line-height: 1.5; color: var(--slate-800); }
 .st-bubble-brand { background: var(--brand-50); border: 1px solid var(--brand-200); box-shadow: var(--shadow-xs); }
 .st-bubble-slate { background: var(--slate-50); border: 1px solid var(--slate-200); }
-.st-task-ref { font-family: var(--stack-mono); font-weight: 600; color: var(--brand-700); }
 .st-chat-foot { padding: 16px; border-top: 1px solid var(--slate-200); background: #fff; flex: none; }
-.st-chat-input { position: relative; display: flex; align-items: flex-end; }
-.st-chat-input input {
-  width: 100%; padding: 8px 40px 8px 12px; background: var(--slate-50); border: 1px solid var(--slate-200);
-  border-radius: 8px; font-size: 12px; color: var(--slate-800); outline: none;
-}
-.st-chat-input input:focus { background: #fff; border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
-.st-chat-input textarea {
-  width: 100%; padding-right: 40px; font-size: 12px; background: var(--slate-50);
-}
-.st-chat-input textarea:focus { background: #fff; }
 .st-mention-inline { background: var(--brand-50); color: var(--brand-700); font-weight: 700; padding: 0 3px; border-radius: 4px; border: 1px solid var(--brand-200); font-size: 11px; }
 .st-mention-list {
   position: absolute; bottom: calc(100% + 8px); left: 0; right: 0;
@@ -1236,8 +1200,6 @@ body:has(.st-chat-resize.is-dragging) * { cursor: grabbing !important; }
 .st-mention-item.is-active { background: var(--brand-50); border: 1px solid var(--brand-200); }
 .st-mention-item-name { font-size: 12px; font-weight: 600; color: var(--slate-800); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .st-mention-item-handle { font-size: 11px; font-family: var(--stack-mono); color: var(--brand-600); background: var(--brand-50); padding: 1px 6px; border-radius: 9999px; border: 1px solid var(--brand-200); }
-.st-send { position: absolute; right: 4px; bottom: 4px; width: 28px; height: 28px; background: var(--brand-600); color: #fff; border-radius: 6px; display: grid; place-items: center; box-shadow: var(--shadow-xs); }
-.st-send:hover { background: var(--brand-700); }
 .st-chat-expand {
   position: fixed; right: 12px; bottom: 16px; z-index: 20;
   display: flex; align-items: center; gap: 6px; padding: 8px 12px;
@@ -1247,9 +1209,6 @@ body:has(.st-chat-resize.is-dragging) * { cursor: grabbing !important; }
 }
 .st-chat-expand:hover { background: var(--slate-50); }
 .st-chat-expand svg { color: var(--brand-600); }
-.flow-presence { display: flex; align-items: center; gap: 10px; padding: 12px 14px 0; }
-.flow-presence .mono { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
-.flow-foot { display: flex; justify-content: flex-end; padding: 8px 14px 14px; }
 
 /* ---------- generic pages ---------- */
 .page { padding: 24px 28px 40px; max-width: 1200px; width: 100%; margin: 0 auto; overflow-y: auto; flex: 1; min-height: 0; }
@@ -1385,8 +1344,6 @@ body:has(.st-chat-resize.is-dragging) * { cursor: grabbing !important; }
   outline: 2px solid var(--brand-500);
   outline-offset: 2px;
 }
-
-.tenant-body { display: flex; flex-direction: column; gap: 16px; animation: rise var(--anim) both; }
 .tier { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 20px; align-items: center; padding: 18px 20px; border-radius: 12px; border: 1px solid var(--slate-200); background: #fff; box-shadow: var(--shadow-xs); }
 .tier-name { font-size: 20px; font-weight: 700; }
 .tier-feats { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--slate-600); }
@@ -1516,20 +1473,14 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
 
 /* ---------- overlays: modal, menu, toast, cmdk, sheet ---------- */
 .overlay { position: fixed; inset: 0; z-index: 40; background: rgba(15, 23, 42, 0.5); cursor: default; }
-.modal-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(15,23,42,.55); backdrop-filter: blur(2px); padding: 16px; }
-.modal, .pop { background: #fff; border: 1px solid var(--slate-200); border-radius: 12px; box-shadow: var(--shadow-2); animation: pop var(--anim) both; }
-.modal { width: 100%; max-width: 480px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
-.modal-wide { max-width: 880px; }
 .modal-head, .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--slate-200); background: var(--slate-50); }
 .modal-title { font-size: 15px; font-weight: 700; color: var(--slate-900); }
 .modal-sub { font-size: 12px; color: var(--slate-500); margin-top: 2px; }
-.modal-body { padding: 16px 20px; overflow-y: auto; }
 .modal-foot, .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--slate-200); }
 /* invite link result + accept-page preview */
 .invite-success { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--brand-50); border: 1px solid var(--brand-200); font-size: 13px; color: var(--slate-800); margin-bottom: 12px; }
 .invite-success-icon { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--brand-600); color: #fff; }
 .invite-link-row input { padding-right: 86px !important; font-family: var(--stack-mono); font-size: 11.5px; }
-.invite-preview { padding: 10px 12px; border-radius: 8px; background: var(--slate-50); border: 1px solid var(--slate-200); font-size: 13px; color: var(--slate-700); margin-bottom: 14px; }
 .invite-preview.is-expired { background: #fef2f2; border-color: #fecaca; }
 /* edit-modal deadline presets — HeroUI */
 .due-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
@@ -1607,7 +1558,6 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
   border-radius: 9999px; color: var(--slate-500);
 }
 .board-card-due-edit input[type="number"] { width: 70px; font-size: 11px; font-family: var(--stack-mono); color: var(--slate-700); border: 1px solid var(--slate-300); border-radius: 6px; padding: 1px 4px; background: #fff; }
-.pop { position: fixed; z-index: 50; min-width: 320px; max-width: 380px; padding: 14px; }
 .pop-org { top: 64px; left: 66px; }
 .pop-bell { top: 60px; right: 16px; }
 .pop-orgs { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
@@ -1633,7 +1583,6 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
 .menu-check { color: var(--brand-600); margin-left: auto; }
 
 .toast-wrap, .toast-stack { position: fixed; bottom: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
-.toast { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; padding: 10px 14px; box-shadow: var(--shadow-2); display: flex; align-items: flex-start; gap: 10px; animation: pop var(--anim); max-width: 360px; }
 .toast-ok, .toast-success { border-left: 3px solid #10b981; }
 .toast-err, .toast-error { border-left: 3px solid #e11d48; }
 .toast-ico { width: 20px; height: 20px; border-radius: 50%; background: #ecfdf5; color: #059669; display: grid; place-items: center; flex: none; }
@@ -1641,7 +1590,6 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
 .toast-msg { font-size: 12px; color: var(--slate-500); }
 
 .cmdk-loading { padding: 20px; text-align: center; color: var(--slate-400); font-size: 13px; }
-.cmdk, .sheet { position: fixed; z-index: 60; background: #fff; border: 1px solid var(--slate-200); border-radius: 12px; box-shadow: var(--shadow-2); }
 .sheet-body { padding: 16px; overflow-y: auto; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--slate-200); }
 .sheet-title { font-size: 14px; font-weight: 700; }
@@ -1651,25 +1599,13 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
 .notif-msg { font-size: 12px; color: var(--slate-500); }
 .notif-time { font-size: 11px; font-family: var(--stack-mono); color: var(--slate-400); }
 .notif-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-600); }
-.switch { width: 36px; height: 20px; border-radius: 9999px; background: var(--slate-200); position: relative; transition: background var(--anim-fast); }
 .switch-on { background: var(--brand-600); }
-.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform var(--anim-fast); box-shadow: var(--shadow-xs); }
 .switch-on::after { transform: translateX(16px); }
 
 /* auth */
 .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(180deg, var(--brand-50), #fff 60%); }
 .auth-container, .auth-card { width: 100%; max-width: 400px; background: #fff; border: 1px solid var(--slate-200); border-radius: 18px; padding: 40px 32px; box-shadow: var(--shadow-2); }
-.auth-brand { text-align: center; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.auth-brand h1 { font-size: 22px; font-weight: 700; }
-.auth-brand p { color: var(--slate-500); font-size: 14px; }
 .auth-logo { display: inline-flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 700; color: var(--brand-700); margin-bottom: 12px; }
-.auth-error { background: #fef2f2; border: 1px solid #fecdd3; color: #be123c; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
-.auth-success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
-.auth-form { display: flex; flex-direction: column; gap: 16px; }
-.auth-submit { margin-top: 4px; }
-.auth-footer { margin-top: 20px; text-align: center; color: var(--slate-500); font-size: 13px; }
-.auth-footer a { color: var(--brand-700); font-weight: 600; }
-.auth-footer a:hover { text-decoration: underline; }
 
 /* empty / loading */
 .empty, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; text-align: center; color: var(--slate-400); }
@@ -1677,12 +1613,6 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
 .empty-title { font-size: 16px; font-weight: 600; color: var(--slate-600); margin-bottom: 4px; }
 .empty-msg, .empty-desc, .empty-text { font-size: 13px; max-width: 280px; line-height: 1.5; }
 .loading, .page-skeleton { padding: 24px; color: var(--slate-400); font-size: 13px; text-align: center; }
-.skeleton { background: linear-gradient(90deg, var(--slate-100) 25%, var(--slate-200) 50%, var(--slate-100) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-.spinner { width: 20px; height: 20px; border: 2px solid var(--slate-200); border-top-color: var(--brand-600); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: none; } }
 
 /* ---------- Stitch member directory (Tenant Members & Team Directory) ---------- */
 .dir-card {
@@ -1729,17 +1659,8 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
 .dir-search input::placeholder { color: var(--slate-400); }
 .dir-search input:focus { background: #fff; border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
 .dir-invite { flex: none; }
-.dir-table-wrap { flex: 1; overflow-y: auto; padding: 12px 24px 16px; min-height: 240px; }
-.dir-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-.dir-table thead th {
-  font-size: 11px; font-weight: 600; color: var(--slate-400); text-transform: uppercase;
-  letter-spacing: 0.06em; padding: 10px 8px; border-bottom: 1px solid var(--slate-200);
-}
+.dir-table-wrap { flex: 1; overflow-x: auto; overflow-y: auto; padding: 12px 24px 16px; min-height: 240px; }
 .dir-th-right { text-align: right; }
-.dir-row { border-bottom: 1px solid var(--slate-100); transition: background var(--anim-fast); }
-.dir-row:last-child { border-bottom: 0; }
-.dir-row:hover { background: rgba(248, 249, 255, 0.7); }
-.dir-cell { padding: 12px 8px; vertical-align: middle; color: var(--slate-700); }
 .dir-cell-actions { text-align: right; }
 .dir-user { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .dir-avatar-wrap { position: relative; flex: none; }
@@ -1947,7 +1868,7 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
 @media (max-width: 1180px) {
   .ctx, .st-side { display: none; }
   .board { grid-template-columns: minmax(0, 1fr); }
-  .st-chat, .flow { display: none; }
+  .st-chat { display: none; }
   .task-detail-grid { grid-template-columns: minmax(0,1fr); }
   .settings-grid { grid-template-columns: minmax(0,1fr); }
 }
@@ -1964,7 +1885,6 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
   .tier { grid-template-columns: minmax(0, 1fr); }
   .st-chat { display: none; }
   .columns, .board-grid, .st-cols { padding: 10px; }
-  .st-col, .board-column { min-width: 264px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
@@ -2048,7 +1968,7 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 /* Trello card labels/badges/due pills live in trello.css (loads later, wins). */
 
 /* Trello chat rail on blue */
-.st-chat, .flow { border-left: none; box-shadow: -8px 0 16px -12px rgb(9 30 66 / 0.4); }
+.st-chat { border-left: none; box-shadow: -8px 0 16px -12px rgb(9 30 66 / 0.4); }
 
 /* ============ fluid realtime chat upgrades ============ */
 .st-chat-fluid .st-chat-scroll { scroll-behavior: smooth; overscroll-behavior: contain; }
@@ -2259,7 +2179,6 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 .st7-send-btn:disabled { opacity: .35; cursor: default; box-shadow: none; }
 .st7-compose-bar { display: flex; align-items: center; gap: 2px; padding: 0 10px 6px 12px; }
 .st7-compose-bar .st-composer-hint { font-size: 10px; color: var(--chat7-muted); }
-.st7-attach-btn { width: 26px; height: 26px; margin-bottom: 0; }
 .st-chat-7 .st-pending-strip { padding: 8px 10px 0; }
 .st-chat-7 .st-mention-list { left: 8px; right: 8px; background: var(--chat7-other); border-color: var(--chat7-border); }
 .st-chat-7 .st-mention-list-head { color: var(--chat7-muted); }
@@ -2309,29 +2228,3 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 .dark .st-chat-expand:hover { background: oklch(0.345 0.025 252); }
 .dark .st-chat-expand svg { color: oklch(0.72 0.115 245); }
 .dark .st-chat-7 .st-emoji-pop { background: var(--chat7-other); border-color: var(--chat7-border); }
-
-   UNIFIED GRAMMAR (enforced; see phases 2-13 for per-screen rollout):
-   - Type: Inter UI (--stack-sans), JetBrains Mono data (--stack-mono),
-     Hanken display (--stack-display); Sora/Manrope ONLY inside .lagoon.
-     Hierarchy through size/weight, never extra families.
-   - Spacing: 4px scale ONLY ΓÇö --s-1..7 (4/8/12/16/24/32/48). No ad-hoc px.
-   - Radius: --r-sm 2px details, --r-md 6px controls, --r-lg 8px cards,
-     --r-xl 12px dialogs; pill = semantic pills, circle = avatars.
-   - Surfaces (exactly 3): canvas --bg, trough --col-bg, card --card-bg.
-   - Borders: 1px --border-subtle; skip the border when spacing or surface
-     contrast already separates. Never outline every element.
-   - Shadows: --shadow-xs resting, --shadow-1 raised, --shadow-2 overlay.
-     Elevation or interaction only ΓÇö never decoration.
-   - Rules: this :root is the ONLY light-token source. theme.css .dark is
-     the ONLY dark source. No bare shadcn names (--muted etc.) redefined
-     here ΓÇö shadcn utilities must keep resolving to the shadcn block above.
-  /* Font families ΓÇö single source of truth (self-hosted variable fonts,
-     imported in app/layout.tsx; previously injected by next/font, then by
-     the removed tokens.css). Consumers reference these ONLY through the
-     --stack-* aliases above or the --font-lagoon-* vars below. */
-  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
-  --font-display: "Hanken Grotesk Variable", "Hanken Grotesk", "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
-  --font-lagoon-display: "Sora Variable", "Sora", system-ui, sans-serif;
-  --font-lagoon-body: "Manrope Variable", "Manrope", system-ui, sans-serif;
-

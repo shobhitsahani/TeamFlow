@@ -1,10 +1,10 @@
 "use client";
 
-/* Stitch shell parts: utility rail, workspace sidebar, topbar + chat rail.
+/* Stitch shell parts: utility rail, workspace sidebar, topbar.
    Wired to the real API — projects/teams/members/activity from the
    tenant-scoped backend, user from the auth session. */
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTenant } from "./store";
@@ -14,7 +14,6 @@ import { PaletteSearchTrigger } from "./search-trigger";
 import { Button, buttonVariants } from "./ui/button";
 import { Input } from "./ui/input";
 import { Field, FieldDescription, FieldLabel } from "./ui/field";
-import { Textarea } from "./ui/textarea";
 import { Avatar as ShadcnAvatar, AvatarFallback } from "./ui/avatar";
 import { Skeleton } from "./ui/skeleton";
 import {
@@ -32,10 +31,9 @@ import {
   LogOutIcon,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
-import { api, getCurrentTenantId, type ChatMessage, type PaginatedResponse } from "../lib/api";
+import { api, getCurrentTenantId } from "../lib/api";
 import { useSWR } from "../lib/swr";
-import { useRealtime } from "../lib/realtime";
-import { cx, formatChatTime, hueFrom, initials } from "../lib/utils";
+import { cx, hueFrom, initials } from "../lib/utils";
 import { motion } from "@/components/motion";
 import {
   IconBell,
@@ -45,56 +43,13 @@ import {
   IconEdit,
   IconFlowMark,
   IconLogout,
-  IconMessageSquare,
   IconPlus,
   IconSearch,
-  IconSend,
   IconTrash,
   IconTeamFlow,
   IconUsers,
   IconZap,
 } from "./icons";
-
-// ---------- @mention helpers (single @ to mention a teammate) ----------
-type ChatMember = { userId: string; name: string | null; email: string | null };
-
-function getMentionHandle(m: ChatMember): string {
-  if (m.name) return m.name.replace(/\s+/g, "");
-  if (m.email) return (m.email.split("@")[0] ?? "").replace(/[^a-zA-Z0-9_]/g, "");
-  return m.userId.slice(0, 8);
-}
-function getDisplayName(m: ChatMember): string {
-  return m.name ?? m.email ?? `User ${m.userId.slice(0, 4)}`;
-}
-function detectMention(value: string, cursor: number): { at: number; query: string } | null {
-  const before = value.slice(0, cursor);
-  const atIdx = before.lastIndexOf("@");
-  if (atIdx === -1) return null;
-  if (atIdx > 0 && !/\s/.test(before[atIdx - 1] ?? "")) return null;
-  const afterAt = before.slice(atIdx);
-  if (!/^@[^\s@]*$/.test(afterAt)) return null;
-  const query = afterAt.slice(1);
-  if (query.length > 30) return null;
-  return { at: atIdx, query };
-}
-function renderMentions(text: string) {
-  const parts = text.split(/(@[A-Za-z0-9_]+)/g);
-  return parts.map((part, i) =>
-    /^@[A-Za-z0-9_]+$/.test(part) ? (
-      <span key={i} className="st-mention-inline">
-        {part}
-      </span>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
-  );
-}
-
-const NAV_RUN = [
-  // { href: "/app/settings/usage", label: "Usage", icon: IconZap }, // usage commented out
-  { href: "/app/settings/members", label: "Members", icon: IconUsers },
-  { href: "/app/activity", label: "Flow", icon: IconZap, live: true },
-] as const;
 
 /* shadcn avatar helper — uses base-ui Avatar with hue-based fallback.
    Pass `loading` while the person is still resolving (signed out, offline,
@@ -159,18 +114,18 @@ export function Rail() {
         <motion.button
           className={cx("st-rail-btn", pathname.startsWith("/app/board") && "is-on")}
           onClick={() => go("/app/board")}
-          aria-label="Board"
-          title="Board"
+          aria-label="Boards"
+          title="Boards"
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.92 }}
         >
           <IconBoard size={20} />
         </motion.button>
         <motion.button
-          className="st-rail-btn"
+          className={cx("st-rail-btn", pathname.startsWith("/app/activity") && "is-on")}
           onClick={() => go("/app/activity")}
-          aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
-          title="Inbox"
+          aria-label={unread > 0 ? `Activity, ${unread} unread` : "Activity"}
+          title="Activity"
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.92 }}
         >
@@ -181,13 +136,24 @@ export function Rail() {
               initial={{ scale: 0.6, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               key={unread}
+              aria-hidden
             >
-              {Math.min(99, unread)}
+              <span className="sr-only">{unread} unread</span>
             </motion.span>
           ) : null}
         </motion.button>
         <motion.button
-          className="st-rail-btn"
+          className={cx("st-rail-btn", pathname.startsWith("/app/settings/members") && "is-on")}
+          onClick={() => go("/app/settings/members")}
+          aria-label="Members"
+          title="Members"
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.92 }}
+        >
+          <IconUsers size={20} />
+        </motion.button>
+        <motion.button
+          className={cx("st-rail-btn", pathname.startsWith("/app/search") && "is-on")}
           onClick={() => go("/app/search")}
           aria-label="Search"
           title="Search (⌘K)"
@@ -199,9 +165,9 @@ export function Rail() {
       </div>
       <div className="st-rail-bottom">
         <button
-          className="st-rail-btn"
-          aria-label="Account"
-          title={user?.name ?? "Account"}
+          className={cx("st-rail-btn", pathname.startsWith("/app/settings") && "is-on")}
+          aria-label="Settings"
+          title={user?.name ? `${user.name} · Settings` : "Settings"}
           onClick={() => go("/app/settings")}
         >
           <UserAvatar
@@ -723,6 +689,14 @@ export function ContextBar() {
               <IconZap size={16} className="dim" />
               <span className="grow">Usage</span>
             </Link> */}
+            <Link href="/app/activity" className="st-nav-item">
+              <IconZap size={16} className="dim" />
+              <span className="grow">Activity</span>
+              <span className="st-live-pill">
+                <span className="pulse-dot" style={{ width: 6, height: 6 }} />
+                Live
+              </span>
+            </Link>
             <Link href="/app/settings/members" className="st-nav-item">
               <IconUsers size={16} className="dim" />
               <span className="grow">Members</span>
@@ -730,14 +704,6 @@ export function ContextBar() {
                 <span className="st-count-em">{Math.min(5, totalMembers)} on</span>
                 <span className="st-count-slate">{totalMembers}</span>
                 <IconChevronRight size={14} className="dim" />
-              </span>
-            </Link>
-            <Link href="/app/activity" className="st-nav-item">
-              <IconZap size={16} className="dim" />
-              <span className="grow">Flow</span>
-              <span className="st-live-pill">
-                <span className="pulse-dot" style={{ width: 6, height: 6 }} />
-                Live
               </span>
             </Link>
           </nav>
@@ -888,550 +854,3 @@ export function ScopeStrip({
     </motion.header>
   );
 }
-
-/* ---------- right chat / live rail (Stitch CHAT) ---------- */
-
-const CHAT_MIN_W = 240;
-const CHAT_MAX_W = 600;
-const CHAT_DEFAULT_W = 320;
-const CHAT_LS_KEY = "tf.chat.w.v1";
-
-const clampChatW = (n: number) => Math.min(CHAT_MAX_W, Math.max(CHAT_MIN_W, Math.round(n)));
-
-function loadChatWidth(): number {
-  if (typeof window === "undefined") return CHAT_DEFAULT_W;
-  try {
-    const raw = window.localStorage.getItem(CHAT_LS_KEY);
-    if (raw == null) return CHAT_DEFAULT_W;
-    const n = Number(JSON.parse(raw));
-    if (Number.isFinite(n)) return clampChatW(n);
-  } catch {
-    // corrupted value — fall back to default
-  }
-  return CHAT_DEFAULT_W;
-}
-
-export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => void }) {
-  const orgId = getCurrentTenantId();
-  const { org } = useTenant();
-  const { user } = useAuth();
-  const toast = useToast();
-  const [width, setWidth] = useState<number>(loadChatWidth);
-  const [dragging, setDragging] = useState(false);
-  const dragRef = useRef<{ startX: number; startW: number } | null>(null);
-
-  const chatQ = useSWR<PaginatedResponse<ChatMessage>>(
-    orgId ? `chat-messages-${orgId}` : null,
-    () => api.chat.list({ limit: 50 }),
-  );
-  // Shared cache key with ContextBar (`ctx-members-*`): same endpoint, so one
-  // request serves both instead of two polls per minute.
-  const membersQ = useSWR<{ members: Array<{ userId: string; name: string | null; email: string | null }> }>(
-    orgId ? `ctx-members-${orgId}` : null,
-    () => api.orgs.listMembers(orgId!),
-  );
-
-  const names = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const m of membersQ.data?.members ?? []) {
-      if (m.name) map.set(m.userId, m.name);
-    }
-    return map;
-  }, [membersQ.data]);
-
-  const items = useMemo(() => [...(chatQ.data?.data ?? [])].reverse(), [chatQ.data]);
-
-  // Realtime: a teammate's POST /v1/chat/messages fans out as `chat.created`
-  // on our org WS channel — revalidate the list instead of polling for it.
-  // The mutate fn identity changes per render, so it goes through a ref to
-  // keep the WS subscription (and its reconnect backoff) stable.
-  const mutateRef = useRef(chatQ.mutate);
-  useEffect(() => {
-    mutateRef.current = chatQ.mutate;
-  });
-  const realtimeOpts = useMemo(() => ({ onChat: () => void mutateRef.current() }), []);
-  const { isConnected } = useRealtime(realtimeOpts);
-
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const stickRef = useRef(true);
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    if (!open) return;
-    // Don't yank the user's scroll when history/previews revalidate:
-    // stick only if they were already near the bottom (or it's first paint).
-    if (stickRef.current) el.scrollTop = el.scrollHeight;
-  }, [items.length, open]);
-
-  const handleSend = useCallback(
-    async (body: string) => {
-      if (!user) {
-        toast({ title: "Not signed in", msg: "Sign in to send messages.", kind: "err" });
-        throw new Error("Not signed in");
-      }
-      const text = body.trim();
-      if (!text) return;
-      const optimistic: ChatMessage = {
-        id: `local-${Date.now()}`,
-        authorId: user.id,
-        body: text,
-        createdAt: new Date().toISOString(),
-      };
-      await chatQ.mutate(
-        (current) => ({
-          data: [optimistic, ...(current?.data ?? [])],
-          nextCursor: current?.nextCursor ?? null,
-          hasMore: current?.hasMore ?? false,
-        }),
-        { revalidate: false },
-      );
-      try {
-        await api.chat.send(text);
-        await chatQ.mutate();
-      } catch (err) {
-        await chatQ.mutate(
-          (current) =>
-            current
-              ? { ...current, data: current.data.filter((m) => m.id !== optimistic.id) }
-              : { data: [], nextCursor: null, hasMore: false },
-          { revalidate: false },
-        );
-        toast({ title: "Send failed", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
-        throw err;
-      }
-    },
-    [chatQ, toast, user],
-  );
-
-  // Persist width; cheap + survives remounts / page changes.
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(CHAT_LS_KEY, JSON.stringify(width));
-    } catch {
-      // storage unavailable — session-only width
-    }
-  }, [width]);
-
-  // While dragging: move cursor + no-select on <body>, listen on window so
-  // fast drags outside the handle don't drop the gesture.
-  useEffect(() => {
-    if (!dragging) return;
-    const prevCursor = document.body.style.cursor;
-    const prevSelect = document.body.style.userSelect;
-    document.body.style.cursor = "ew-resize";
-    document.body.style.userSelect = "none";
-    const onMove = (e: PointerEvent) => {
-      const s = dragRef.current;
-      if (!s) return;
-      setWidth(clampChatW(s.startW + (s.startX - e.clientX)));
-    };
-    const onUp = () => {
-      dragRef.current = null;
-      setDragging(false);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-    return () => {
-      document.body.style.cursor = prevCursor;
-      document.body.style.userSelect = prevSelect;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-  }, [dragging]);
-
-  const onResizeStart = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      dragRef.current = { startX: e.clientX, startW: width };
-      setDragging(true);
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch {
-        // capture unsupported — window listeners still track the drag
-      }
-    },
-    [width],
-  );
-
-  const onResizeKey = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        setWidth((w) => clampChatW(w + 16));
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        setWidth((w) => clampChatW(w - 16));
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        setWidth(CHAT_DEFAULT_W);
-      }
-    },
-    [],
-  );
-
-  if (!open) {
-    return (
-      <motion.button
-        className="st-chat-expand"
-        onClick={onToggle}
-        title="Expand chat"
-        aria-label="Expand chat"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -2 }}
-        whileTap={{ scale: 0.97 }}
-      >
-        <IconMessageSquare size={16} />
-        <span>Chat</span>
-        <span className="pulse-dot" style={{ width: 6, height: 6 }} />
-      </motion.button>
-    );
-  }
-
-  return (
-    <motion.aside
-      className="st-chat"
-      aria-label="Team chat"
-      style={{ width }}
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div
-        className={cx("st-chat-resize", dragging && "is-dragging")}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize chat panel"
-        aria-valuemin={CHAT_MIN_W}
-        aria-valuemax={CHAT_MAX_W}
-        aria-valuenow={Math.round(width)}
-        tabIndex={0}
-        title="Drag to resize chat (double-click to reset)"
-        onPointerDown={onResizeStart}
-        onDoubleClick={() => setWidth(CHAT_DEFAULT_W)}
-        onKeyDown={onResizeKey}
-      />
-      <div
-        className="st-chat-scroll"
-        ref={scrollRef}
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-        }}
-      >
-        <div className="st-chat-head">
-          <span className="st-chat-title">
-            <span className="pulse-dot" />
-            Chat
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span className="st-live-pill" style={{ fontFamily: "var(--stack-mono)", fontSize: 11 }}>
-              <span className="pulse-dot" style={{ width: 6, height: 6, opacity: isConnected ? 1 : 0.3 }} />
-              {isConnected ? "Live · team" : "Offline"}
-            </span>
-            <button className="st-col-add" onClick={onToggle} title="Collapse chat" aria-label="Collapse chat">
-              <IconChevronRight size={16} />
-            </button>
-          </span>
-        </div>
-        <p className="st-chat-sub">
-          Direct and channel discussion for {org?.name ?? "this project"} tasks and handoffs.
-        </p>
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: 12 }}
-          role="log"
-          aria-live="polite"
-          aria-relevant="additions"
-          aria-label="Team messages"
-        >
-          {chatQ.isLoading ? (
-            <div role="status" aria-label="Loading messages" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="st-msg" aria-hidden>
-                  <Skeleton className="size-6 shrink-0 rounded-full" />
-                  <div className="st-msg-body" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <Skeleton className="h-2.5 w-24 rounded" />
-                    <Skeleton className="h-9 w-full rounded-xl" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : items.length === 0 ? (
-            <div className="st-empty">No messages yet — say hello.</div>
-          ) : (
-            items.map((m) => {
-              const name =
-                names.get(m.authorId) ?? (m.authorId === user?.id ? (user?.name ?? "You") : "Someone");
-              const own = m.authorId === user?.id;
-              const when = formatChatTime(m.createdAt);
-              // Name still resolving (members slow/offline) and not our own
-              // message → pulse a skeleton avatar instead of a "Someone" bubble.
-              const avatarLoading =
-                membersQ.isLoading && !names.get(m.authorId) && m.authorId !== user?.id;
-              return (
-                <ChatBubble
-                  key={m.id}
-                  who={name.split(" ")[0] || "Someone"}
-                  isOwn={own}
-                  time={when.relative}
-                  dateTime={m.createdAt}
-                  timeTitle={when.title || undefined}
-                  tint={hueFrom(m.authorId)}
-                  brand={own}
-                  avatarLoading={avatarLoading}
-                >
-                  {m.body}
-                </ChatBubble>
-              );
-            })
-          )}
-        </div>
-      </div>
-      <div className="st-chat-foot">
-        <ChatInput onSend={handleSend} members={membersQ.data?.members ?? []} />
-      </div>
-    </motion.aside>
-  );
-}
-
-/* Memoized so sidebar state (typing, resize) doesn't re-render every bubble. */
-const ChatBubble = memo(function ChatBubble({
-  who,
-  isOwn,
-  time,
-  dateTime,
-  timeTitle,
-  tint,
-  brand,
-  avatarLoading,
-  children,
-}: {
-  who: string;
-  isOwn?: boolean;
-  time: string;
-  dateTime?: string;
-  timeTitle?: string;
-  tint: number;
-  brand?: boolean;
-  avatarLoading?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      className="st-msg"
-      // Position-only: message text must not stretch while the list settles.
-      layout="position"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <UserAvatar name={who} tint={tint} size="sm" loading={avatarLoading} />
-      <div className="st-msg-body">
-        <div className="st-msg-head">
-          <span className="st-msg-who">
-            {who}
-            {isOwn ? <span className="faint"> · you</span> : null}
-          </span>
-          <span className="st-msg-time">
-            {dateTime ? (
-              <time dateTime={dateTime} title={timeTitle ?? time}>
-                {time}
-              </time>
-            ) : (
-              time
-            )}
-          </span>
-        </div>
-        <div className={cx("st-bubble", brand ? "st-bubble-brand" : "st-bubble-slate")}>
-          <p>{typeof children === "string" ? renderMentions(children) : children}</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-});
-
-function ChatInput({
-  onSend,
-  members = [],
-}: {
-  onSend: (body: string) => Promise<void>;
-  members?: ChatMember[];
-}) {
-  const [value, setValue] = useState("");
-  const [sending, setSending] = useState(false);
-  const [mention, setMention] = useState<{ at: number; query: string } | null>(null);
-  const [mentionIndex, setMentionIndex] = useState(0);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const canSend = value.trim().length > 0 && !sending;
-
-  const filtered = useMemo(() => {
-    if (!mention) return [];
-    const q = mention.query.toLowerCase();
-    return members
-      .filter((m) => {
-        const handle = getMentionHandle(m).toLowerCase();
-        const display = getDisplayName(m).toLowerCase();
-        return handle.includes(q) || display.includes(q);
-      })
-      .slice(0, 8);
-  }, [mention, members]);
-
-  const updateMention = useCallback(
-    (val: string, cursor: number | null) => {
-      if (cursor == null) {
-        setMention(null);
-        return;
-      }
-      const m = detectMention(val, cursor);
-      setMention(m);
-      setMentionIndex(0);
-    },
-    [],
-  );
-
-  const selectMember = useCallback(
-    (m: ChatMember) => {
-      if (!mention || !inputRef.current) return;
-      const handle = getMentionHandle(m);
-      const cursor = inputRef.current.selectionStart ?? value.length;
-      const before = value.slice(0, mention.at);
-      const after = value.slice(cursor);
-      const next = `${before}@${handle} ${after}`;
-      setValue(next);
-      setMention(null);
-      setMentionIndex(0);
-      requestAnimationFrame(() => {
-        const pos = before.length + handle.length + 2;
-        inputRef.current?.setSelectionRange(pos, pos);
-        inputRef.current?.focus();
-      });
-    },
-    [mention, value],
-  );
-
-  const send = async () => {
-    const text = value.trim();
-    if (!text || sending) return;
-    setSending(true);
-    try {
-      await onSend(text);
-      setValue("");
-      setMention(null);
-    } catch {
-      // onSend already toasted + rolled back; keep the text for retry.
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    void send();
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (mention && filtered.length > 0) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setMentionIndex((i) => (i + 1) % filtered.length);
-        return;
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setMentionIndex((i) => (i - 1 + filtered.length) % filtered.length);
-        return;
-      }
-      if (e.key === "Enter" || e.key === "Tab") {
-        if (filtered[mentionIndex]) {
-          e.preventDefault();
-          selectMember(filtered[mentionIndex]);
-          return;
-        }
-      }
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setMention(null);
-        return;
-      }
-    }
-    // Multiline composer: Enter sends, Shift+Enter inserts a newline.
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void send();
-    }
-  };
-
-  return (
-    <form className="st-chat-input" onSubmit={(e) => void submit(e)}>
-      {mention && filtered.length > 0 ? (
-        <div className="st-mention-list" role="listbox" aria-label="Mention suggestions" id="mention-list">
-          <div className="st-mention-list-head">Mention — @{mention.query || "…"}</div>
-          {filtered.map((m, idx) => (
-            <button
-              key={m.userId}
-              type="button"
-              role="option"
-              aria-selected={idx === mentionIndex}
-              className={cx("st-mention-item", idx === mentionIndex && "is-active")}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                selectMember(m);
-              }}
-            >
-              <UserAvatar name={getDisplayName(m)} tint={hueFrom(m.userId)} size="sm" />
-              <span className="st-mention-item-name">{getDisplayName(m)}</span>
-              <span className="st-mention-item-handle">@{getMentionHandle(m)}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <Textarea
-        ref={inputRef}
-        rows={1}
-        value={value}
-        onChange={(e) => {
-          const v = e.target.value;
-          setValue(v);
-          updateMention(v, e.target.selectionStart);
-        }}
-        onSelect={(e) => {
-          const t = e.target as HTMLTextAreaElement;
-          updateMention(value, t.selectionStart);
-        }}
-        onKeyUp={(e) => {
-          const t = e.target as HTMLTextAreaElement;
-          if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Home" || e.key === "End") {
-            updateMention(value, t.selectionStart);
-          }
-        }}
-        onKeyDown={onKeyDown}
-        onBlur={() => {
-          setTimeout(() => setMention(null), 150);
-        }}
-        placeholder="Type your message here…  @ to mention"
-        aria-label="Send a message"
-        aria-autocomplete="list"
-        aria-expanded={!!mention && filtered.length > 0}
-        aria-controls={mention ? "mention-list" : undefined}
-        maxLength={2000}
-        disabled={sending}
-        autoComplete="off"
-        className="max-h-32 min-h-9 resize-none py-2 pr-10 text-xs"
-      />
-      <button
-        className="st-send"
-        title="Send message"
-        type="submit"
-        disabled={!canSend}
-        style={!canSend ? { opacity: 0.45 } : undefined}
-      >
-        <IconSend size={14} />
-      </button>
-    </form>
-  );
-}
-
-/* legacy export aliases */
-export const NAV = NAV_RUN;

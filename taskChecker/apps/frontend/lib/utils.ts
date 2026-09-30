@@ -32,7 +32,7 @@ export const STATUS_META = {
 export type TaskStatus = keyof typeof STATUS_META;
 
 export const PRIORITY_META = {
-  critical: { label: "Critical", color: "var(--p-urgent)", rank: 0 },
+  critical: { label: "Critical", color: "var(--p-critical)", rank: 0 },
   high: { label: "High", color: "var(--p-high)", rank: 1 },
   medium: { label: "Medium", color: "var(--p-medium)", rank: 2 },
   low: { label: "Low", color: "var(--p-low)", rank: 3 },

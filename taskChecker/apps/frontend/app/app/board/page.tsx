@@ -17,9 +17,12 @@ import {
   IconColumns,
   IconList,
   IconListTodo,
+  IconLogout,
   IconMenu,
+  IconMoreHorizontal,
   IconPlus,
   IconSearch,
+  IconSettings,
   IconSliders,
   IconStar,
   IconX,
@@ -33,11 +36,21 @@ import { useUpdateTask } from "@/lib/mutations";
 import { AnimatePresence, DUR, LAYOUT_SPRING, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -62,7 +75,7 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: "In progress",
   done: "Done",
 };
-/* Joyful column dots — Treloo backlog teal / progress ocean / review coral. */
+/* Joyful column dots — Lagoon backlog teal / progress ocean / review coral. */
 const STATUS_DOT: Record<string, string> = {
   backlog: "var(--lagoon-teal)",
   todo: "var(--lagoon-ocean)",
@@ -136,6 +149,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       data-slot="lagoon-card"
       role="listitem"
       tabIndex={0}
+      aria-label={`Open ${task.title}`}
       draggable={draggable}
       onDragStart={(e: unknown) => onDragStart(e as React.DragEvent, task.id)}
       onDragEnd={onDragEnd as unknown as (e: unknown) => void}
@@ -240,7 +254,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   );
 });
 
-/** Treloo-style list title — click to rename inline, Enter/blur saves. */
+/** Lagoon-style list title — click to rename inline, Enter/blur saves. */
 function LagoonListTitle({
   status,
   title,
@@ -431,7 +445,7 @@ const LagoonTouchGhost = memo(function LagoonTouchGhost({
 function LagoonBoard() {
   const toast = useToast();
   const router = useRouter();
-  const { user, memberships } = useAuth();
+  const { user, memberships, logout } = useAuth();
   const { org, unread } = useTenant();
   const { openMenu, openNotifs, openNewBoard } = useLagoonChrome();
   const orgId = getCurrentTenantId();
@@ -508,7 +522,7 @@ function LagoonBoard() {
     [canWrite, selectedProjectId, listsQ, labelFor, toast],
   );
 
-  // Joyful filters — Treloo search + label-tone dots + active-only toggle.
+  // Joyful filters — Lagoon search + label-tone dots + active-only toggle.
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [toneFilter, setToneFilter] = useState<LagoonTone | null>(null);
@@ -991,48 +1005,131 @@ function LagoonBoard() {
           <AvatarGroup className="items-center" data-lagoon-avatar-cluster>
             {members.slice(0, 3).map((m) => {
               const display = m.name ?? m.email ?? m.userId.slice(0, 4);
-              return (
+              const isMe = user?.id != null && m.userId === user.id;
+              const avatar = (
                 <Avatar
-                  key={m.userId}
-                  title={display}
+                  title={isMe ? "Account settings" : display}
                   size="sm"
                   className="lagoon-avatar"
-                  style={{ width: 28, height: 28, background: lagoonAvatarTone(m.userId), border: "2px solid var(--lagoon-card)", marginLeft: -8 }}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    background: lagoonAvatarTone(m.userId),
+                    border: "2px solid var(--lagoon-card)",
+                    marginLeft: -8,
+                    cursor: isMe ? "pointer" : undefined,
+                  }}
                 >
                   <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9 }}>
                     {lagoonInitials(display)}
                   </AvatarFallback>
                 </Avatar>
               );
+              /* Your own avatar opens your account menu (settings,
+                 notifications, sign out). Teammates keep a name tooltip. */
+              if (!isMe) return <span key={m.userId} className="contents">{avatar}</span>;
+              return (
+                <DropdownMenu key={m.userId} modal={false}>
+                  <DropdownMenuTrigger render={avatar} aria-label="Account settings" />
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      {user ? (
+                        <>
+                          <span className="flex items-center gap-2">
+                            <Avatar className="size-6">
+                              <AvatarFallback
+                                style={{
+                                  background: lagoonAvatarTone(user.id),
+                                  color: "#fff",
+                                }}
+                              >
+                                {lagoonInitials(user.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="block max-w-full truncate text-sm font-semibold text-foreground">
+                              {user.name}
+                            </span>
+                          </span>
+                          {user.email ? (
+                            <span className="block max-w-full truncate text-xs font-normal text-muted-foreground">
+                              {user.email}
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className="flex flex-col gap-1.5 py-0.5" aria-hidden>
+                          <Skeleton className="h-3.5 w-28 rounded" />
+                          <Skeleton className="h-3 w-36 rounded" />
+                        </span>
+                      )}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
+                        <IconSettings size={16} />
+                        Account settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem closeOnClick onClick={openNotifs}>
+                        <IconBell size={16} />
+                        Notifications
+                        {unread > 0 ? (
+                          <Badge variant="secondary" className="ml-auto tabular-nums">{unread}</Badge>
+                        ) : null}
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      closeOnClick
+                      variant="destructive"
+                      onClick={async () => {
+                        await logout();
+                        toast({ title: "Signed out", msg: "Session ended — see you soon." });
+                        router.replace("/auth/sign-in");
+                      }}
+                    >
+                      <IconLogout size={16} />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
             })}
           </AvatarGroup>
-          <Tooltip>
-            <TooltipTrigger
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger
               render={
-                <Button type="button" variant="ghost" size="icon" aria-label="Notifications" className="lagoon-icon-btn relative" onClick={openNotifs} />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Board options"
+                  className="lagoon-icon-btn relative"
+                />
               }
             >
               <span className="relative inline-flex">
-                <IconBell size={18} />
+                <IconMoreHorizontal size={18} />
                 {unread > 0 ? (
-                  <Badge className="absolute top-0 right-0 h-2 min-w-2 border-0 p-0" style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-coral)", padding: 0 }}>
-                    <span className="sr-only">{unread} unread</span>
+                  <Badge className="absolute top-0 right-0 border-0 p-0" style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-coral)", padding: 0 }}>
+                    <span className="sr-only">{unread} unread notifications</span>
                   </Badge>
                 ) : null}
               </span>
-            </TooltipTrigger>
-            <TooltipContent>Notifications</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button type="button" variant="ghost" size="icon-sm" className="lagoon-icon-btn" onClick={toggleStarred} aria-pressed={starred} aria-label={starred ? "Unstar board" : "Star board"} style={{ color: starred ? "#e2b203" : undefined }} />
-              }
-            >
-              <IconStar size={16} />
-            </TooltipTrigger>
-            <TooltipContent>{starred ? "Unstar board" : "Star board"}</TooltipContent>
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem closeOnClick onClick={openNotifs}>
+                <IconBell size={16} />
+                Notifications
+                {unread > 0 ? (
+                  <Badge variant="secondary" className="ml-auto tabular-nums">{unread}</Badge>
+                ) : null}
+              </DropdownMenuItem>
+              <DropdownMenuItem closeOnClick onClick={toggleStarred}>
+                <IconStar size={16} style={starred ? { color: "#e2b203" } : undefined} />
+                {starred ? "Unstar board" : "Star board"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             type="button"
             size="sm"
@@ -1049,8 +1146,8 @@ function LagoonBoard() {
         </div>
       </header>
 
-      <div className="lagoon-filterbar">
-        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+      <div className="lagoon-filterbar" role="toolbar" aria-label="Board view and filters">
+        <div role="group" aria-label="View" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
           <Button type="button" variant={view === "board" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "board" && "is-on")} aria-pressed={view === "board"} onClick={() => setView("board")}>
             {view === "board" ? (
               <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-primary" />
@@ -1070,7 +1167,8 @@ function LagoonBoard() {
             <IconCalendar size={14} /> Calendar
           </Button>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Separator orientation="vertical" className="mx-1 h-5" aria-hidden />
+        <div role="group" aria-label="Filter by label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {LAGOON_TONES.map((tone) => (
             <Tooltip key={tone}>
               <TooltipTrigger
@@ -1092,7 +1190,7 @@ function LagoonBoard() {
             </Tooltip>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+        <div role="group" aria-label="Task scope" style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
           <Button type="button" variant={activeOnly ? "secondary" : "outline"} size="sm" className={cx("lagoon-toggle-btn", activeOnly && "is-on")} aria-pressed={activeOnly} onClick={() => setActiveOnly((v) => !v)}>
             <IconSliders size={14} /> {activeOnly ? "Active only" : "All tasks"}
           </Button>

@@ -2,17 +2,18 @@
 
 import { useState, useMemo, memo, startTransition, useCallback } from "react";
 import { useTenant } from "@/components/store";
-import { Modal, useToast } from "@/components/overlay";
+import { Modal, ConfirmDialog, useToast } from "@/components/overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { AppShell } from "@/components/app-shell";
-import { IconPlus, IconKey, IconWebhook, IconCopy, IconTrash, IconRotateCw, IconExternalLink, IconEye, IconEyeOff, IconChevronRight } from "@/components/icons";
+import { IconPlus, IconKey, IconWebhook, IconCopy, IconTrash, IconRotateCw, IconExternalLink, IconEye, IconEyeOff } from "@/components/icons";
 import { api, getCurrentTenantId, type Webhook, type ApiKey, type Delivery } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { cx } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageEnter } from "@/components/motion";
 
 const ALL_EVENTS = [
@@ -66,18 +67,27 @@ const WebhookRow = memo(function WebhookRow({
         </div>
       </div>
       <div className="integration-actions">
-        <button className="btn btn-ghost btn-sm" onClick={() => onToggle(webhook.id)} aria-label={webhook.active ? "Pause" : "Activate"}>
+        <Button variant="ghost" size="sm" onClick={() => onToggle(webhook.id)} aria-label={webhook.active ? "Pause" : "Activate"}>
           {webhook.active ? "Pause" : "Activate"}
-        </button>
-        <button className="btn btn-ghost btn-sm" onClick={() => onViewDeliveries(webhook.id)} aria-label="View deliveries">
-          <IconExternalLink size={14} />
-        </button>
-        <button className="btn btn-ghost btn-sm" onClick={() => onRotate(webhook.id)} aria-label="Rotate secret">
-          <IconRotateCw size={14} />
-        </button>
-        <button className="btn btn-ghost btn-sm" onClick={() => onDelete(webhook.id)} aria-label="Delete">
-          <IconTrash size={14} />
-        </button>
+        </Button>
+        <Tooltip>
+          <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={() => onViewDeliveries(webhook.id)} aria-label="View deliveries" />}>
+            <IconExternalLink size={14} />
+          </TooltipTrigger>
+          <TooltipContent>View deliveries</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={() => onRotate(webhook.id)} aria-label="Rotate secret" />}>
+            <IconRotateCw size={14} />
+          </TooltipTrigger>
+          <TooltipContent>Rotate secret</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={() => onDelete(webhook.id)} aria-label="Delete" />}>
+            <IconTrash size={14} />
+          </TooltipTrigger>
+          <TooltipContent>Delete</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );
@@ -102,7 +112,7 @@ const ApiKeyRow = memo(function ApiKeyRow({
         </div>
         <div>
           <h4>{apiKey.name}</h4>
-          <p className="integration-prefix" style={{ fontFamily: "monospace" }}>
+          <p className="integration-prefix font-mono">
             {showFull ? apiKey.keyPrefix + "••••••••••••••••" : apiKey.keyPrefix + "••••••••••••••••"}
           </p>
           <div className="integration-scopes">
@@ -121,15 +131,24 @@ const ApiKeyRow = memo(function ApiKeyRow({
       <div className="integration-actions">
         {!apiKey.revokedAt && (
           <>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowFull(!showFull)} aria-label={showFull ? "Hide key" : "Show key"}>
-              {showFull ? <IconEyeOff size={14} /> : <IconEye size={14} />}
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => onCopy(apiKey.keyPrefix)} aria-label="Copy key prefix">
-              <IconCopy size={14} />
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => onRevoke(apiKey.id)} aria-label="Revoke key">
-              <IconTrash size={14} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={() => setShowFull(!showFull)} aria-label={showFull ? "Hide key" : "Show key"} />}>
+                {showFull ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+              </TooltipTrigger>
+              <TooltipContent>{showFull ? "Hide key" : "Show key"}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={() => onCopy(apiKey.keyPrefix)} aria-label="Copy key prefix" />}>
+                <IconCopy size={14} />
+              </TooltipTrigger>
+              <TooltipContent>Copy key prefix</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={() => onRevoke(apiKey.id)} aria-label="Revoke key" />}>
+                <IconTrash size={14} />
+              </TooltipTrigger>
+              <TooltipContent>Revoke key</TooltipContent>
+            </Tooltip>
           </>
         )}
         {apiKey.revokedAt && <span className="dim">Revoked</span>}
@@ -161,6 +180,8 @@ export default function IntegrationsPage() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showDeliveriesModal, setShowDeliveriesModal] = useState(false);
   const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
+  const [confirmState, setConfirmState] = useState<{ kind: "webhook" | "key"; id: string } | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   const [whName, setWhName] = useState("");
   const [whUrl, setWhUrl] = useState("");
@@ -170,6 +191,9 @@ export default function IntegrationsPage() {
   const [akScopes, setAkScopes] = useState<string[]>(["read", "write"]);
   const [creatingWebhook, setCreatingWebhook] = useState(false);
   const [creatingApiKey, setCreatingApiKey] = useState(false);
+  // Newly created key, shown once in a persistent panel (never only in a
+  // dismissible toast) until dismissed.
+  const [createdKey, setCreatedKey] = useState<{ name: string; key: string } | null>(null);
 
   const handleCreateWebhook = useCallback(async () => {
     if (!whName || !whUrl || creatingWebhook) return;
@@ -194,7 +218,8 @@ export default function IntegrationsPage() {
     setCreatingApiKey(true);
     try {
       const res = await api.apiKeys.create({ name: akName, scopes: akScopes });
-      toast({ title: "API key created", msg: `Key: ${res.key} (shown once)` });
+      setCreatedKey({ name: akName, key: res.key });
+      toast({ title: "API key created", msg: "Copy it below — it won't be shown again." });
       setShowApiKeyModal(false);
       setAkName("");
       setAkScopes(["read", "write"]);
@@ -205,6 +230,12 @@ export default function IntegrationsPage() {
       setCreatingApiKey(false);
     }
   }, [akName, akScopes, apiKeysQ, toast, creatingApiKey]);
+
+  const handleCopyCreatedKey = useCallback(() => {
+    if (!createdKey) return;
+    navigator.clipboard.writeText(createdKey.key);
+    toast({ title: "Copied", msg: "API key copied to clipboard." });
+  }, [createdKey, toast]);
 
   const handleWebhookToggle = useCallback(async (id: string) => {
     const wh = webhooks.find((w) => w.id === id);
@@ -218,16 +249,30 @@ export default function IntegrationsPage() {
     }
   }, [webhooks, webhooksQ, toast]);
 
-  const handleWebhookDelete = useCallback(async (id: string) => {
-    if (!confirm("Delete this webhook?")) return;
+  const handleWebhookDelete = useCallback((id: string) => {
+    setConfirmState({ kind: "webhook", id });
+  }, []);
+
+  const confirmDestructive = useCallback(async () => {
+    if (!confirmState || confirmBusy) return;
+    setConfirmBusy(true);
     try {
-      await api.webhooks.rotateSecret(id); // We don't have delete, but rotate secret effectively disables
-      toast({ title: "Webhook secret rotated", msg: "Old secret invalidated" });
-      await webhooksQ.mutate();
+      if (confirmState.kind === "webhook") {
+        await api.webhooks.rotateSecret(confirmState.id); // No delete endpoint; rotating the secret effectively disables
+        toast({ title: "Webhook secret rotated", msg: "Old secret invalidated" });
+        await webhooksQ.mutate();
+      } else {
+        await api.apiKeys.revoke(confirmState.id);
+        toast({ title: "API key revoked", msg: "Key can no longer be used" });
+        await apiKeysQ.mutate();
+      }
+      setConfirmState(null);
     } catch (err) {
       toast({ title: "Failed", msg: err instanceof Error ? err.message : "Try again." });
+    } finally {
+      setConfirmBusy(false);
     }
-  }, [webhooksQ, toast]);
+  }, [confirmState, confirmBusy, webhooksQ, apiKeysQ, toast]);
 
   const handleWebhookRotate = useCallback(async (id: string) => {
     try {
@@ -243,16 +288,9 @@ export default function IntegrationsPage() {
     setShowDeliveriesModal(true);
   }, []);
 
-  const handleApiKeyRevoke = useCallback(async (id: string) => {
-    if (!confirm("Revoke this API key?")) return;
-    try {
-      await api.apiKeys.revoke(id);
-      toast({ title: "API key revoked", msg: "Key can no longer be used" });
-      await apiKeysQ.mutate();
-    } catch (err) {
-      toast({ title: "Revoke failed", msg: err instanceof Error ? err.message : "Try again." });
-    }
-  }, [apiKeysQ, toast]);
+  const handleApiKeyRevoke = useCallback((id: string) => {
+    setConfirmState({ kind: "key", id });
+  }, []);
 
   const handleApiKeyCopy = useCallback((prefix: string) => {
     navigator.clipboard.writeText(prefix + "••••••••••••••••");
@@ -295,9 +333,9 @@ export default function IntegrationsPage() {
           <section className="settings-section">
             <div className="section-header">
               <h2>Outbound webhooks</h2>
-              <button className="btn btn-primary" onClick={() => setShowWebhookModal(true)}>
+              <Button onClick={() => setShowWebhookModal(true)}>
                 <IconPlus size={14} /> Add webhook
-              </button>
+              </Button>
             </div>
             <div className="integration-list">
               {webhooks.map((webhook) => (
@@ -322,10 +360,26 @@ export default function IntegrationsPage() {
           <section className="settings-section">
             <div className="section-header">
               <h2>API keys</h2>
-              <button className="btn btn-primary" onClick={() => setShowApiKeyModal(true)}>
+              <Button onClick={() => setShowApiKeyModal(true)}>
                 <IconPlus size={14} /> Create API key
-              </button>
+              </Button>
             </div>
+            {createdKey ? (
+              <div role="status" aria-label="New API key" className="mb-3 flex flex-col gap-3 rounded-lg border bg-muted/40 p-3 sm:flex-row sm:items-center">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold">New key for “{createdKey.name}” — copy it now, it won’t be shown again.</p>
+                  <p className="mt-1 font-mono text-xs break-all text-muted-foreground">{createdKey.key}</p>
+                </div>
+                <div className="flex flex-none gap-1.5">
+                  <Button variant="secondary" size="sm" onClick={handleCopyCreatedKey}>
+                    <IconCopy size={14} /> Copy
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setCreatedKey(null)}>
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             <div className="integration-list">
               {apiKeys.map((apiKey) => (
                 <ApiKeyRow
@@ -423,59 +477,68 @@ export default function IntegrationsPage() {
           </Modal>
 
           {showDeliveriesModal && selectedWebhookId ? (
-            <div className="modal-backdrop" onClick={() => setShowDeliveriesModal(false)}>
-              <div className="modal modal-wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal aria-label="Webhook deliveries">
-                <div className="modal-header">
-                  <h3>Recent deliveries</h3>
-                  <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setShowDeliveriesModal(false)} aria-label="Close">
-                    <IconChevronRight size={14} />
-                  </button>
+            <Modal
+              open={showDeliveriesModal}
+              onClose={() => setShowDeliveriesModal(false)}
+              title="Recent deliveries"
+              contentClassName="sm:max-w-2xl"
+            >
+              {deliveriesQ.isLoading ? (
+                <div className="flex flex-col gap-2" role="status" aria-label="Loading deliveries" style={{ padding: "12px 0" }}>
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
                 </div>
-                <div className="modal-body">
-                  {deliveriesQ.isLoading ? (
-                    <div className="flex flex-col gap-2" role="status" aria-label="Loading deliveries" style={{ padding: "12px 0" }}>
-                      <Skeleton className="h-10 w-full rounded-lg" />
-                      <Skeleton className="h-10 w-full rounded-lg" />
-                    </div>
-                  ) : (
-                    <div className="deliveries-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Event</th>
-                            <th>Status</th>
-                            <th>Attempts</th>
-                            <th>Last error</th>
-                            <th>Created</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(deliveriesQ.data?.deliveries ?? []).map((d) => (
-                            <tr key={d.id}>
-                              <td>{d.event}</td>
-                              <td>
-                                <span className={cx("status-badge", d.status)}>
-                                  {d.status}
-                                </span>
-                              </td>
-                              <td>{d.attempts}</td>
-                              <td className="error-cell">{d.lastError ?? "—"}</td>
-                              <td>{new Date(d.createdAt).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                          {(deliveriesQ.data?.deliveries ?? []).length === 0 && (
-                            <tr>
-                              <td colSpan={5} className="dim">No deliveries yet</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+              ) : (
+                <div className="deliveries-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Event</th>
+                        <th>Status</th>
+                        <th>Attempts</th>
+                        <th>Last error</th>
+                        <th>Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(deliveriesQ.data?.deliveries ?? []).map((d) => (
+                        <tr key={d.id}>
+                          <td>{d.event}</td>
+                          <td>
+                            <span className={cx("status-badge", d.status)}>
+                              {d.status}
+                            </span>
+                          </td>
+                          <td>{d.attempts}</td>
+                          <td className="error-cell">{d.lastError ?? "—"}</td>
+                          <td>{new Date(d.createdAt).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                      {(deliveriesQ.data?.deliveries ?? []).length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="dim">No deliveries yet</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-            </div>
+              )}
+            </Modal>
           ) : null}
+          <ConfirmDialog
+            open={confirmState !== null}
+            onClose={() => (confirmBusy ? null : setConfirmState(null))}
+            title={confirmState?.kind === "key" ? "Revoke API key?" : "Delete webhook?"}
+            body={
+              confirmState?.kind === "key"
+                ? "The key stops working immediately. Update anything using it first."
+                : "The webhook stops receiving events immediately."
+            }
+            confirmLabel={confirmState?.kind === "key" ? "Revoke key" : "Delete webhook"}
+            danger
+            busy={confirmBusy}
+            onConfirm={confirmDestructive}
+          />
         </div>
       </div>
     </AppShell>

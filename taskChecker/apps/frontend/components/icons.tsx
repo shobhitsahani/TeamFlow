@@ -513,51 +513,33 @@ export function IconInfo(p: IconProps) {
   );
 }
 
-/** The TeamFlow mark: a conduit with a light drop travelling through. */
+/** The TeamFlow brand mark: from uploaded brand identity logo. */
 export function IconFlowMark({ size = 16, className }: IconProps) {
   return (
-    <svg
+    <img
+      src="/logo_mark.png"
+      alt="TeamFlow"
       width={size}
       height={size}
-      viewBox="0 0 24 24"
-      fill="none"
       className={className}
-      aria-hidden
-    >
-      <rect
-        x="2.5"
-        y="9"
-        width="19"
-        height="6"
-        rx="3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <circle cx="12" cy="12" r="2.6" fill="currentColor" />
-    </svg>
+      style={{ objectFit: 'contain', borderRadius: 4, display: 'inline-block', verticalAlign: 'middle' }}
+    />
   );
 }
 
-/** TeamFlow board mark: rounded square with two white bars. */
+/** TeamFlow mark: brand logo mark tile. */
 export function IconTeamFlow({ size = 18, className }: IconProps) {
   return (
-    <svg
+    <img
+      src="/logo_mark.png"
+      alt="TeamFlow"
       width={size}
       height={size}
-      viewBox="0 0 24 24"
-      fill="currentColor"
       className={className}
-      aria-hidden
-    >
-      <rect x="2" y="2" width="20" height="20" rx="4" />
-      <rect x="6.2" y="6" width="4.4" height="9" rx="1" fill="#026AA7" />
-      <rect x="13.4" y="6" width="4.4" height="12" rx="1" fill="#026AA7" />
-    </svg>
+      style={{ objectFit: 'contain', borderRadius: 4, display: 'inline-block', verticalAlign: 'middle' }}
+    />
   );
 }
-
-/** @deprecated Use IconTeamFlow instead. */
-export const IconTrello = IconTeamFlow;
 
 /** TeamFlow-style star (board favorite). */
 export function IconStar({ size = 16, className }: IconProps) {

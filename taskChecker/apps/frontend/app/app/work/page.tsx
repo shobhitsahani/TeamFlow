@@ -22,6 +22,13 @@ const PRIORITY_COLORS: Record<string, string> = {
   none: "var(--muted)",
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  backlog: "Backlog",
+  todo: "To do",
+  in_progress: "In progress",
+  done: "Done",
+};
+
 type TaskWithProject = { task: Task; project: Project | null };
 
 /**
@@ -43,21 +50,18 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
       animate="show"
       exit="exit"
     >
-      <Link href={`/app/tasks/${task.id}`} className="task-card trello-card" style={{ display: "block" }}>
-        <div className="trello-card-labels">
-          {task.priority !== "none" && (
-            <span
-              className="trello-label"
-              style={{ background: PRIORITY_COLORS[task.priority] }}
-              title={`Priority: ${task.priority}`}
-            />
-          )}
-        </div>
+      <Link
+        href={`/app/tasks/${task.id}`}
+        className="task-card trello-card"
+        style={{ display: "block", borderLeft: `3px solid ${PRIORITY_COLORS[task.priority] ?? "var(--muted)"}` }}
+        title={task.priority !== "none" ? `Priority: ${task.priority}` : undefined}
+      >
         <h3 className="trello-card-title">{task.title}</h3>
         <div className="trello-card-badges">
+          <span style={{ fontSize: 11, color: "var(--slate-500)" }}>{STATUS_LABEL[task.status] ?? task.status}</span>
           {task.dueAt ? (
             <span
-              className={cx("trello-due", overdue && "is-overdue", task.status === "done" && "is-done")}
+              className={cx("trello-due tabular-nums", overdue && "is-overdue", task.status === "done" && "is-done")}
               title={overdue ? "Overdue" : undefined}
             >
               <IconClock size={12} />

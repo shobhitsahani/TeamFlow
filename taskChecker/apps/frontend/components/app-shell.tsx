@@ -4,6 +4,7 @@
 
 import { useEffect, useState, Suspense, type ReactNode } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../lib/auth";
 import { ContextBar, Rail, ScopeStrip } from "./shell-parts";
@@ -11,6 +12,7 @@ import { ChatRail } from "./chat-rail";
 import { IconFlowMark } from "./icons";
 import { AnimatePresence, motion } from "@/components/motion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buttonVariants } from "@/components/ui/button";
 
 /** Route guard — the whole /app tree requires a live session. */
 function AuthGate({ children }: { children: ReactNode }) {
@@ -31,9 +33,9 @@ function AuthGate({ children }: { children: ReactNode }) {
             <Skeleton className="h-3 w-28 rounded" />
           </div>
         ) : (
-          <a href="/auth/sign-in" className="btn btn-primary">
+          <Link href="/auth/sign-in" className={buttonVariants()}>
             <IconFlowMark size={14} /> Sign in to continue
-          </a>
+          </Link>
         )}
       </div>
     );

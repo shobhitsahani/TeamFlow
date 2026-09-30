@@ -9,8 +9,9 @@ import { useToast } from "./overlay";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
 import { IconFile, IconSearch, IconX } from "./icons";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cx } from "../lib/utils";
-import { motion, backdropFade, popIn } from "@/components/motion";
 
 type CmdItem = {
   id: string;
@@ -77,7 +78,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     const nav: CmdItem[] = (
       [
         ["Your work", "/app/work"],
-        ["Board", "/app/board"],
+        ["Boards", "/app/board"],
         ["Projects", "/app/projects"],
         ["Teams", "/app/teams"],
         ["Activity", "/app/activity"],
@@ -117,7 +118,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         label: "Create task",
         hint: "new",
         run: () => {
-          toast({ title: "Create task", msg: "Open a project board and use " + '"New task".' });
+          toast({ title: "Create task", msg: "Open a project board and use " + '"Create".' });
           router.push("/app/board");
         },
       },
@@ -180,29 +181,23 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   let lastGroup = "";
 
   return (
-    <motion.div
-      className="modal-backdrop"
-      style={{ alignItems: "flex-start", background: "rgba(15,23,42,0.35)", backdropFilter: "blur(2px)" }}
-      variants={backdropFade}
-      initial="hidden"
-      animate="show"
-      exit="exit"
-      onClick={onClose}
-      role="presentation"
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
     >
-      <motion.div
-        className="cmdk"
-        role="dialog"
-        aria-modal
+      <DialogContent
         aria-label="Command palette"
-        onClick={(e) => e.stopPropagation()}
-        variants={popIn}
-        initial="hidden"
-        animate="show"
-        exit="exit"
-        style={{ marginTop: "10vh" }}
+        showCloseButton={false}
+        className="top-[10vh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-lg"
+        onKeyDown={onKeyDown}
       >
-        <div className="cmdk-input">
+        <DialogTitle className="sr-only">Command palette</DialogTitle>
+        <DialogDescription className="sr-only">
+          Search tasks, jump anywhere, or switch tenant.
+        </DialogDescription>
+        <div className="flex items-center gap-2 border-b border-border px-3">
           <IconSearch size={16} className="dim" />
           <input
             ref={inputRef}
@@ -211,12 +206,18 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
             onKeyDown={onKeyDown}
             placeholder="Search tasks, jump anywhere, switch tenant…"
             aria-label="Command palette input"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="cmdk-list"
+            aria-autocomplete="list"
+            aria-activedescendant={filtered[sel] ? `cmdk-opt-${sel}` : undefined}
+            className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Close">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close">
             <IconX size={14} />
-          </button>
+          </Button>
         </div>
-        <div className="cmdk-list" role="listbox">
+        <div className="max-h-[40vh] overflow-y-auto p-1.5" role="listbox" id="cmdk-list" aria-label="Commands">
           {filtered.length === 0 ? (
             <div className="empty" style={{ padding: "24px 16px" }}>
               <div className="empty-title">Nothing matches "{query}"</div>
@@ -230,17 +231,21 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
               lastGroup = item.group;
               return (
                 <div key={item.id}>
-                  {showGroup ? <div className="cmdk-group">{item.group}</div> : null}
-                  <motion.div
+                  {showGroup ? (
+                    <div className="px-2.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                      {item.group}
+                    </div>
+                  ) : null}
+                  <div
                     role="option"
+                    id={`cmdk-opt-${idx}`}
                     aria-selected={idx === sel}
-                    className={cx("cmdk-item", idx === sel && "cmdk-item-selected")}
+                    className={cx(
+                      "flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-sm",
+                      idx === sel && "bg-accent text-accent-foreground",
+                    )}
                     onMouseEnter={() => setSel(idx)}
                     onClick={() => runAt(idx)}
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.15 }}
-                    layout
                   >
                     <IconFile size={13} className="dim" />
                     <span
@@ -250,13 +255,13 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                       {item.label}
                     </span>
                     {item.hint ? <span className="cmdk-hint">{item.hint}</span> : null}
-                  </motion.div>
+                  </div>
                 </div>
               );
             })
           )}
         </div>
-        <div className="cmdk-foot">
+        <div className="flex items-center justify-between border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
           <span>Scoped to {org?.name ?? "your organization"}</span>
           <span className="kbd-group">
             <span>↑↓ move</span>
@@ -264,7 +269,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
             <span>esc close</span>
           </span>
         </div>
-      </motion.div>
-    </motion.div>
+      </DialogContent>
+    </Dialog>
   );
 }

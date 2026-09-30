@@ -8,22 +8,17 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LagoonShell, useLagoonChrome } from "@/components/lagoon/LagoonShell";
-import { IconCheck, IconClock, IconLayers, IconPlus, IconSearch } from "@/components/icons";
+import { IconLayers, IconPlus, IconSearch } from "@/components/icons";
 import { api, getCurrentTenantId, type Project, type Task, type Team } from "@/lib/api";
 import { useTenant } from "@/components/store";
 import { useSWR } from "@/lib/swr";
 import { motion, PageEnter, contentFade } from "@/components/motion";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { toYmd, todayYmd } from "@/components/lagoon/lagoon-utils";
 
 const BOARD_TONES = ["teal", "coral", "ocean"] as const;
-
-function greeting(now = new Date()): string {
-  const h = now.getHours();
-  if (h < 12) return "Good morning, team.";
-  if (h < 18) return "Good afternoon, team.";
-  return "Good evening, team.";
-}
 
 function LagoonDashboard() {
   const router = useRouter();
@@ -71,7 +66,7 @@ function LagoonDashboard() {
           .sort()[0];
         const dueLabel = upcoming
           ? new Date(`${upcoming}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-          : "No due";
+          : null;
         return {
           project: p,
           tasks: tasks.length,
@@ -96,7 +91,6 @@ function LagoonDashboard() {
     );
   }, [boards, search]);
 
-  const totalTasks = boards.reduce((sum, b) => sum + b.tasks, 0);
   const activeTasks = boards.reduce((sum, b) => sum + b.active, 0);
 
   return (
@@ -123,37 +117,32 @@ function LagoonDashboard() {
                   <IconLayers size={14} /> {org?.name ?? "Workspace"}
                 </div>
                 <h1 className="lagoon-display" style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.01em" }}>
-                  {greeting()}
+                  Boards
                 </h1>
                 <p style={{ marginTop: 8, maxWidth: 560, fontSize: 14, color: "var(--lagoon-muted-fg)" }}>
-                  Your boards are moving along. Pick a workspace to keep the next important thing moving.
+                  {boards.length === 0
+                    ? "Create a board to start tracking work."
+                    : `${boards.length} ${boards.length === 1 ? "board" : "boards"} · ${activeTasks} active ${activeTasks === 1 ? "task" : "tasks"}`}
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Link href="/app/board" style={{ fontSize: 12, fontWeight: 600, color: "var(--lagoon-muted-fg)" }}>
-                  Open workspace
-                </Link>
-                <button className="lagoon-create-btn" onClick={openNewBoard}>
+                <Button size="sm" className="lagoon-create-btn border-0" onClick={openNewBoard}>
                   <IconPlus size={14} /> New board
-                </button>
+                </Button>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 12, color: "var(--lagoon-muted-fg)", flexWrap: "wrap" }}>
-              <div className="lagoon-search" style={{ width: 280 }}>
-                <IconSearch size={14} />
-                <input
+              <InputGroup variant="search" className="lagoon-search" style={{ width: 280 }}>
+                <InputGroupAddon align="inline-start">
+                  <IconSearch size={14} />
+                </InputGroupAddon>
+                <InputGroupInput
                   aria-label="Search boards"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search boards…"
                 />
-              </div>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <IconLayers size={16} /> {boards.length} boards
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <IconClock size={16} /> {activeTasks} active tasks
-              </span>
+              </InputGroup>
             </div>
           </div>
 
@@ -174,9 +163,9 @@ function LagoonDashboard() {
                 {search ? "Try a different search term." : "Create your first board to get started."}
               </p>
               {!search ? (
-                <button className="lagoon-create-btn" style={{ marginTop: 16 }} onClick={openNewBoard}>
+                <Button size="sm" className="lagoon-create-btn border-0" style={{ marginTop: 16 }} onClick={openNewBoard}>
                   <IconPlus size={14} /> New board
-                </button>
+                </Button>
               ) : null}
             </PageEnter>
           ) : (
@@ -194,43 +183,20 @@ function LagoonDashboard() {
                         {b.team ?? b.project.key}
                       </span>
                     </div>
-                    <h2 className="lagoon-display" style={{ marginTop: 32, fontSize: 20, fontWeight: 600 }}>{b.project.name}</h2>
+                    <h2 className="lagoon-display" style={{ marginTop: 20, fontSize: 20, fontWeight: 600 }}>{b.project.name}</h2>
                     <p style={{ marginTop: 8, minHeight: 40, fontSize: 12, lineHeight: 1.6, color: "var(--lagoon-muted-fg)" }}>
                       {b.team ? `${b.team} · ` : ""}{b.project.key} board — {b.active} open, {b.tasks - b.active} done.
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20, fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
-                      <span>{b.tasks} tasks</span>
-                      <span>{b.active} active</span>
-                      <span>Due {b.dueLabel}</span>
+                      <span className="tabular-nums">{b.tasks} tasks</span>
+                      <span className="tabular-nums">{b.active} active</span>
+                      <span>{b.dueLabel ? `Due ${b.dueLabel}` : "No due dates"}</span>
                     </div>
                     <div className="lagoon-progress" style={{ marginTop: 16 }}>
                       <div style={{ height: "100%", borderRadius: 9999, background: `var(--lagoon-${b.tone})`, width: `${b.progress}%` }} />
                     </div>
-                    <span style={{ marginTop: "auto", paddingTop: 16, fontSize: 12, fontWeight: 600, color: "var(--lagoon-ocean)" }}>
-                      Open board →
-                    </span>
                   </Link>
                 ))}
-              </section>
-
-              <section aria-label="Workspace summary" style={{ display: "grid", gap: 16, marginTop: 32, gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-                <div className="lagoon-stat">
-                  <p style={{ fontSize: 12, color: "var(--lagoon-muted-fg)" }}>All tasks</p>
-                  <p className="lagoon-display" style={{ marginTop: 8, fontSize: 30, fontWeight: 600 }}>{totalTasks}</p>
-                  <p style={{ marginTop: 4, fontSize: 11, color: "var(--lagoon-success)" }}>Across every board</p>
-                </div>
-                <div className="lagoon-stat">
-                  <p style={{ fontSize: 12, color: "var(--lagoon-muted-fg)" }}>In motion</p>
-                  <p className="lagoon-display" style={{ marginTop: 8, fontSize: 30, fontWeight: 600 }}>{activeTasks}</p>
-                  <p style={{ marginTop: 4, fontSize: 11, color: "var(--lagoon-teal)" }}>Keep the momentum</p>
-                </div>
-                <div className="lagoon-stat">
-                  <p style={{ fontSize: 12, color: "var(--lagoon-muted-fg)" }}>Completed</p>
-                  <p className="lagoon-display" style={{ marginTop: 8, fontSize: 30, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                    <IconCheck size={24} style={{ color: "var(--lagoon-success)" }} /> {totalTasks - activeTasks}
-                  </p>
-                  <p style={{ marginTop: 4, fontSize: 11, color: "var(--lagoon-muted-fg)" }}>Ready to celebrate</p>
-                </div>
               </section>
             </motion.div>
           )}

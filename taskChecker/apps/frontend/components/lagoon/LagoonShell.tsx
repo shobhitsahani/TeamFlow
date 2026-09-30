@@ -42,11 +42,12 @@ import {
   IconBell,
   IconBoard,
   IconChevronDown,
-  IconClock,
   IconFlowMark,
   IconLayers,
+  IconListTodo,
   IconLogout,
   IconPlus,
+  IconPulse,
   IconSettings,
   IconUsers,
   IconX,
@@ -199,7 +200,8 @@ export function LagoonShell({
   const nav = [
     { href: "/app/board", label: "Boards", icon: IconBoard, on: pathname.startsWith("/app/board") },
     { href: "/app/projects", label: "Projects", icon: IconLayers, on: pathname.startsWith("/app/projects") },
-    { href: "/app/board?view=calendar", label: "Calendar", icon: IconClock, on: false },
+    { href: "/app/work", label: "Work", icon: IconListTodo, on: pathname.startsWith("/app/work") },
+    { href: "/app/activity", label: "Activity", icon: IconPulse, on: pathname.startsWith("/app/activity") },
     { href: "/app/settings/members", label: "Members", icon: IconUsers, on: pathname.startsWith("/app/settings/members") },
   ];
 

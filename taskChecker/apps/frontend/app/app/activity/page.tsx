@@ -7,6 +7,7 @@ import { Dropdown, MenuItem } from "@/components/overlay";
 import { IconSearch, IconFilter, IconPulse, IconFile, IconMessageSquare, IconUsers, IconLayers, IconChevronRight } from "@/components/icons";
 import { api, getCurrentTenantId, type ActivityEvent } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageEnter } from "@/components/motion";
 import { timeAgo, hueFrom } from "@/lib/utils";
@@ -213,11 +214,11 @@ export default function ActivityPage() {
             <Dropdown
               align="right"
               trigger={() => (
-                <button className="btn btn-ghost btn-sm" aria-haspopup="listbox" type="button">
+                <Button variant="ghost" size="sm" aria-haspopup="listbox" type="button">
                   <IconFilter size={14} />
                   <span>{ACTIVITY_TYPES.find((t) => t.value === filter)?.label ?? "All"}</span>
                   <IconChevronRight size={12} />
-                </button>
+                </Button>
               )}
             >
               {(close) => (
@@ -260,9 +261,9 @@ export default function ActivityPage() {
               <IconPulse size={48} className="dim" />
               <h3>Couldn&apos;t load activity</h3>
               <p>{loadError}</p>
-              <button className="btn btn-primary btn-sm" onClick={() => void fetchActivities(true)}>
+              <Button size="sm" onClick={() => void fetchActivities(true)}>
                 Retry
-              </button>
+              </Button>
             </PageEnter>
           ) : filteredActivities.length === 0 ? (
             <PageEnter className="empty-state">

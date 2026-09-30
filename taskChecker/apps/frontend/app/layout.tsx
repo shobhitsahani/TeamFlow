@@ -11,7 +11,6 @@ import "@fontsource-variable/hanken-grotesk/index.css";
 import "@fontsource-variable/jetbrains-mono/index.css";
 import "@fontsource-variable/sora/index.css";
 import "@fontsource-variable/manrope/index.css";
-import "./tokens.css";
 import "./globals.css";
 import "./trello.css";
 import "./theme.css";

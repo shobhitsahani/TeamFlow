@@ -615,6 +615,14 @@
   opacity: 0.45;
 }
 
+/* Cards are keyboard-operable (Enter/Space opens) — visible focus on the
+   focusable wrapper (data-slot="lagoon-card" carries the tabIndex). */
+[data-slot="lagoon-card"]:focus-visible {
+  outline: 2px solid var(--lagoon-ocean);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
 .lagoon-card.is-done {
   opacity: 0.7;
 }
@@ -723,6 +731,12 @@
   background: var(--lagoon-card);
   padding: 8px;
   box-shadow: var(--lagoon-shadow-sm);
+}
+
+/* Borderless composer input: show focus on the card instead. */
+.lagoon-composer:focus-within {
+  border-color: var(--lagoon-ocean);
+  box-shadow: var(--lagoon-shadow-sm), 0 0 0 3px color-mix(in oklab, var(--lagoon-ocean) 15%, transparent);
 }
 
 .lagoon-composer textarea {
@@ -1017,6 +1031,10 @@
 
 .lagoon-side-form input::placeholder {
   color: rgb(255 255 255 / 0.4);
+}
+
+.lagoon-side-form input:focus {
+  border-color: rgb(255 255 255 / 0.45);
 }
 
 /* ---------- dashboard ---------- */

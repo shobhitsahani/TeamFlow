@@ -2,7 +2,7 @@
 
 import { useState, useMemo, memo, startTransition } from "react";
 import { useTenant } from "@/components/store";
-import { Modal, useToast } from "@/components/overlay";
+import { Modal, ConfirmDialog, useToast } from "@/components/overlay";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { AppShell } from "@/components/app-shell";
@@ -30,14 +30,13 @@ import { Button } from "@/components/ui/button";
 import { PageEnter } from "@/components/motion";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -93,34 +92,39 @@ const MemberRow = memo(function MemberRow({
   const elevated = member.role === "owner" || member.role === "admin";
 
   return (
-    <Item variant="outline" size="sm">
-      {/* Center the avatar with the text block + actions (the Item primitive
-          top-anchors media whenever a description exists). */}
-      <ItemMedia className="self-center! translate-y-0!">
-        <Avatar>
-          <AvatarFallback
-            style={{
-              background: `hsl(${tint} 45% 20%)`,
-              color: `hsl(${tint} 80% 78%)`,
-            }}
-          >
-            {initials(member.name, member.email)}
-          </AvatarFallback>
-          {online ? <AvatarBadge className="bg-emerald-500" /> : null}
-        </Avatar>
-      </ItemMedia>
-      <ItemContent className="gap-1">
-        <ItemTitle>
-          {member.name ?? "Unknown"}
-          {isSelf ? <Badge variant="secondary">You</Badge> : null}
-        </ItemTitle>
-        <ItemDescription className="font-mono text-xs">{member.email ?? "—"}</ItemDescription>
-        <span className={cx("dir-status", online ? "is-on" : member.status === "invited" ? "is-invited" : "is-off")}>
-          <span className="dir-status-dot" />
-          {online ? "Online" : member.status === "invited" ? "Invited" : "Offline"}
+    <TableRow>
+      <TableCell>
+        <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <Avatar>
+            <AvatarFallback
+              style={{
+                background: `hsl(${tint} 45% 20%)`,
+                color: `hsl(${tint} 80% 78%)`,
+              }}
+            >
+              {initials(member.name, member.email)}
+            </AvatarFallback>
+            {online ? <AvatarBadge className="bg-emerald-500" /> : null}
+          </Avatar>
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 13 }}>
+              {member.name ?? "Unknown"}
+              {isSelf ? <Badge variant="secondary">You</Badge> : null}
+            </span>
+            <span className="dir-user-email font-mono">{member.email ?? "—"}</span>
+          </span>
         </span>
-      </ItemContent>
-      <ItemActions>
+      </TableCell>
+      <TableCell>
+        <span
+          className={cx("dir-status", online ? "is-on" : member.status === "invited" ? "is-invited" : "is-off")}
+          title={online ? "Online" : member.status === "invited" ? "Invited" : "Offline"}
+        >
+          <span className="dir-status-dot" />
+          <span className="sr-only">{online ? "Online" : member.status === "invited" ? "Invited" : "Offline"}</span>
+        </span>
+      </TableCell>
+      <TableCell>
         {canManage && !isSelf ? (
           <Select
             value={member.role}
@@ -142,6 +146,8 @@ const MemberRow = memo(function MemberRow({
         ) : (
           <Badge variant={elevated ? "default" : "secondary"}>{ROLE_LABELS[member.role]}</Badge>
         )}
+      </TableCell>
+      <TableCell className="text-right">
         {!isSelf && member.status === "active" && canManage ? (
           <Tooltip>
             <TooltipTrigger
@@ -163,8 +169,8 @@ const MemberRow = memo(function MemberRow({
         ) : !canManage ? (
           <span className="dim dir-hint">No access</span>
         ) : null}
-      </ItemActions>
-    </Item>
+      </TableCell>
+    </TableRow>
   );
 });
 
@@ -175,13 +181,15 @@ export default function MembersPage() {
   const orgId = getCurrentTenantId();
   const [search, setSearch] = useState("");
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [deactivateId, setDeactivateId] = useState<string | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<Role>("member");
   const [inviting, setInviting] = useState(false);
   // Last created invite — shown inline so the link + code can be copied/sent.
   // Links/codes live 24h (backend-enforced). The backend also emails the
   // invite via Resend when configured; otherwise the inviter relays manually.
-  const [lastInvite, setLastInvite] = useState<{ email: string; role: Role; url: string; code: string; expiresAt: string; emailSent: boolean } | null>(null);
+  const [lastInvite, setLastInvite] = useState<{ email: string; role: Role; url: string; code: string; expiresAt: string; emailSent: boolean; emailError?: string } | null>(null);
   const [copiedWhat, setCopiedWhat] = useState<"link" | "code" | null>(null);
 
   const membersQ = useSWR<{ members: Member[] }>(
@@ -216,7 +224,7 @@ export default function MembersPage() {
     setInviting(true);
     try {
       const res = await api.orgs.invite(orgId, { email, role: inviteRole });
-      setLastInvite({ email: res.invite.email, role: res.invite.role, url: res.invitationUrl, code: res.code, expiresAt: res.invite.expiresAt, emailSent: res.email.sent });
+      setLastInvite({ email: res.invite.email, role: res.invite.role, url: res.invitationUrl, code: res.code, expiresAt: res.invite.expiresAt, emailSent: res.email.sent, emailError: res.email.sent ? undefined : res.email.error });
       setCopiedWhat(null);
       setInviteEmail("");
       await membersQ.mutate();
@@ -224,7 +232,9 @@ export default function MembersPage() {
         title: res.email.sent ? "Invite emailed" : "Invite ready",
         msg: res.email.sent
           ? `${email} got the join link + code by email (expires in 24 hours).`
-          : `Email isn't configured — send the link or code to ${email} yourself (expires in 24 hours).`,
+          : res.email.error && res.email.error !== "email_unconfigured"
+            ? `Email send failed (${res.email.error}) — share the link or code with ${email} yourself (expires in 24 hours).`
+            : `Email isn't configured — send the link or code to ${email} yourself (expires in 24 hours).`,
       });
     } catch (err) {
       toast({ title: "Invite failed", msg: err instanceof Error ? err.message : "Try again." });
@@ -262,15 +272,23 @@ export default function MembersPage() {
     }
   };
 
-  const handleDeactivate = async (userId: string) => {
+  const handleDeactivate = (userId: string) => {
     if (!orgId) return;
-    if (!confirm("Remove this member from the organization?")) return;
+    setDeactivateId(userId);
+  };
+
+  const confirmDeactivate = async () => {
+    if (!orgId || !deactivateId) return;
+    setDeactivating(true);
     try {
-      await api.orgs.deactivateMember(orgId, userId);
+      await api.orgs.deactivateMember(orgId, deactivateId);
+      setDeactivateId(null);
       await membersQ.mutate();
       toast({ title: "Member removed", msg: "They can be re-invited later" });
     } catch (err) {
       toast({ title: "Remove failed", msg: err instanceof Error ? err.message : "Try again." });
+    } finally {
+      setDeactivating(false);
     }
   };
 
@@ -290,16 +308,15 @@ export default function MembersPage() {
               </div>
               <div>
                 <div className="dir-title-row">
-                  <h1 className="dir-title">Tenant Members &amp; Team Directory</h1>
-                  <span className="dir-badge-total">{members.length} Total</span>
-                  <span className="dir-badge-active">
+                  <h1 className="dir-title">Members</h1>
+                  <span className="dir-badge-total tabular-nums">{members.length} Total</span>
+                  <span className="dir-badge-active tabular-nums">
                     <span className="dir-pulse" />
                     {activeCount} active now
                   </span>
                 </div>
                 <p className="dir-sub">
-                  Manage team access, permissions, seats, and workspace security roles
-                  {org?.name ? ` · ${org.name}` : null}.
+                  Who can access{org?.name ? ` ${org.name}` : " this workspace"} and what they can do.
                 </p>
               </div>
             </div>
@@ -325,46 +342,40 @@ export default function MembersPage() {
           {/* Directory table */}
           <div className="dir-table-wrap">
             {membersQ.isLoading ? (
-              <table className="dir-table" aria-hidden>
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Assigned Tasks</th>
-                    <th className="dir-th-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table aria-hidden>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {[0, 1, 2, 3].map((i) => (
-                    <tr key={i} className="dir-row">
-                      <td className="dir-cell dir-cell-user">
-                        <div className="dir-user">
-                          <div className="dir-avatar-wrap">
-                            <Skeleton className="size-8 shrink-0 rounded-full" />
-                          </div>
-                          <div className="dir-user-meta" style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    <TableRow key={i}>
+                      <TableCell>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <Skeleton className="size-8 shrink-0 rounded-full" />
+                          <span style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                             <Skeleton className="h-3.5 w-32 rounded" />
                             <Skeleton className="h-3 w-44 rounded" />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="dir-cell">
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                      </td>
-                      <td className="dir-cell">
+                          </span>
+                        </span>
+                      </TableCell>
+                      <TableCell>
                         <Skeleton className="h-6 w-24 rounded-full" />
-                      </td>
-                      <td className="dir-cell">
-                        <Skeleton className="h-4 w-8 rounded" />
-                      </td>
-                      <td className="dir-cell dir-cell-actions">
-                        <Skeleton className="h-7 w-20 rounded-md" />
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="ml-auto h-7 w-20 rounded-md" />
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             ) : filteredMembers.length === 0 ? (
               <PageEnter className="empty-state">
                 <IconUsers size={32} className="dim" />
@@ -376,18 +387,28 @@ export default function MembersPage() {
                 )}
               </PageEnter>
             ) : (
-              <ItemGroup>
-                {filteredMembers.map((member) => (
-                  <MemberRow
-                    key={member.userId}
-                    member={member}
-                    currentUserRole={currentUserRole}
-                    currentUserId={currentUserId}
-                    onRoleChange={handleRoleChange}
-                    onDeactivate={handleDeactivate}
-                  />
-                ))}
-              </ItemGroup>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMembers.map((member) => (
+                    <MemberRow
+                      key={member.userId}
+                      member={member}
+                      currentUserRole={currentUserRole}
+                      currentUserId={currentUserId}
+                      onRoleChange={handleRoleChange}
+                      onDeactivate={handleDeactivate}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </div>
 
@@ -432,7 +453,11 @@ export default function MembersPage() {
                       </span>
                       <p>
                         Invite ready for <strong>{lastInvite.email}</strong> ({lastInvite.role}).
-                        {lastInvite.emailSent ? " They were emailed the link + code." : " Email isn't configured, so share it yourself."}
+                        {lastInvite.emailSent
+                          ? " They were emailed the link + code."
+                          : lastInvite.emailError && lastInvite.emailError !== "email_unconfigured"
+                            ? ` Email send failed (${lastInvite.emailError}) — share it yourself.`
+                            : " Email isn't configured, so share it yourself."}
                       </p>
                     </div>
                     <Field>
@@ -504,6 +529,16 @@ export default function MembersPage() {
                 )}
           </FieldGroup>
         </Modal>
+        <ConfirmDialog
+          open={deactivateId !== null}
+          onClose={() => (deactivating ? null : setDeactivateId(null))}
+          title="Remove member?"
+          body="They will lose access to the organization immediately and can be re-invited later."
+          confirmLabel="Remove member"
+          danger
+          busy={deactivating}
+          onConfirm={confirmDeactivate}
+        />
       </div>
     </AppShell>
   );

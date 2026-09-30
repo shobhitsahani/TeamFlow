@@ -42,11 +42,6 @@ function ChatResizeHandle({
         "touch-none outline-none select-none",
         "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
         "after:bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 after:content-[\"\"]",
-        "after:transition-all after:duration-200",
-        "hover:after:bg-primary/60 hover:after:w-0.5",
-        "focus-visible:after:bg-primary/60 focus-visible:after:w-0.5",
-        "data-[dragging=true]:after:bg-primary data-[dragging=true]:after:w-0.5",
-        "data-[dragging=true]:after:shadow-[0_0_12px_1px_var(--primary)]",
         dragging && "is-dragging",
         className,
       )}
@@ -67,21 +62,6 @@ function ChatResizeHandle({
       >
         <IconGrip size={12} />
       </span>
-
-      {/* Live width badge — only while dragging */}
-      {typeof width === "number" ? (
-        <span
-          aria-hidden
-          className={cn(
-            "bg-foreground text-background pointer-events-none absolute top-16 left-1/2 z-20",
-            "rounded-md px-2 py-0.5 font-mono text-[11px] whitespace-nowrap shadow-lg",
-            "transition-all duration-150",
-            dragging ? " -translate-x-1/2 scale-100 opacity-100" : " -translate-x-1/2 scale-95 opacity-0",
-          )}
-        >
-          {Math.round(width)}px
-        </span>
-      ) : null}
 
       {/* Screen-reader + hover hint for min/max */}
       {typeof minW === "number" && typeof maxW === "number" ? (

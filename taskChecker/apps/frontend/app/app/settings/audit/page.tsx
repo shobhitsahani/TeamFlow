@@ -7,30 +7,47 @@ import { api, getCurrentTenantId, type AuditLog } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
 import { reportError } from "@/lib/report";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageEnter } from "@/components/motion";
 
 const AuditRow = memo(function AuditRow({ log }: { log: AuditLog }) {
   return (
-    <div className="audit-row">
-      <div className="audit-time">{timeAgo(log.createdAt)}</div>
-      <div className="audit-action">{log.action}</div>
-      <div className="audit-entity">
+    <TableRow>
+      <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">{timeAgo(log.createdAt)}</TableCell>
+      <TableCell className="font-medium">{log.action}</TableCell>
+      <TableCell>
         <span className="entity-type">{log.entityType}</span>
-        {log.entityId && <span className="entity-id">{log.entityId.slice(0, 8)}</span>}
-      </div>
-      <div className="audit-actor">
-        <IconUser size={12} />
-        <span>{log.actorId.slice(0, 8)}</span>
-      </div>
-      <div className="audit-details">
+        {log.entityId && <span className="entity-id font-mono text-xs text-muted-foreground"> {log.entityId.slice(0, 8)}</span>}
+      </TableCell>
+      <TableCell>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} className="text-muted-foreground">
+          <IconUser size={12} />
+          <span className="font-mono text-xs">{log.actorId.slice(0, 8)}</span>
+        </span>
+      </TableCell>
+      <TableCell>
         {log.before && (
           <details className="audit-diff">
             <summary>Changes</summary>
             <pre>{JSON.stringify({ before: log.before, after: log.after }, null, 2)}</pre>
           </details>
         )}
-      </div>
-    </div>
+      </TableCell>
+    </TableRow>
   );
 });
 
@@ -124,22 +141,23 @@ export default function AuditPage() {
                 placeholder="Search audit log…"
               />
             </div>
-            <select value={filterAction} onChange={(e) => setFilterAction(e.target.value)} className="select">
-              <option value="">All actions</option>
-              {actions.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
+            <Select
+              value={filterAction || "all"}
+              onValueChange={(v) => setFilterAction(!v || v === "all" ? "" : v)}
+            >
+              <SelectTrigger aria-label="Filter by action" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All actions</SelectItem>
+                {actions.map((a) => (
+                  <SelectItem key={a} value={a}>{a}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="audit-table">
-            <div className="audit-header">
-              <span className="audit-col-time">Time</span>
-              <span className="audit-col-action">Action</span>
-              <span className="audit-col-entity">Entity</span>
-              <span className="audit-col-actor">Actor</span>
-              <span className="audit-col-details">Details</span>
-            </div>
             {loading && (logs?.length ?? 0) === 0 ? (
               <div className="flex flex-col gap-2" role="status" aria-label="Loading audit log" style={{ padding: "12px 0" }}>
                 <Skeleton className="h-10 w-full rounded-lg" />
@@ -153,9 +171,22 @@ export default function AuditPage() {
               </PageEnter>
             ) : (
               <>
-                {filteredLogs.map((log) => (
-                  <AuditRow key={log.id} log={log} />
-                ))}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Entity</TableHead>
+                      <TableHead>Actor</TableHead>
+                      <TableHead>Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLogs.map((log) => (
+                      <AuditRow key={log.id} log={log} />
+                    ))}
+                  </TableBody>
+                </Table>
                 {hasMore && !loading ? (
                   <button className="load-more" onClick={() => void fetchLogs(false)}>
                     Load more

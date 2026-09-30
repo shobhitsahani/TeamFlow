@@ -71,6 +71,7 @@ export function Modal({
   sub,
   footer,
   children,
+  contentClassName,
 }: {
   open: boolean;
   onClose: () => void;
@@ -78,6 +79,8 @@ export function Modal({
   sub?: string;
   footer?: ReactNode;
   children: ReactNode;
+  /** Optional extra classes for the dialog panel (e.g. wider tables). */
+  contentClassName?: string;
 }) {
   return (
     <Dialog
@@ -86,13 +89,66 @@ export function Modal({
         if (!next) onClose();
       }}
     >
-      <DialogContent aria-label={title}>
+      <DialogContent aria-label={title} className={contentClassName}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {sub ? <DialogDescription>{sub}</DialogDescription> : null}
         </DialogHeader>
         <div>{children}</div>
         {footer ? <DialogFooter>{footer}</DialogFooter> : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------- confirm dialog (shared destructive-action confirm) ----------
+   Replaces native confirm() so destructive actions share one accessible,
+   styled pattern: title + explanation, Cancel, and a busy-aware confirm. */
+
+export function ConfirmDialog({
+  open,
+  onClose,
+  title,
+  body,
+  confirmLabel = "Confirm",
+  danger = false,
+  busy = false,
+  onConfirm,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  body?: string;
+  confirmLabel?: string;
+  danger?: boolean;
+  busy?: boolean;
+  onConfirm: () => void | Promise<void>;
+}) {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !busy) onClose();
+      }}
+    >
+      <DialogContent aria-label={title}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {body ? <DialogDescription>{body}</DialogDescription> : null}
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            variant={danger ? "destructive" : "default"}
+            onClick={() => void onConfirm()}
+            disabled={busy}
+            loading={busy}
+          >
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

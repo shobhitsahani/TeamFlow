@@ -29,8 +29,6 @@ import {
   IconChecks,
   IconChevronRight,
   IconMessageSquare,
-  IconMic,
-  IconPaperclip,
   IconPlus,
   IconSend,
   IconSmile,
@@ -501,11 +499,6 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
     }
   }, []);
 
-  const soon = useCallback(
-    (what: string) => toast({ title: `${what} coming soon`, msg: "Team calls aren't available yet." }),
-    [toast],
-  );
-
   if (!open) {
     return (
       <motion.button
@@ -639,9 +632,9 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
               ))}
             </div>
           ) : items.length === 0 ? (
-            <div className="st-empty">
+            <p className="st-empty-quiet">
               No messages yet — say hello, tag someone with @, or drop an image.
-            </div>
+            </p>
           ) : (
             <AnimatePresence initial={false}>
               {itemsWithDay.map(({ m, showDay, compact }) => {
@@ -710,7 +703,6 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
           members={membersQ.data?.members ?? []}
           displayName={user?.name ?? "Someone"}
           onTypingScroll={scrollToBottom}
-          onSoon={soon}
         />
       </div>
       <AnimatePresence>
@@ -784,12 +776,10 @@ const ChatBubble = memo(function ChatBubble({
   onImage: (a: ChatAttachment) => void;
   currentUserId?: string;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [hover, setHover] = useState(false);
   const images = m.attachments ?? [];
   const reactions = m.reactions ?? [];
   const mentionedMe = (m.mentions ?? []).includes(currentUserId ?? "__none__");
-  const showToolbar = hover || pickerOpen;
 
   return (
     <motion.div
@@ -801,9 +791,10 @@ const ChatBubble = memo(function ChatBubble({
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => {
-        setHover(false);
-        setPickerOpen(false);
+      onMouseLeave={() => setHover(false)}
+      onFocus={() => setHover(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setHover(false);
       }}
     >
       {compact ? (
@@ -859,8 +850,11 @@ const ChatBubble = memo(function ChatBubble({
               </div>
             ) : null}
           </div>
+          {/* Single hover/focus toolbar: all reactions + delete. No second
+              popover layer — one control, one motion. Keyboard users reveal
+              it by tabbing into the bubble (focus shows it, blur hides it). */}
           <AnimatePresence>
-            {showToolbar ? (
+            {hover ? (
               <motion.div
                 key="react-bar"
                 className="st-react-bar"
@@ -869,27 +863,18 @@ const ChatBubble = memo(function ChatBubble({
                 exit={{ opacity: 0, y: 4, scale: 0.96 }}
                 transition={{ duration: 0.15 }}
               >
-                {QUICK_EMOJIS.slice(0, 5).map((e) => (
+                {QUICK_EMOJIS.map((e) => (
                   <button
                     key={e}
                     type="button"
                     className="st-react-quick"
                     title={`React ${e}`}
+                    aria-label={`React with ${e}`}
                     onClick={() => onReact(m, e)}
                   >
                     {e}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  className="st-react-more"
-                  title="More reactions"
-                  aria-label="More reactions"
-                  aria-expanded={pickerOpen}
-                  onClick={() => setPickerOpen((v) => !v)}
-                >
-                  <IconSmile size={14} />
-                </button>
                 {onDelete && m.id && !m.id.startsWith("local-") ? (
                   <button
                     type="button"
@@ -901,33 +886,6 @@ const ChatBubble = memo(function ChatBubble({
                     <IconTrash size={13} />
                   </button>
                 ) : null}
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-          <AnimatePresence>
-            {pickerOpen ? (
-              <motion.div
-                key="emoji-pop"
-                className="st-emoji-pop"
-                initial={{ opacity: 0, scale: 0.95, y: 4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.15 }}
-              >
-                {QUICK_EMOJIS.map((e) => (
-                  <button
-                    key={e}
-                    type="button"
-                    className="st-emoji-cell"
-                    title={`React ${e}`}
-                    onClick={() => {
-                      onReact(m, e);
-                      setPickerOpen(false);
-                    }}
-                  >
-                    {e}
-                  </button>
-                ))}
               </motion.div>
             ) : null}
           </AnimatePresence>
@@ -962,13 +920,11 @@ function ChatInput({
   members = [],
   displayName,
   onTypingScroll,
-  onSoon,
 }: {
   onSend: (body: string, attachments: ChatAttachment[]) => Promise<void>;
   members?: ChatMember[];
   displayName: string;
   onTypingScroll: () => void;
-  onSoon: (what: string) => void;
 }) {
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
@@ -1054,17 +1010,23 @@ function ChatInput({
   const send = async () => {
     const text = value.trim();
     if ((!text && pending.length === 0) || sending) return;
+    // Snapshot what we're sending: the box stays enabled during flight
+    // (disabling would drop focus to <body>), so only clear what we sent.
+    const sentText = text;
+    const sentPending = pending;
     setSending(true);
     try {
       await onSend(text, pending);
-      setValue("");
-      setPending([]);
+      setValue((v) => (v === sentText ? "" : v));
+      setPending((p) => (p === sentPending ? [] : p));
       setMention(null);
       onTypingScroll();
     } catch {
       // onSend already toasted + rolled back; keep text for retry.
     } finally {
       setSending(false);
+      // Belt-and-braces: the cursor belongs here for the next message.
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
 
@@ -1239,7 +1201,6 @@ function ChatInput({
             aria-expanded={!!mention && filtered.length > 0}
             aria-controls={mention ? "mention-list" : undefined}
             maxLength={2000}
-            disabled={sending}
             autoComplete="off"
             className="st-composer-input st7-compose-input max-h-32 min-h-9 resize-none"
           />
@@ -1252,15 +1213,6 @@ function ChatInput({
             onClick={() => setShowEmoji((v) => !v)}
           >
             <IconSmile size={16} />
-          </button>
-          <button
-            type="button"
-            className="st7-ghost-btn"
-            title="Voice message"
-            aria-label="Record voice message"
-            onClick={() => onSoon("Voice messages")}
-          >
-            <IconMic size={16} />
           </button>
           <button className="st7-send-btn" title="Send message" type="submit" disabled={!canSend} aria-label="Send message">
             <IconSend size={14} />
@@ -1279,15 +1231,6 @@ function ChatInput({
           }}
         />
         <div className="st7-compose-bar">
-          <button
-            type="button"
-            className="st7-ghost-btn st7-attach-btn"
-            title="Attach a file"
-            aria-label="Attach a file"
-            onClick={() => fileRef.current?.click()}
-          >
-            <IconPaperclip size={14} />
-          </button>
           <span className="st-composer-hint">@ to tag · paste or drop images · Enter to send</span>
         </div>
       </div>
