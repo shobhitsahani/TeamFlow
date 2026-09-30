@@ -225,10 +225,17 @@ function OrgGlyph({ name, hue, size = 28 }: { name: string; hue: number; size?: 
 
 export function ContextBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { org, orgs, setOrg, createOrg, creatingOrg } = useTenant();
   const { user, isLoading: authLoading } = useAuth();
   const toast = useToast();
   const orgId = getCurrentTenantId();
+
+  const handleWorkspaceClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push("/app/board");
+  };
   const [showNewOrg, setShowNewOrg] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
   const [showNewProject, setShowNewProject] = useState(false);
@@ -378,7 +385,7 @@ export function ContextBar() {
               <button className="st-ws-card" aria-label="Switch organization">
                 <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                   {org ? <OrgGlyph name={org.name} hue={org.hue} /> : null}
-                  <span className="st-ws-name">{org?.name ?? "No organization"}</span>
+                  <span className="st-ws-name" onClick={handleWorkspaceClick} style={{ cursor: "pointer" }}>{org?.name ?? "No organization"}</span>
                 </span>
                 <IconChevronDown size={16} className="dim" />
               </button>
