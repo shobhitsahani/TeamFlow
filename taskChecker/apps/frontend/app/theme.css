@@ -35,6 +35,13 @@
   --brand-50: #122840;
   --brand-100: #09326c;
   --brand-200: #1f5aa8;
+  /* Luminous mid stops are mode-independent by design: they read on both
+     light and dark surfaces, so dark re-declares the same values instead
+     of leaking light tokens implicitly. */
+  --brand-300: #579dff;
+  --brand-400: #388bff;
+  --brand-500: #0c66e4;
+  --brand-600: #0c66e4;
   --brand-700: #85b8ff;
   --brand-800: #cce0ff;
   --brand-900: #e9f2ff;

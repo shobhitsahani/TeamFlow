@@ -12,15 +12,12 @@ import type { Notification } from "../lib/api";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "./ui/sheet";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Empty, EmptyDescription, EmptyTitle } from "./ui/empty";
-import { Separator } from "./ui/separator";
 import { cn } from "@/lib/utils";
 import { motion } from "@/components/motion";
 
@@ -76,13 +73,7 @@ export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => vo
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <SheetTitle>Notifications</SheetTitle>
             {unread > 0 ? (
-              <motion.span
-                key={unread}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-              >
-                <Badge variant="default">{unread} new</Badge>
-              </motion.span>
+              <Badge variant="default" className="tabular-nums">{unread} new</Badge>
             ) : null}
           </div>
           <Button variant="ghost" size="xs" onClick={markAllRead}>
@@ -97,20 +88,11 @@ export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => vo
               <EmptyDescription>You are all caught up.</EmptyDescription>
             </Empty>
           ) : (
-            <motion.div
-              className="flex flex-col"
-              initial="hidden"
-              animate="show"
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
-            >
+            <div className="flex flex-col">
               {notifications.map((n) => (
                 <motion.button
                   key={n.id}
                   type="button"
-                  variants={{
-                    hidden: { opacity: 0, x: 12 },
-                    show: { opacity: 1, x: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
-                  }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     markRead(n.id);
@@ -135,8 +117,8 @@ export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => vo
                         {notifMsg(n)}
                       </span>
                     ) : null}
-                    <span className="mt-1 block font-mono text-[11px] text-muted-foreground">
-                      {timeAgo(n.createdAt)} ago
+                    <span className="mt-1 block font-mono text-[11px] tabular-nums text-muted-foreground" title={new Date(n.createdAt).toLocaleString()}>
+                      {timeAgo(n.createdAt)}
                     </span>
                   </span>
                   {!n.readAt ? (
@@ -144,17 +126,9 @@ export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => vo
                   ) : null}
                 </motion.button>
               ))}
-            </motion.div>
+            </div>
           )}
         </div>
-
-        <Separator />
-        <SheetFooter className="mt-0 block border-0 bg-transparent p-4">
-          <SheetDescription>
-            Missed something while offline? Realtime catch-up replays from your last cursor — nothing is
-            lost.
-          </SheetDescription>
-        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
