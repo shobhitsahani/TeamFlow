@@ -193,7 +193,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
           <Badge
             variant="secondary"
             className={cx(
-              "lagoon-due gap-1 text-[10px] font-normal",
+              "lagoon-due gap-1 text-[10px] font-normal tabular-nums",
               due.status === "overdue" && !isDone && "is-overdue bg-destructive/10 text-destructive font-semibold",
               due.status === "today" && "is-today font-semibold",
             )}
@@ -202,7 +202,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
             {due.status === "overdue" && !isDone ? `Overdue · ${due.text}` : due.text}
           </Badge>
         ) : null}
-        <span className="lagoon-card-stats ml-auto flex items-center gap-2 text-[10px]">
+        <span className="lagoon-card-stats ml-auto flex items-center gap-2 text-[10px] tabular-nums">
           {meta.checklist.length > 0 ? (
             <span className={cx(doneItems === meta.checklist.length && "is-complete")} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
               <IconListTodo size={12} />
@@ -1153,7 +1153,7 @@ function LagoonBoard() {
                     canWrite={canWrite}
                     onRename={handleRenameList}
                   />
-                  <Badge variant="secondary" className="lagoon-col-count border-0 text-[11px]">{col.tasks.length}</Badge>
+                  <Badge variant="secondary" className="lagoon-col-count border-0 text-[11px] tabular-nums">{col.tasks.length}</Badge>
                 </div>
                 <div className={cx("lagoon-col-body", draggedTaskId && "is-dragging", dragOverCol === col.status && "is-dragover")} role="list">
                   <AnimatePresence initial={false} mode="popLayout">
