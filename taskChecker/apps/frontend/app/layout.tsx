@@ -39,7 +39,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>
+      {/* suppressHydrationWarning: browser extensions (Avast/AVG `bis_*`,
+          password managers, etc.) inject attributes on <body> before React
+          hydrates — ignore those to avoid hydration-mismatch noise. */}
+      <body suppressHydrationWarning>
         <Providers>{children}</Providers>
         <Toaster />
       </body>
