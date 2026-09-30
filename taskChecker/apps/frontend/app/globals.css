@@ -2297,3 +2297,29 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 .dark .st-chat-expand:hover { background: oklch(0.345 0.025 252); }
 .dark .st-chat-expand svg { color: oklch(0.72 0.115 245); }
 .dark .st-chat-7 .st-emoji-pop { background: var(--chat7-other); border-color: var(--chat7-border); }
+
+   UNIFIED GRAMMAR (enforced; see phases 2-13 for per-screen rollout):
+   - Type: Inter UI (--stack-sans), JetBrains Mono data (--stack-mono),
+     Hanken display (--stack-display); Sora/Manrope ONLY inside .lagoon.
+     Hierarchy through size/weight, never extra families.
+   - Spacing: 4px scale ONLY ΓÇö --s-1..7 (4/8/12/16/24/32/48). No ad-hoc px.
+   - Radius: --r-sm 2px details, --r-md 6px controls, --r-lg 8px cards,
+     --r-xl 12px dialogs; pill = semantic pills, circle = avatars.
+   - Surfaces (exactly 3): canvas --bg, trough --col-bg, card --card-bg.
+   - Borders: 1px --border-subtle; skip the border when spacing or surface
+     contrast already separates. Never outline every element.
+   - Shadows: --shadow-xs resting, --shadow-1 raised, --shadow-2 overlay.
+     Elevation or interaction only ΓÇö never decoration.
+   - Rules: this :root is the ONLY light-token source. theme.css .dark is
+     the ONLY dark source. No bare shadcn names (--muted etc.) redefined
+     here ΓÇö shadcn utilities must keep resolving to the shadcn block above.
+  /* Font families ΓÇö single source of truth (self-hosted variable fonts,
+     imported in app/layout.tsx; previously injected by next/font, then by
+     the removed tokens.css). Consumers reference these ONLY through the
+     --stack-* aliases above or the --font-lagoon-* vars below. */
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-display: "Hanken Grotesk Variable", "Hanken Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --font-lagoon-display: "Sora Variable", "Sora", system-ui, sans-serif;
+  --font-lagoon-body: "Manrope Variable", "Manrope", system-ui, sans-serif;
+
