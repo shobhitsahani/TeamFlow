@@ -23,6 +23,7 @@ import {
 import { useSWR } from "../lib/swr";
 import { useRealtime } from "../lib/realtime";
 import { cx, formatChatTime, hueFrom, initials } from "../lib/utils";
+import { ChatResizeHandle } from "./ui/resizable";
 import { AnimatePresence, motion } from "@/components/motion";
 import {
   IconChecks,
@@ -450,7 +451,7 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
     if (!dragging) return;
     const prevCursor = document.body.style.cursor;
     const prevSelect = document.body.style.userSelect;
-    document.body.style.cursor = "ew-resize";
+    document.body.style.cursor = "grabbing";
     document.body.style.userSelect = "none";
     const onMove = (e: PointerEvent) => {
       const s = dragRef.current;
@@ -532,24 +533,36 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
 
   return (
     <motion.aside
-      className="st-chat st-chat-fluid st-chat-7"
+      className={cx("st-chat st-chat-fluid st-chat-7", dragging ? "is-resizing" : "is-idle")}
       aria-label="Team chat"
       style={{ width }}
       initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      animate={{ opacity: 1, x: 0, width }}
+      transition={
+        dragging
+          ? { opacity: { duration: 0.2 }, x: { duration: 0.2 }, width: { duration: 0 } }
+          : {
+              opacity: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+              x: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+              width: { type: "spring", stiffness: 420, damping: 38, mass: 0.9 },
+            }
+      }
     >
-      <div
-        className={cx("st-chat-resize", dragging && "is-dragging")}
+      <ChatResizeHandle
         role="separator"
         aria-orientation="vertical"
         aria-label="Resize chat panel"
         aria-valuemin={CHAT_MIN_W}
         aria-valuemax={CHAT_MAX_W}
         aria-valuenow={Math.round(width)}
+        aria-valuetext={`${Math.round(width)} pixels wide`}
         tabIndex={0}
-        title="Drag to resize chat (double-click to reset)"
-        onPointerDown={onResizeStart}
+        title="Drag to resize · double-click to reset"
+        dragging={dragging}
+        width={width}
+        minW={CHAT_MIN_W}
+        maxW={CHAT_MAX_W}
+        onResizeStart={onResizeStart}
         onDoubleClick={() => setWidth(CHAT_DEFAULT_W)}
         onKeyDown={onResizeKey}
       />

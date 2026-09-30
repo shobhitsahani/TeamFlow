@@ -1158,18 +1158,30 @@ button.board-card-due:disabled { cursor: default; }
   width: var(--chat-w); flex: none; background: #fff; border-left: 1px solid var(--slate-200);
   display: flex; flex-direction: column; min-height: 0; position: relative;
 }
-/* Drag-to-resize handle on the chat's left edge */
+/* shadcn-template resize handle on the chat's left edge.
+   Positioning lives here; visuals (rail, grip pill, badge) live in
+   components/ui/resizable.tsx via Tailwind tokens. */
 .st-chat-resize {
-  position: absolute; top: 0; bottom: 0; left: -6px; width: 12px; z-index: 5;
-  cursor: ew-resize; touch-action: none; outline: none; background: transparent;
+  position: absolute; top: 0; bottom: 0; left: -8px; z-index: 20;
+  cursor: grab; touch-action: none; outline: none; background: transparent;
 }
-.st-chat-resize::after {
-  content: ""; position: absolute; top: 0; bottom: 0; left: 5px; width: 2px;
-  background: transparent; border-radius: 2px; transition: background var(--anim-fast);
+/* Tailwind owns width/transform (w-4 -translate-x-2); keep a floor for no-JS. */
+.st-chat-resize:not([class*="w-"]) { width: 12px; }
+.st-chat-resize.is-dragging { cursor: grabbing; }
+/* While dragging: hand everywhere, kill text selection, add soft edge glow. */
+body:has(.st-chat-resize.is-dragging) { cursor: grabbing !important; }
+body:has(.st-chat-resize.is-dragging) * { cursor: grabbing !important; }
+.st-chat.is-resizing { user-select: none; }
+.st-chat.is-resizing::before {
+  content: ""; position: absolute; inset: 0 auto 0 -1px; width: 2px; pointer-events: none;
+  background: var(--primary); opacity: .8; box-shadow: 0 0 16px 2px color-mix(in srgb, var(--primary) 55%, transparent);
 }
-.st-chat-resize:hover::after, .st-chat-resize:focus-visible::after { background: var(--brand-300); }
-.st-chat-resize.is-dragging::after { background: var(--brand-500); }
+/* Legacy ::after fallback — content only, Tailwind paints the rail. */
+.st-chat-resize::after { content: ""; border-radius: 2px; }
 .st-chat-resize:focus-visible { box-shadow: 0 0 0 2px rgba(139,92,246,.35); border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .st-chat-resize *, .st-chat-resize::after { transition: none !important; }
+}
 .st-chat-scroll { padding: 20px; flex: 1; overflow-y: auto; min-height: 0; }
 .st-chat-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .st-chat-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--slate-900); text-transform: uppercase; }
