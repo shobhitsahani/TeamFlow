@@ -8,6 +8,7 @@ export * from "./orgs.js";
 export * from "./core.js";
 export * from "./tasks.js";
 export * from "./chat.js";
+export * from "./dm.js";
 export * from "./activity.js";
 export * from "./governance.js";
 
@@ -16,6 +17,7 @@ import { memberships, invites, orgDeleteCodes } from "./orgs.js";
 import { teams, projects } from "./core.js";
 import { tasks, comments, attachments } from "./tasks.js";
 import { chatMessages, chatReactions } from "./chat.js";
+import { dmConversations, dmKeys, dmMessages } from "./dm.js";
 import { activityEvents, notifications } from "./activity.js";
 import { webhooks, deliveries, apiKeys, usageMeter, auditLogs, idempotency } from "./governance.js";
 
@@ -28,6 +30,8 @@ export type Project = typeof projects.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+export type DmConversation = typeof dmConversations.$inferSelect;
+export type DmMessage = typeof dmMessages.$inferSelect;
 export type Attachment = typeof attachments.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Webhook = typeof webhooks.$inferSelect;
@@ -46,6 +50,9 @@ export const schema = {
   attachments,
   chatMessages,
   chatReactions,
+  dmConversations,
+  dmKeys,
+  dmMessages,
   activityEvents,
   notifications,
   invites,

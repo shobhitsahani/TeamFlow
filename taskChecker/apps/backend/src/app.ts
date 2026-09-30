@@ -17,6 +17,7 @@ import { coreRoutes } from "./modules/core.js";
 import { taskRoutes } from "./modules/tasks.js";
 import { commentRoutes } from "./modules/comments.js";
 import { chatRoutes } from "./modules/chat.js";
+import { dmRoutes } from "./modules/dm.js";
 import { feedRoutes } from "./modules/feed.js";
 import { searchRoutes } from "./modules/search.js";
 import { govRoutes } from "./modules/governance.js";
@@ -202,6 +203,7 @@ export function createApp(): Hono {
   app.route("/v1", taskRoutes); // tasks
   app.route("/v1", commentRoutes); // comments
   app.route("/v1", chatRoutes); // team chat
+  app.route("/v1", dmRoutes); // E2E encrypted DMs (ciphertext store)
   app.route("/v1", feedRoutes); // activity + notifications
   app.route("/v1", searchRoutes); // full-text search
   app.route("/v1", govRoutes); // webhooks, api keys, audit, usage
