@@ -1,6 +1,7 @@
 /* Hand-drawn icon set — stroke-based, 24px grid, currentColor. */
 
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
 
 type IconProps = {
   size?: number;
@@ -516,7 +517,7 @@ export function IconInfo(p: IconProps) {
 /** The TeamFlow brand mark: from uploaded brand identity logo. */
 export function IconFlowMark({ size = 16, className }: IconProps) {
   return (
-    <img
+    <Image
       src="/logo_mark.png"
       alt="TeamFlow"
       width={size}
@@ -530,7 +531,7 @@ export function IconFlowMark({ size = 16, className }: IconProps) {
 /** TeamFlow mark: brand logo mark tile. */
 export function IconTeamFlow({ size = 18, className }: IconProps) {
   return (
-    <img
+    <Image
       src="/logo_mark.png"
       alt="TeamFlow"
       width={size}
