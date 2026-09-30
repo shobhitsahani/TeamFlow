@@ -17,11 +17,14 @@ import {
   IconLink,
   IconKey,
   IconClock,
+  IconMessageSquare,
 } from "@/components/icons";
 import { api, getCurrentTenantId, type Role } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSWR } from "@/lib/swr";
 import { cx, hueFrom } from "@/lib/utils";
+import { MemberContextMenu } from "@/components/member-context-menu";
+import { DmChatDialog, type DmPeer } from "@/components/dm-chat-dialog";
 import { PlusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
@@ -76,12 +79,16 @@ const MemberRow = memo(function MemberRow({
   currentUserId,
   onRoleChange,
   onDeactivate,
+  onContextMenu,
+  onMessage,
 }: {
   member: Member;
   currentUserRole: Role;
   currentUserId: string | undefined;
   onRoleChange: (userId: string, role: Role) => void;
   onDeactivate: (userId: string) => void;
+  onContextMenu: (member: Member, x: number, y: number) => void;
+  onMessage: (member: Member) => void;
 }) {
   const isSelf = member.userId === currentUserId;
   const canManage = (ROLE_HIERARCHY[currentUserRole] ?? 0) > (ROLE_HIERARCHY[member.role] ?? 0);
@@ -92,7 +99,14 @@ const MemberRow = memo(function MemberRow({
   const elevated = member.role === "owner" || member.role === "admin";
 
   return (
-    <TableRow>
+    <TableRow
+      className="dir-row-hint"
+      title={isSelf ? undefined : "Right-click for actions (message, copy, remove)"}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu(member, e.clientX, e.clientY);
+      }}
+    >
       <TableCell>
         <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           <Avatar>
@@ -148,6 +162,24 @@ const MemberRow = memo(function MemberRow({
         )}
       </TableCell>
       <TableCell className="text-right">
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
+        {!isSelf && member.status === "active" ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onMessage(member)}
+                  aria-label={`Message ${member.name ?? member.email} securely`}
+                />
+              }
+            >
+              <IconMessageSquare size={14} />
+            </TooltipTrigger>
+            <TooltipContent>Message securely (E2E encrypted)</TooltipContent>
+          </Tooltip>
+        ) : null}
         {!isSelf && member.status === "active" && canManage ? (
           <Tooltip>
             <TooltipTrigger
@@ -166,9 +198,10 @@ const MemberRow = memo(function MemberRow({
           </Tooltip>
         ) : isSelf ? (
           <span className="dim dir-hint">Current user</span>
-        ) : !canManage ? (
+        ) : !isSelf && !canManage ? (
           <span className="dim dir-hint">No access</span>
         ) : null}
+        </span>
       </TableCell>
     </TableRow>
   );
@@ -191,6 +224,11 @@ export default function MembersPage() {
   // invite via Resend when configured; otherwise the inviter relays manually.
   const [lastInvite, setLastInvite] = useState<{ email: string; role: Role; url: string; code: string; expiresAt: string; emailSent: boolean; emailError?: string } | null>(null);
   const [copiedWhat, setCopiedWhat] = useState<"link" | "code" | null>(null);
+  // Right-click menu + E2E DM + profile preview state.
+  const [ctx, setCtx] = useState<{ member: Member; x: number; y: number } | null>(null);
+  const [dmPeer, setDmPeer] = useState<DmPeer | null>(null);
+  const [dmOpen, setDmOpen] = useState(false);
+  const [profile, setProfile] = useState<Member | null>(null);
 
   const membersQ = useSWR<{ members: Member[] }>(
     orgId ? `members-${orgId}` : null,
@@ -290,6 +328,54 @@ export default function MembersPage() {
     } finally {
       setDeactivating(false);
     }
+  };
+
+  // Context menu handlers
+  const openContextMenu = (member: Member, x: number, y: number) => {
+    setCtx({ member, x, y });
+  };
+
+  const closeContextMenu = () => setCtx(null);
+
+  const handleMessage = async (member: Member) => {
+    closeContextMenu();
+    if (!orgId) return;
+    try {
+      const res = await api.dm.openConversation(member.userId);
+      setDmPeer({
+        conversationId: res.conversation.id,
+        peerId: res.conversation.peerId,
+        peerName: res.conversation.peerName,
+        peerEmail: res.conversation.peerEmail,
+      });
+      setDmOpen(true);
+    } catch (err) {
+      toast({ title: "Couldn't open chat", msg: err instanceof Error ? err.message : "Try again." });
+    }
+  };
+
+  const handleViewProfile = (member: Member) => {
+    closeContextMenu();
+    setProfile(member);
+  };
+
+  const handleCopyEmail = (member: Member) => {
+    closeContextMenu();
+    if (member.email) {
+      navigator.clipboard.writeText(member.email);
+      toast({ title: "Copied", msg: "Email copied to clipboard." });
+    }
+  };
+
+  const handleCopyId = (member: Member) => {
+    closeContextMenu();
+    navigator.clipboard.writeText(member.userId);
+    toast({ title: "Copied", msg: "User ID copied to clipboard." });
+  };
+
+  const handleRemove = (member: Member) => {
+    closeContextMenu();
+    handleDeactivate(member.userId);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -405,6 +491,8 @@ export default function MembersPage() {
                       currentUserId={currentUserId}
                       onRoleChange={handleRoleChange}
                       onDeactivate={handleDeactivate}
+                      onContextMenu={openContextMenu}
+                      onMessage={handleMessage}
                     />
                   ))}
                 </TableBody>
@@ -539,6 +627,59 @@ export default function MembersPage() {
           busy={deactivating}
           onConfirm={confirmDeactivate}
         />
+        {ctx && (
+          <MemberContextMenu
+            member={ctx.member}
+            x={ctx.x}
+            y={ctx.y}
+            isSelf={ctx.member.userId === currentUserId}
+            canManage={(ROLE_HIERARCHY[currentUserRole] ?? 0) > (ROLE_HIERARCHY[ctx.member.role] ?? 0)}
+            onClose={closeContextMenu}
+            onMessage={() => handleMessage(ctx.member)}
+            onViewProfile={() => handleViewProfile(ctx.member)}
+            onCopyEmail={() => handleCopyEmail(ctx.member)}
+            onCopyId={() => handleCopyId(ctx.member)}
+            onRemove={() => handleRemove(ctx.member)}
+          />
+        )}
+        {dmPeer && (
+          <DmChatDialog
+            open={dmOpen}
+            onClose={() => setDmOpen(false)}
+            peer={dmPeer}
+            currentUserId={currentUserId}
+          />
+        )}
+        {profile && (
+          <Modal
+            open={!!profile}
+            onClose={() => setProfile(null)}
+            title={profile.name ?? "Profile"}
+            sub={profile.email ?? undefined}
+          >
+            <div className="dm-profile-row">
+              <Avatar size="lg">
+                <AvatarFallback
+                  style={{
+                    background: `hsl(${hueFrom(profile.userId + (profile.email ?? ""))} 45% 20%)`,
+                    color: `hsl(${hueFrom(profile.userId + (profile.email ?? ""))} 80% 78%)`,
+                  }}
+                >
+                  {initials(profile.name, profile.email)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="dm-profile-meta">
+                <div>
+                  <strong>{profile.name ?? "—"}</strong>
+                  <span className="font-mono">{profile.userId}</span>
+                </div>
+                <div>{profile.email ?? "—"}</div>
+                <div>Role: {ROLE_LABELS[profile.role]}</div>
+                <div>Status: {profile.status}</div>
+              </div>
+            </div>
+          </Modal>
+        )}
       </div>
     </AppShell>
   );
