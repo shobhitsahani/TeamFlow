@@ -2136,36 +2136,48 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 .dark .st-icon-btn { color: #9aa7b4; }
 .dark .st-icon-btn:hover { color: #e6edf3; background: rgb(255 255 255 / 0.08); }
 
-/* ============ 7CHAT reference theme (scoped to the chat rail) ============ */
+/* ============ chat rail — Lagoon theme (scoped to the chat rail) ============
+   Same roles as lagoon.css (its --lagoon-* tokens live under `.lagoon`,
+   which the AppShell tree is not part of, so the values are mirrored here
+   — keep them in sync with lagoon.css light/dark treatments):
+   primary fill = ocean, fresh accent = teal, attention = coral,
+   surfaces = card/surface, text = ink/muted-fg, hairline = border. */
 .st-chat-7 {
-  --chat7-purple: #6b5cff;
-  --chat7-purple-dark: #5847f0;
-  --chat7-soft: #edebff;
-  --chat7-thread: #f6f6fa;
-  --chat7-other: #efeff4;
-  --chat7-ink: #23232f;
-  --chat7-muted: #9a9fb2;
-  --chat7-green: #3ecf8e;
-  background: #fbfbfe;
+  --chat7-purple: oklch(0.461 0.127 242);
+  --chat7-purple-dark: oklch(0.395 0.118 242);
+  --chat7-soft: color-mix(in oklab, oklch(0.659 0.105 190) 13%, transparent);
+  --chat7-thread: oklch(0.978 0.008 247);
+  --chat7-other: oklch(1 0 0);
+  --chat7-ink: oklch(0.245 0.047 239);
+  --chat7-muted: oklch(0.53 0.038 238);
+  --chat7-green: oklch(0.61 0.13 156);
+  --chat7-coral: oklch(0.687 0.177 29);
+  --chat7-border: oklch(0.902 0.017 242);
+  --chat7-card-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+  background: oklch(0.978 0.008 247);
+  border-left: 1px solid oklch(0.902 0.017 242);
+  font-family: var(--font-lagoon-body), "Manrope", system-ui, sans-serif;
 }
 .st-chat-7 .st-chat-scroll { background: var(--chat7-thread); border-radius: 0; }
+.st-chat-7 .st-chat-scroll::-webkit-scrollbar-thumb { background: var(--chat7-border); }
+.st-chat-7 .st-chat-scroll::-webkit-scrollbar-thumb:hover { background: var(--chat7-muted); }
 /* header */
 .st7-head { display: flex; align-items: center; gap: 10px; padding: 4px 2px 12px; }
 .st7-team-avatar {
   flex: none; width: 40px; height: 40px; border-radius: 50%;
-  background: linear-gradient(135deg, #7b6bff, #4f3df0);
+  background: linear-gradient(135deg, oklch(0.461 0.127 242), oklch(0.659 0.105 190));
   color: #fff; font-weight: 800; font-style: italic; font-size: 17px;
   display: grid; place-items: center; letter-spacing: -1px;
-  box-shadow: 0 6px 14px -6px rgba(107, 92, 255, .7);
+  box-shadow: 0 6px 14px -6px color-mix(in oklab, oklch(0.461 0.127 242) 70%, transparent);
 }
 .st7-head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.st7-team-name { font-size: 14px; font-weight: 700; color: var(--chat7-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st7-team-name { font-family: var(--font-lagoon-display), "Sora", system-ui, sans-serif; font-size: 14px; font-weight: 700; color: var(--chat7-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st7-team-sub { font-size: 11px; color: var(--chat7-muted); }
-.st7-online { color: var(--chat7-purple); font-weight: 600; }
+.st7-online { color: var(--chat7-green); font-weight: 600; }
 .st7-head-actions { display: flex; align-items: center; gap: 2px; }
 .st7-icon-btn {
-  width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--slate-200);
-  background: #fff; color: var(--chat7-muted); display: grid; place-items: center; cursor: pointer;
+  width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--chat7-border);
+  background: var(--chat7-other); color: var(--chat7-muted); display: grid; place-items: center; cursor: pointer;
   transition: color .15s ease, border-color .15s ease, background .15s ease;
 }
 .st7-icon-btn:hover { color: var(--chat7-purple); border-color: var(--chat7-purple); background: var(--chat7-soft); }
@@ -2176,10 +2188,10 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 .st7-stack-avatar {
   position: relative; width: 26px; height: 26px; border-radius: 50%; flex: none;
   display: grid; place-items: center; font-size: 9px; font-weight: 700;
-  border: 2px solid #fff; margin-left: -8px; box-shadow: 0 1px 3px rgba(20, 20, 40, .15);
+  border: 2px solid var(--chat7-other); margin-left: -8px; box-shadow: 0 1px 3px rgba(20, 20, 40, .15);
 }
 .st7-stack-avatar:first-child { margin-left: 0; }
-.st7-presence { position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px; border-radius: 50%; background: var(--chat7-green); border: 2px solid #fff; }
+.st7-presence { position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px; border-radius: 50%; background: var(--chat7-green); border: 2px solid var(--chat7-other); }
 .st7-stack-more { background: var(--chat7-soft); color: var(--chat7-purple); font-size: 9px; }
 /* thread */
 .st-chat-7 .st-chat-list { gap: 0; }
@@ -2187,36 +2199,40 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 .st-chat-7 .st-day-divider::before, .st-chat-7 .st-day-divider::after { display: none; }
 .st-chat-7 .st-day-divider span { background: transparent; border: none; color: var(--chat7-muted); font-weight: 500; font-size: 11px; letter-spacing: 0; text-transform: none; padding: 0; }
 .st-chat-7 .st-msg { padding: 5px 6px; }
-.st-chat-7 .st-msg:hover { background: rgb(107 92 255 / 0.05); }
+.st-chat-7 .st-msg:hover { background: color-mix(in oklab, oklch(0.659 0.105 190) 7%, transparent); }
 .st-chat-7 .st-msg-who { color: var(--chat7-ink); font-size: 12px; }
 .st-chat-7 .st-msg-time { color: var(--chat7-muted); }
-.st-chat-7 .st-bubble { border: none; font-size: 13px; border-radius: 4px 16px 16px 16px; box-shadow: 0 1px 2px rgba(20, 20, 40, .06); }
-.st-chat-7 .st-bubble-slate { background: var(--chat7-other); color: var(--chat7-ink); }
-.st-chat-7 .st-bubble-brand { background: var(--chat7-purple); color: #fff; box-shadow: 0 6px 14px -8px rgba(107, 92, 255, .8); }
+.st-chat-7 .st-bubble { border: none; font-size: 13px; border-radius: 4px 16px 16px 16px; box-shadow: var(--chat7-card-shadow); }
+.st-chat-7 .st-bubble-slate { background: var(--chat7-other); color: var(--chat7-ink); border: 1px solid var(--chat7-border); }
+.st-chat-7 .st-bubble-brand { background: var(--chat7-purple); color: #fff; box-shadow: 0 6px 14px -8px color-mix(in oklab, oklch(0.461 0.127 242) 80%, transparent); }
 .st-chat-7 .st-bubble-brand .st-mention-inline { background: rgb(255 255 255 / 0.2); border-color: rgb(255 255 255 / 0.35); color: #fff; }
-.st-chat-7 .st-msg.is-mentioned .st-bubble { border: none; box-shadow: 0 0 0 2px rgba(107, 92, 255, .4); }
+.st-chat-7 .st-mention-inline { background: var(--chat7-soft); color: var(--chat7-purple-dark); border-color: color-mix(in oklab, oklch(0.659 0.105 190) 40%, transparent); }
+.st-chat-7 .st-msg.is-mentioned .st-bubble { border: none; box-shadow: 0 0 0 2px color-mix(in oklab, var(--chat7-coral) 45%, transparent); }
 .st7-checks { display: inline-flex; margin-left: 6px; vertical-align: -2px; opacity: .75; }
 .st-chat-7 .st-local-badge { background: transparent; border: none; color: var(--chat7-muted); padding: 0; margin: 2px 0 4px; font-size: 10px; }
 .st-chat-7 .st-typing { color: var(--chat7-purple); font-style: italic; }
-.st-chat-7 .st-reaction-chip { background: #fff; box-shadow: 0 1px 2px rgba(20, 20, 40, .08); }
-.st-chat-7 .st-reaction-chip.is-me { background: var(--chat7-soft); border-color: var(--chat7-purple); }
+.st-chat-7 .st-typing-dots i { background: var(--chat7-purple); }
+.st-chat-7 .st-reaction-chip { background: var(--chat7-other); border-color: var(--chat7-border); box-shadow: var(--chat7-card-shadow); }
+.st-chat-7 .st-reaction-chip:hover { border-color: oklch(0.659 0.105 190); }
+.st-chat-7 .st-reaction-chip.is-me { background: var(--chat7-soft); border-color: oklch(0.659 0.105 190); }
+.st-chat-7 .st-reaction-chip.is-me .st-reaction-n { color: var(--chat7-purple-dark); }
 /* composer pill */
 .st-chat-7 .st-chat-foot { background: transparent; border-top: none; padding: 10px 12px 14px; }
-.st-chat-7 .st-composer-box { background: #fff; border: 1px solid #e6e6ee; border-radius: 22px; box-shadow: 0 8px 24px -16px rgba(35, 35, 60, .35); overflow: hidden; }
-.st-chat-7 .st-composer-box:focus-within { border-color: var(--chat7-purple); box-shadow: 0 0 0 3px rgba(107, 92, 255, .14); background: #fff; }
+.st-chat-7 .st-composer-box { background: var(--chat7-other); border: 1px solid var(--chat7-border); border-radius: 22px; box-shadow: 0 8px 24px -16px color-mix(in oklab, oklch(0.245 0.047 239) 35%, transparent); overflow: hidden; }
+.st-chat-7 .st-composer-box:focus-within { border-color: var(--chat7-purple); box-shadow: 0 0 0 3px color-mix(in oklab, oklch(0.461 0.127 242) 14%, transparent); background: var(--chat7-other); }
 .st7-compose-row { display: flex; align-items: flex-end; gap: 2px; padding: 6px 8px 2px; }
 .st7-compose-input { padding: 8px 6px 6px !important; font-size: 13px !important; color: var(--chat7-ink); }
 .st7-compose-input::placeholder { color: var(--chat7-muted); }
 .st7-add-btn {
   flex: none; width: 28px; height: 28px; margin-bottom: 4px; border-radius: 50%;
-  border: 1.5px solid #d7d7e2; background: #fff; color: #6d7186;
+  border: 1.5px solid var(--chat7-border); background: var(--chat7-other); color: var(--chat7-muted);
   display: grid; place-items: center; cursor: pointer;
   transition: border-color .15s ease, color .15s ease, background .15s ease;
 }
 .st7-add-btn:hover { border-color: var(--chat7-purple); color: var(--chat7-purple); background: var(--chat7-soft); }
 .st7-ghost-btn {
   flex: none; width: 30px; height: 30px; margin-bottom: 3px; border-radius: 50%;
-  border: none; background: transparent; color: #b3b7c7;
+  border: none; background: transparent; color: var(--chat7-muted);
   display: grid; place-items: center; cursor: pointer;
   transition: color .15s ease, background .15s ease;
 }
@@ -2225,21 +2241,59 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 .st7-send-btn {
   flex: none; width: 32px; height: 32px; margin-bottom: 2px; border-radius: 50%; border: none;
   background: var(--chat7-purple); color: #fff; display: grid; place-items: center; cursor: pointer;
-  box-shadow: 0 6px 12px -6px rgba(107, 92, 255, .8); transition: transform .12s ease, background .15s ease;
+  box-shadow: 0 6px 12px -6px color-mix(in oklab, oklch(0.461 0.127 242) 80%, transparent); transition: transform .12s ease, background .15s ease;
 }
 .st7-send-btn:hover:not(:disabled) { background: var(--chat7-purple-dark); transform: scale(1.05); }
 .st7-send-btn:disabled { opacity: .35; cursor: default; box-shadow: none; }
 .st7-compose-bar { display: flex; align-items: center; gap: 2px; padding: 0 10px 6px 12px; }
-.st7-compose-bar .st-composer-hint { font-size: 10px; }
+.st7-compose-bar .st-composer-hint { font-size: 10px; color: var(--chat7-muted); }
 .st7-attach-btn { width: 26px; height: 26px; margin-bottom: 0; }
 .st-chat-7 .st-pending-strip { padding: 8px 10px 0; }
-.st-chat-7 .st-mention-list { left: 8px; right: 8px; }
-/* dark mode */
-.dark .st-chat-7 { --chat7-thread: #1d2125; --chat7-other: #2c333a; --chat7-ink: #e6edf3; --chat7-muted: #8c9bab; background: #22272b; }
-.dark .st-chat-7 .st-composer-box { background: #2c333a; border-color: #38414a; }
-.dark .st-chat-7 .st-composer-box:focus-within { background: #2c333a; border-color: var(--chat7-purple); }
+.st-chat-7 .st-mention-list { left: 8px; right: 8px; background: var(--chat7-other); border-color: var(--chat7-border); }
+.st-chat-7 .st-mention-list-head { color: var(--chat7-muted); }
+.st-chat-7 .st-mention-item:hover { background: color-mix(in oklab, oklch(0.659 0.105 190) 8%, transparent); }
+.st-chat-7 .st-mention-item.is-active { background: var(--chat7-soft); border: 1px solid color-mix(in oklab, oklch(0.659 0.105 190) 45%, transparent); }
+.st-chat-7 .st-mention-item-name { color: var(--chat7-ink); }
+.st-chat-7 .st-mention-item-handle { color: var(--chat7-purple-dark); background: var(--chat7-soft); border: 1px solid color-mix(in oklab, oklch(0.659 0.105 190) 40%, transparent); }
+.st-chat-7 .st-drop-hint { color: var(--chat7-purple-dark); background: var(--chat7-soft); }
+.st-chat-7 .st-composer.is-dragover .st-composer-box { outline-color: oklch(0.659 0.105 190); }
+.st-chat-7 .st-emoji-pop { background: var(--chat7-other); border-color: var(--chat7-border); }
+.st-chat-7 .st-emoji-cell:hover { background: var(--chat7-soft); }
+/* collapsed chat tab + resize handle — chat-rail-only classes */
+.st-chat-expand { background: oklch(1 0 0); border-color: oklch(0.902 0.017 242); box-shadow: 0 9px 24px -16px color-mix(in oklab, oklch(0.245 0.047 239) 40%, transparent); }
+.st-chat-expand:hover { background: oklch(0.953 0.013 239); }
+.st-chat-expand svg { color: oklch(0.461 0.127 242); }
+.st-chat-resize:hover::after, .st-chat-resize:focus-visible::after { background: oklch(0.659 0.105 190); }
+.st-chat-resize.is-dragging::after { background: oklch(0.461 0.127 242); }
+.st-chat-resize:focus-visible { box-shadow: 0 0 0 2px color-mix(in oklab, oklch(0.461 0.127 242) 35%, transparent); }
+/* dark mode — mirrors lagoon.css dark treatments: lifted surfaces,
+   lightened ocean/teal, dark text on lifted ocean fills (lagoon convention) */
+.dark .st-chat-7 {
+  --chat7-purple: oklch(0.72 0.115 245);
+  --chat7-purple-dark: oklch(0.78 0.11 245);
+  --chat7-soft: color-mix(in oklab, oklch(0.78 0.1 190) 16%, transparent);
+  --chat7-thread: oklch(0.235 0.018 250);
+  --chat7-other: oklch(0.29 0.022 252);
+  --chat7-ink: oklch(0.93 0.012 250);
+  --chat7-muted: oklch(0.74 0.035 245);
+  --chat7-green: oklch(0.72 0.12 160);
+  --chat7-coral: oklch(0.74 0.14 25);
+  --chat7-border: oklch(0.42 0.035 250);
+  --chat7-card-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  background: oklch(0.235 0.018 250);
+  border-left-color: oklch(0.42 0.035 250);
+}
+.dark .st-chat-7 .st-bubble-brand,
+.dark .st7-send-btn { color: oklch(0.23 0.03 252); }
+.dark .st-chat-7 .st-bubble-brand .st-mention-inline { background: rgb(0 0 0 / 0.18); border-color: transparent; color: oklch(0.23 0.03 252); }
+.dark .st-chat-7 .st-composer-box { background: var(--chat7-other); border-color: var(--chat7-border); }
+.dark .st-chat-7 .st-composer-box:focus-within { background: var(--chat7-other); border-color: var(--chat7-purple); }
 .dark .st-chat-7 .st-bubble-slate { color: var(--chat7-ink); }
-.dark .st-chat-7 .st-stack-avatar { border-color: #22272b; }
-.dark .st-chat-7 .st7-presence { border-color: #22272b; }
-.dark .st7-icon-btn { background: #2c333a; border-color: #38414a; }
-.dark .st7-add-btn { background: #2c333a; border-color: #38414a; }
+.dark .st-chat-7 .st-stack-avatar { border-color: oklch(0.235 0.018 250); }
+.dark .st-chat-7 .st7-presence { border-color: oklch(0.235 0.018 250); }
+.dark .st7-icon-btn { background: var(--chat7-other); border-color: var(--chat7-border); }
+.dark .st7-add-btn { background: var(--chat7-other); border-color: var(--chat7-border); }
+.dark .st-chat-expand { background: oklch(0.29 0.022 252); border-color: oklch(0.42 0.035 250); color: oklch(0.93 0.012 250); }
+.dark .st-chat-expand:hover { background: oklch(0.345 0.025 252); }
+.dark .st-chat-expand svg { color: oklch(0.72 0.115 245); }
+.dark .st-chat-7 .st-emoji-pop { background: var(--chat7-other); border-color: var(--chat7-border); }
