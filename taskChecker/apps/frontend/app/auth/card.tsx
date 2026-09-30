@@ -5,7 +5,7 @@
    No entrance animation: auth screens appear, they don't perform. */
 
 import type { ReactNode } from "react";
-import { IconFlowMark } from "@/components/icons";
+import Image from "next/image";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnimatePresence, motion } from "@/components/motion";
 
@@ -22,9 +22,11 @@ export function AuthCard({
     <div className="auth-page flex min-h-screen items-center justify-center bg-muted/40 p-4 sm:p-6">
       <Card className="auth-card w-full max-w-md overflow-hidden border-border/70 bg-card p-2 shadow-lg">
         <CardHeader className="items-center text-center">
-          <img
+          <Image
             src="/logo_mark.png"
             alt="TeamFlow"
+            width={48}
+            height={48}
             className="size-12 rounded-xl object-contain shadow-sm mb-1"
           />
           <CardTitle className="text-2xl">TeamFlow</CardTitle>
