@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, memo, startTransition } from "react";
+import { useState, useMemo, memo, startTransition, useEffect, useRef } from "react";
 import { useTenant } from "@/components/store";
+import { useRealtime } from "@/lib/realtime";
 import { Modal, ConfirmDialog, useToast } from "@/components/overlay";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -98,13 +99,35 @@ const MemberRow = memo(function MemberRow({
   const online = member.status === "active";
   const elevated = member.role === "owner" || member.role === "admin";
 
+  const openActionsAt = (x: number, y: number) => {
+    if (isSelf) return;
+    onContextMenu(member, x, y);
+  };
+
   return (
     <TableRow
-      className="dir-row-hint"
-      title={isSelf ? undefined : "Right-click for actions (message, copy, remove)"}
+      className="dir-row-hint cursor-pointer"
+      title={isSelf ? undefined : "Click for actions (message, profile, more) — right-click works too"}
+      tabIndex={isSelf ? undefined : 0}
+      aria-label={isSelf ? undefined : `Open actions for ${member.name ?? member.email ?? "member"} (message, profile)`}
       onContextMenu={(e) => {
         e.preventDefault();
-        onContextMenu(member, e.clientX, e.clientY);
+        openActionsAt(e.clientX, e.clientY);
+      }}
+      onClick={(e) => {
+        // Don't hijack clicks on inner controls (role select, message/delete buttons).
+        const t = e.target as HTMLElement | null;
+        if (t?.closest?.("button, select, [role='combobox'], [role='listbox'], input, a, [data-no-row-click]")) return;
+        openActionsAt(e.clientX, e.clientY);
+      }}
+      onKeyDown={(e) => {
+        if (isSelf) return;
+        if (e.key === "Enter" || e.key === " ") {
+          // Keyboard parity for the click-to-DM menu (position near the row).
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          e.preventDefault();
+          openActionsAt(r.left + 120, r.bottom + 4);
+        }
       }}
     >
       <TableCell>
@@ -256,6 +279,54 @@ export default function MembersPage() {
     );
   }, [members, search]);
 
+  // ---- Realtime DM fan-out for this page ----
+  // The open DmChatDialog already refetches its own conversation on `dm.message`.
+  // This page-level listener covers the closed-dialog case: toast on new
+  // incoming DMs so a member click → chat feels live even before opening.
+  // Plaintext is never in the event (E2E ids only) — toast stays generic.
+  const membersRef = useRef(members);
+  useEffect(() => {
+    membersRef.current = members;
+  });
+  const dmPeerRef = useRef(dmPeer);
+  useEffect(() => {
+    dmPeerRef.current = dmPeer;
+  });
+  const dmOpenRef = useRef(dmOpen);
+  useEffect(() => {
+    dmOpenRef.current = dmOpen;
+  });
+  const selfIdRef = useRef(currentUserId);
+  useEffect(() => {
+    selfIdRef.current = currentUserId;
+  });
+  useRealtime(
+    useMemo(
+      () => ({
+        onDm: (msg: { type: string; meta?: unknown }) => {
+          const meta = msg.meta as
+            | { conversationId?: string; messageId?: string; senderId?: string; peerId?: string }
+            | undefined;
+          if (msg.type === "dm.message") {
+            if (!meta?.conversationId) return;
+            if (meta.senderId && meta.senderId === selfIdRef.current) return; // own echo — dialog already mutated
+            // If the matching dialog is open it refetches itself — just nudge.
+            if (dmOpenRef.current && dmPeerRef.current?.conversationId === meta.conversationId) return;
+            const sender = membersRef.current.find((m) => m.userId === meta.senderId);
+            const label = sender?.name ?? sender?.email ?? "Someone";
+            toast({ title: "New secure message", msg: `${label} sent you an encrypted DM — click them to open it.` });
+          } else if (msg.type === "dm.created") {
+            if (meta?.peerId && meta.peerId !== selfIdRef.current) {
+              const peer = membersRef.current.find((m) => m.userId === meta.peerId);
+              if (peer) toast({ title: "New secure chat", msg: `${peer.name ?? peer.email ?? "A member"} started a DM with you.` });
+            }
+          }
+        },
+      }),
+      [toast],
+    ),
+  );
+
   const handleInvite = async () => {
     const email = inviteEmail.trim();
     if (!email || !orgId || inviting) return;
@@ -339,6 +410,8 @@ export default function MembersPage() {
 
   const handleMessage = async (member: Member) => {
     closeContextMenu();
+    setProfile(null);
+    if (member.userId === currentUserId) return;
     if (!orgId) return;
     try {
       const res = await api.dm.openConversation(member.userId);
@@ -656,6 +729,21 @@ export default function MembersPage() {
             onClose={() => setProfile(null)}
             title={profile.name ?? "Profile"}
             sub={profile.email ?? undefined}
+            footer={
+              <>
+                <Button variant="ghost" onClick={() => setProfile(null)}>
+                  Close
+                </Button>
+                {profile.userId !== currentUserId && profile.status === "active" ? (
+                  <Button
+                    onClick={() => void handleMessage(profile)}
+                    aria-label={`Message ${profile.name ?? profile.email} securely`}
+                  >
+                    <IconMessageSquare size={14} /> Message securely
+                  </Button>
+                ) : null}
+              </>
+            }
           >
             <div className="dm-profile-row">
               <Avatar size="lg">

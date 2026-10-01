@@ -292,7 +292,7 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
     }),
     [patchReactions, names],
   );
-  const { isConnected } = useRealtime(realtimeOpts);
+  useRealtime(realtimeOpts);
 
   /* Expire typing indicators after 3.5s. */
   useEffect(() => {
@@ -521,8 +521,6 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
   const typingNames = [...typing.values()].map((t) => t.name);
 
   const teamName = org?.name ? `${org.name} team` : "Team chat";
-  const memberList = membersQ.data?.members ?? [];
-  const onlineCount = isConnected ? memberList.length : 0;
 
   return (
     <motion.aside
@@ -573,17 +571,6 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
           </span>
           <span className="st7-head-text">
             <span className="st7-team-name">{teamName}</span>
-            <span className="st7-team-sub">
-              {memberList.length > 0 ? `${memberList.length} member${memberList.length === 1 ? "" : "s"}` : "Team"}
-              {isConnected ? (
-                <>
-                  {", "}
-                  <span className="st7-online">{onlineCount} online</span>
-                </>
-              ) : (
-                " · offline"
-              )}
-            </span>
           </span>
           <span className="st7-head-actions">
             <button className="st-col-add" onClick={onToggle} title="Collapse chat" aria-label="Collapse chat">
@@ -591,27 +578,6 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
             </button>
           </span>
         </div>
-        {memberList.length > 0 ? (
-          <div className="st7-online-strip">
-            <span className="st7-online-label">Online now</span>
-            <span className="st7-avatar-stack" aria-label={`${onlineCount} online`}>
-              {memberList.slice(0, 7).map((m) => (
-                <span
-                  key={m.userId}
-                  className="st7-stack-avatar"
-                  title={getDisplayName(m)}
-                  style={{ background: `hsl(${hueFrom(m.userId)} 55% 88%)`, color: `hsl(${hueFrom(m.userId)} 45% 32%)` }}
-                >
-                  {initials(getDisplayName(m))}
-                  <i className="st7-presence" />
-                </span>
-              ))}
-              {memberList.length > 7 ? (
-                <span className="st7-stack-avatar st7-stack-more">+{memberList.length - 7}</span>
-              ) : null}
-            </span>
-          </div>
-        ) : null}
         <div
           className="st-chat-list"
           role="log"
