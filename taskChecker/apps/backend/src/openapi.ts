@@ -168,6 +168,47 @@ export const openApiDoc = {
         },
       },
     },
+    "/v1/auth/google": {
+      post: {
+        summary: "Sign in with Google — verifies GIS ID token, login-or-signup",
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["idToken"],
+                properties: {
+                  idToken: { type: "string", description: "Google Identity Services ID token" },
+                  orgName: { type: "string", minLength: 2, maxLength: 80, description: "Org name for newly provisioned accounts" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "ok",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    user: { type: "object" },
+                    memberships: { type: "array", items: { type: "object" } },
+                    tenant: { type: "object" },
+                    tokens: { $ref: "#/components/schemas/Tokens" },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "invalid Google credential", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "503": { description: "Google sign-in not configured", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
     "/v1/me": {
       get: {
         summary: "Session user + memberships (org picker)",

@@ -10,8 +10,9 @@ import { memberships, refreshTokens, tenants, users } from "../db/schema.js";
 import { hashPassword, hashSecret, verifyPassword } from "../lib/password.js";
 import { randomToken, uuidv7 } from "../lib/ids.js";
 import { signAccessToken } from "../lib/tokens.js";
-import { badRequest, unauthorized } from "../lib/errors.js";
+import { badRequest, unauthorized, ApiError } from "../lib/errors.js";
 import { membershipsForUser } from "../lib/auth.js";
+import { GoogleNotConfiguredError, verifyGoogleIdToken } from "../lib/google.js";
 import { log } from "../lib/log.js";
 import { withTenant } from "../lib/tenant.js";
 import { audit } from "../lib/audit.js";
@@ -107,6 +108,86 @@ authRoutes.post("/auth/login", async (c) => {
   return c.json({
     user: publicUser(user[0]),
     memberships: ms,
+    tenant,
+    tokens: { accessToken, refreshToken },
+  });
+});
+
+// POST /v1/auth/google — Sign in with Google (GIS ID token). Verifies the
+// token against Google's JWKS (aud = our client ID, verified email), then
+// signs in the matching account or auto-provisions user + personal org.
+// Linking is by verified email — safe because Google attests the address.
+authRoutes.post("/auth/google", async (c) => {
+  const parsed = z
+    .object({ idToken: z.string().min(10), orgName: z.string().min(2).max(80).optional() })
+    .safeParse(await json(c));
+  if (!parsed.success) throw badRequest("A Google ID token is required.");
+
+  let identity: { email: string; name: string };
+  try {
+    identity = await verifyGoogleIdToken(parsed.data.idToken);
+  } catch (err) {
+    if (err instanceof GoogleNotConfiguredError) {
+      throw new ApiError(503, "google_not_configured", "Sign in with Google is not configured on this server.", false);
+    }
+    log.warn("google token verification failed");
+    throw unauthorized("Invalid Google credential.");
+  }
+
+  const emailLower = identity.email.toLowerCase();
+  const displayName = identity.name || emailLower.split("@")[0] || "Google user";
+
+  const rows = await db.select().from(users).where(eq(users.email, emailLower)).limit(1);
+  let userId = rows[0]?.id;
+  if (!userId) {
+    // New Google user — create the account with an unusable random password
+    // hash (password_hash is NOT NULL; Google users sign in via Google).
+    userId = uuidv7();
+    const requestedOrg = parsed.data.orgName?.trim();
+    const orgName = (requestedOrg && requestedOrg.length >= 2 ? requestedOrg : `${displayName}'s Workspace`).slice(0, 80);
+    const tenantId = uuidv7();
+    const slugBase = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "org";
+    const slug = `${slugBase}-${tenantId.slice(-4)}${tenantId.slice(19, 23)}`;
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(users)
+        .values({ id: userId as string, email: emailLower, name: displayName, passwordHash: hashPassword(randomToken(32)) });
+      await tx.insert(tenants).values({ id: tenantId, name: orgName, slug, plan: "free" });
+    });
+    await withTenant(tenantId, async (tx) => {
+      await tx.insert(memberships).values({ tenantId, userId: userId as string, role: "owner", status: "active" });
+      await audit(tx, { tenantId, actorId: userId as string, action: "org.created", entityType: "tenant", entityId: tenantId, after: { name: orgName, via: "google" } });
+    });
+    log.info("google signup", { email: emailLower });
+  }
+
+  const ms = await membershipsForUser(userId);
+  let tenant = ms.find((m) => m.status === "active") ?? ms[0];
+  if (!tenant) {
+    // Existing account (e.g. password user) with no org — provision one so the
+    // Google session has somewhere to land, mirroring signup.
+    const tenantId = uuidv7();
+    const orgName = (parsed.data.orgName?.trim() || `${displayName}'s Workspace`).slice(0, 80);
+    const slugBase = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "org";
+    const slug = `${slugBase}-${tenantId.slice(-4)}${tenantId.slice(19, 23)}`;
+    await db.insert(tenants).values({ id: tenantId, name: orgName, slug, plan: "free" });
+    await withTenant(tenantId, async (tx) => {
+      await tx.insert(memberships).values({ tenantId, userId: userId as string, role: "owner", status: "active" });
+      await audit(tx, { tenantId, actorId: userId as string, action: "org.created", entityType: "tenant", entityId: tenantId, after: { name: orgName, via: "google" } });
+    });
+    const refreshed = await membershipsForUser(userId);
+    tenant = refreshed.find((m) => m.status === "active") ?? refreshed[0];
+    if (!tenant) throw unauthorized("No active organization membership.");
+  }
+
+  const me = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!me[0]) throw unauthorized("Session user not found.");
+  const accessToken = await signAccessToken({ sub: userId, tid: tenant.tenant_id, role: tenant.role });
+  const refreshToken = await issueRefreshToken(userId);
+
+  return c.json({
+    user: publicUser(me[0]),
+    memberships: ms.length > 0 ? ms : await membershipsForUser(userId),
     tenant,
     tokens: { accessToken, refreshToken },
   });

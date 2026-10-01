@@ -28,6 +28,8 @@
     "LOG_LEVEL",
     "RESEND_API_KEY",
     "INVITE_FROM_EMAIL",
+    "GOOGLE_CLIENT_ID",
+    "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
     "TEAMFLOW_IT"
   ],
   "tasks": {

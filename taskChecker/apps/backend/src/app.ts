@@ -25,7 +25,7 @@ import { attachmentRoutes } from "./modules/attachments.js";
 import { billingRoutes } from "./modules/billing.js";
 
 const PUBLIC_PATHS = [
-  /^\/v1\/auth\/(signup|login|refresh|logout)$/,
+  /^\/v1\/auth\/(signup|login|refresh|logout|google)$/,
   /^\/v1\/invites\/[^/]+$/,
   /^\/v1\/invites\/[^/]+\/preview$/,
   /^\/v1\/invites\/code\/[^/]+$/,

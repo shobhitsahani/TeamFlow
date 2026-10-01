@@ -20,6 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, orgName: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, orgName?: string) => Promise<void>;
   logout: () => Promise<void>;
   switchOrg: (orgId: string) => Promise<void>;
   createOrg: (name: string) => Promise<ActiveTenant>;
@@ -98,6 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setActiveTenantId(data.org.id);
   };
 
+  const loginWithGoogle = async (idToken: string, orgName?: string) => {
+    clearAuthTokens();
+    const data = await api.auth.google(orgName ? { idToken, orgName } : { idToken });
+    setAuthTokens(data.tokens, data.tenant.tenant_id);
+    setUser(data.user);
+    setMemberships(data.memberships);
+    setActiveTenantId(data.tenant.tenant_id);
+  };
+
   const logout = async () => {
     const refreshToken = localStorage.getItem("tf_refresh_token");
     if (refreshToken) {
@@ -143,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         signup,
+        loginWithGoogle,
         logout,
         switchOrg,
         createOrg,

@@ -369,6 +369,7 @@ async function request<T>(
   const isPublicAuth =
     path.startsWith("/auth/login") ||
     path.startsWith("/auth/signup") ||
+    path.startsWith("/auth/google") ||
     path.startsWith("/auth/refresh") ||
     path.startsWith("/auth/logout") ||
     path.startsWith("/invites/");
@@ -449,6 +450,14 @@ export const api = {
         tenant: ActiveTenant;
         tokens: TokenBundle;
       }>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+
+    google: (data: { idToken: string; orgName?: string }) =>
+      request<{
+        user: User;
+        memberships: ActiveTenant[];
+        tenant: ActiveTenant;
+        tokens: TokenBundle;
+      }>("/auth/google", { method: "POST", body: JSON.stringify(data) }),
 
     refresh: (refreshToken: string) =>
       request<{ accessToken: string }>("/auth/refresh", {

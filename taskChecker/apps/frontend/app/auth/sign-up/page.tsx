@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { CardContent } from "@/components/ui/card";
 import { AuthCard, AuthError, AuthFieldIcon } from "../card";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -54,6 +55,14 @@ export default function SignUpPage() {
           <CardContent>
             <FieldGroup>
             {error ? <AuthError message={error} /> : null}
+
+            <GoogleSignInButton text="signup_with" orgName={orgName} onError={setError} />
+
+            <div className="flex items-center gap-3" aria-hidden>
+              <span className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground">or with email</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
 
             <Field>
               <FieldLabel htmlFor="name">Your name</FieldLabel>

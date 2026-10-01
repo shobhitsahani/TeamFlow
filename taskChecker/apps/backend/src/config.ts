@@ -32,6 +32,9 @@ export interface Config {
    * are manual-relay only (link + code returned to the inviter). */
   resendApiKey?: string;
   inviteFromEmail?: string;
+  /** Google OAuth client ID(s) for "Sign in with Google" (GSI ID tokens).
+   * Comma-separated to allow web + local dev client IDs. Empty = disabled. */
+  googleClientIds: string[];
 }
 
 function need(name: string, fallback?: string): string {
@@ -116,6 +119,10 @@ export function loadConfig(): Config {
     logLevel: process.env.LOG_LEVEL ?? "info",
     resendApiKey: process.env.RESEND_API_KEY,
     inviteFromEmail: process.env.INVITE_FROM_EMAIL,
+    googleClientIds: (process.env.GOOGLE_CLIENT_ID ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
   };
 }
 
