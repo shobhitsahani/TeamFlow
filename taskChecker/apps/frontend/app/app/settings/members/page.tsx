@@ -82,6 +82,7 @@ const MemberRow = memo(function MemberRow({
   onDeactivate,
   onContextMenu,
   onMessage,
+  onProfile,
 }: {
   member: Member;
   currentUserRole: Role;
@@ -90,6 +91,7 @@ const MemberRow = memo(function MemberRow({
   onDeactivate: (userId: string) => void;
   onContextMenu: (member: Member, x: number, y: number) => void;
   onMessage: (member: Member) => void;
+  onProfile: (member: Member) => void;
 }) {
   const isSelf = member.userId === currentUserId;
   const canManage = (ROLE_HIERARCHY[currentUserRole] ?? 0) > (ROLE_HIERARCHY[member.role] ?? 0);
@@ -100,16 +102,21 @@ const MemberRow = memo(function MemberRow({
   const elevated = member.role === "owner" || member.role === "admin";
 
   const openActionsAt = (x: number, y: number) => {
-    if (isSelf) return;
+    // Every click shows something: own row opens your profile (no DM to self),
+    // other rows open the actions menu (Message securely first).
+    if (isSelf) {
+      onProfile(member);
+      return;
+    }
     onContextMenu(member, x, y);
   };
 
   return (
     <TableRow
       className="dir-row-hint cursor-pointer"
-      title={isSelf ? undefined : "Click for actions (message, profile, more) — right-click works too"}
-      tabIndex={isSelf ? undefined : 0}
-      aria-label={isSelf ? undefined : `Open actions for ${member.name ?? member.email ?? "member"} (message, profile)`}
+      title={isSelf ? "Click to view your profile" : "Click for actions (message, profile, more) — right-click works too"}
+      tabIndex={0}
+      aria-label={`Open actions for ${member.name ?? member.email ?? "member"} (message, profile)`}
       onContextMenu={(e) => {
         e.preventDefault();
         openActionsAt(e.clientX, e.clientY);
@@ -121,7 +128,6 @@ const MemberRow = memo(function MemberRow({
         openActionsAt(e.clientX, e.clientY);
       }}
       onKeyDown={(e) => {
-        if (isSelf) return;
         if (e.key === "Enter" || e.key === " ") {
           // Keyboard parity for the click-to-DM menu (position near the row).
           const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -566,6 +572,7 @@ export default function MembersPage() {
                       onDeactivate={handleDeactivate}
                       onContextMenu={openContextMenu}
                       onMessage={handleMessage}
+                      onProfile={handleViewProfile}
                     />
                   ))}
                 </TableBody>
