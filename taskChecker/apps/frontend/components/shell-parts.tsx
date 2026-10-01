@@ -48,6 +48,7 @@ import {
   IconTrash,
   IconTeamFlow,
   IconUsers,
+  IconWork,
   IconZap,
 } from "./icons";
 
@@ -696,6 +697,11 @@ export function ContextBar() {
               <IconZap size={16} className="dim" />
               <span className="grow">Usage</span>
             </Link> */}
+            <Link href="/app/work" className="st-nav-item" title="Go to your workplace">
+              <IconWork size={16} className="dim" />
+              <span className="grow">Workplace</span>
+              <IconChevronRight size={14} className="dim" />
+            </Link>
             <Link href="/app/activity" className="st-nav-item">
               <IconZap size={16} className="dim" />
               <span className="grow">Activity</span>
