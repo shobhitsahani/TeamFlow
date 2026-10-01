@@ -480,9 +480,7 @@ export default function MembersPage() {
                     {activeCount} active now
                   </span>
                 </div>
-                <p className="dir-sub">
-                  Who can access{org?.name ? ` ${org.name}` : " this workspace"} and what they can do.
-                </p>
+
               </div>
             </div>
           </div>
