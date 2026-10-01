@@ -48,7 +48,6 @@ import {
   IconTrash,
   IconTeamFlow,
   IconUsers,
-  IconWork,
   IconZap,
 } from "./icons";
 
@@ -379,51 +378,61 @@ export function ContextBar() {
     <aside className="st-side" aria-label="Workspace navigation">
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div>
-          <Dropdown
-            align="left"
-            width={240}
-            trigger={() => (
-              <button className="st-ws-card" aria-label="Switch organization">
-                <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  {org ? <OrgGlyph name={org.name} hue={org.hue} /> : null}
-                  <span className="st-ws-name" onClick={handleWorkspaceClick} style={{ cursor: "pointer" }}>{org?.name ?? "No organization"}</span>
-                </span>
-                <IconChevronDown size={16} className="dim" />
-              </button>
-            )}
-          >
-            {(close) => (
-              <>
-                <div className="menu-label">Organizations</div>
-                {orgs.map((o) => (
-                  <MenuItem
-                    key={o.id}
-                    onSelect={() => {
-                      close();
-                      if (o.id !== org?.id) void setOrg(o.id);
-                    }}
-                  >
-                    <OrgGlyph name={o.name} hue={o.hue} size={22} />
-                    <span className="grow">{o.name}</span>
-                    {o.id === org?.id ? <span className="cmdk-hint">current</span> : null}
-                  </MenuItem>
-                ))}
-                {orgs.length === 0 ? <div className="menu-label">No memberships</div> : null}
-                <div style={{ borderTop: "1px solid var(--slate-200)", marginTop: 4, paddingTop: 4 }}>
-                  <MenuItem
-                    onSelect={() => {
-                      close();
-                      setNewOrgName("");
-                      setShowNewOrg(true);
-                    }}
-                  >
-                    <IconPlus size={14} />
-                    <span className="grow" style={{ fontWeight: 600 }}>New organization</span>
-                  </MenuItem>
-                </div>
-              </>
-            )}
-          </Dropdown>
+          {/* Workspace card: clicking the org name/buttons opens the boards view
+              (Lagoon shell); the chevron opens the org-switcher menu. */}
+          <div className="st-ws-card" role="group" aria-label="Workspace">
+            <button
+              type="button"
+              onClick={handleWorkspaceClick}
+              title="Open boards"
+              aria-label={`Open ${org?.name ?? "workspace"} boards`}
+              style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer", textAlign: "left" }}
+            >
+              {org ? <OrgGlyph name={org.name} hue={org.hue} /> : null}
+              <span className="st-ws-name">{org?.name ?? "No organization"}</span>
+            </button>
+            <Dropdown
+              align="left"
+              width={240}
+              trigger={() => (
+                <button type="button" className="st-col-add" style={{ margin: 0 }} title="Switch organization" aria-label="Switch organization">
+                  <IconChevronDown size={16} className="dim" />
+                </button>
+              )}
+            >
+              {(close) => (
+                <>
+                  <div className="menu-label">Organizations</div>
+                  {orgs.map((o) => (
+                    <MenuItem
+                      key={o.id}
+                      onSelect={() => {
+                        close();
+                        if (o.id !== org?.id) void setOrg(o.id);
+                      }}
+                    >
+                      <OrgGlyph name={o.name} hue={o.hue} size={22} />
+                      <span className="grow">{o.name}</span>
+                      {o.id === org?.id ? <span className="cmdk-hint">current</span> : null}
+                    </MenuItem>
+                  ))}
+                  {orgs.length === 0 ? <div className="menu-label">No memberships</div> : null}
+                  <div style={{ borderTop: "1px solid var(--slate-200)", marginTop: 4, paddingTop: 4 }}>
+                    <MenuItem
+                      onSelect={() => {
+                        close();
+                        setNewOrgName("");
+                        setShowNewOrg(true);
+                      }}
+                    >
+                      <IconPlus size={14} />
+                      <span className="grow" style={{ fontWeight: 600 }}>New organization</span>
+                    </MenuItem>
+                  </div>
+                </>
+              )}
+            </Dropdown>
+          </div>
           <Modal
             open={showNewOrg}
             onClose={() => setShowNewOrg(false)}
@@ -697,11 +706,6 @@ export function ContextBar() {
               <IconZap size={16} className="dim" />
               <span className="grow">Usage</span>
             </Link> */}
-            <Link href="/app/work" className="st-nav-item" title="Go to your workplace">
-              <IconWork size={16} className="dim" />
-              <span className="grow">Workplace</span>
-              <IconChevronRight size={14} className="dim" />
-            </Link>
             <Link href="/app/activity" className="st-nav-item">
               <IconZap size={16} className="dim" />
               <span className="grow">Activity</span>
