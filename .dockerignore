@@ -1,0 +1,9 @@
+.git
+node_modules
+taskChecker/node_modules
+taskChecker/apps/*/node_modules
+taskChecker/packages/*/node_modules
+taskChecker/.turbo
+.turbo
+temp_extract
+*.tmp.mjs
