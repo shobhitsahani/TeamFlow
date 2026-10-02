@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight, IconTrash, IconAlert, IconMail, IconKey } from "@/components/icons";
+import { IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight, IconTrash, IconAlert, IconMail, IconKey, IconLogout } from "@/components/icons";
 import { api, getCurrentTenantId } from "@/lib/api";
 
 // Hoist static JSX outside component (rendering-hoist-jsx)
@@ -251,6 +251,43 @@ function DangerZone() {
   );
 }
 
+/** Session — sign out of TeamFlow on this device. Mirrors the sidebar
+ * rail's sign-out (same auth context + redirect), surfaced here so users
+ * can find it in Settings too. */
+function SignOutCard() {
+  const { user, logout } = useAuth();
+  const toast = useToast();
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await logout();
+      toast({ title: "Signed out", msg: "Session ended — see you soon." });
+      router.push("/auth/sign-in");
+    } catch {
+      setSigningOut(false);
+    }
+  };
+
+  return (
+    <div className="settings-card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="settings-card-icon">
+        <IconLogout size={20} />
+      </div>
+      <div className="settings-card-content" style={{ flex: 1, minWidth: 0 }}>
+        <h3>Session</h3>
+        <p>Signed in as {user?.email ?? "…"}. Sign out on this device.</p>
+      </div>
+      <Button variant="secondary" size="sm" onClick={() => void handleSignOut()} disabled={signingOut} loading={signingOut}>
+        <IconLogout size={14} /> Sign out
+      </Button>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { org } = useTenant();
 
@@ -289,6 +326,7 @@ export default function SettingsPage() {
               </div>
               <ThemeToggle id="settings-theme-mode" />
             </div>
+            <SignOutCard />
             <div className="settings-grid">
               {SETTINGS_SECTIONS.map(section => (
                 <SectionCard key={section.href} section={section} />
