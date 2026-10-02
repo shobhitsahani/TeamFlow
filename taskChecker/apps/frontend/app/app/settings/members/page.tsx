@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, memo, startTransition, useEffect, useRef } from "react";
+import { useState, useMemo, memo, useEffect, useRef } from "react";
 import { useTenant } from "@/components/store";
 import { useRealtime } from "@/lib/realtime";
 import { Modal, ConfirmDialog, useToast } from "@/components/overlay";
@@ -168,7 +168,7 @@ const MemberRow = memo(function MemberRow({
         </span>
       </TableCell>
       <TableCell>
-        {canManage && !isSelf ? (
+        {canManage && !isSelf && member.status === "active" ? (
           <Select
             value={member.role}
             onValueChange={(v) => {
@@ -458,7 +458,10 @@ export default function MembersPage() {
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    startTransition(() => setSearch(e.target.value));
+    // Synchronous controlled update: the input value must always equal the
+    // latest keystroke. A deferred (transition) update can desync the visible
+    // text from state under rapid typing and poison the filter query.
+    setSearch(e.target.value);
   };
 
   return (
@@ -490,7 +493,7 @@ export default function MembersPage() {
             <div className="dir-search">
               <IconSearch size={15} />
               <input
-                type="text"
+                type="search"
                 value={search}
                 onChange={handleSearchChange}
                 placeholder="Search members by name, role or email..."

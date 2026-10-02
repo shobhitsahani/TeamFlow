@@ -3,7 +3,7 @@
  * `withTenant`, so RLS scopes every row to the caller's org; admin surfaces
  * additionally require admin+ (owner for minting owners). */
 import { Hono, type Context } from "hono";
-import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, count, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { Tx } from "../lib/tenant.js";
 import { inTenant, withTenant, evictMembership } from "../lib/request.js";
@@ -267,7 +267,25 @@ orgRoutes.get("/orgs/:orgId/members", async (c) => {
       .leftJoin(users, eq(users.id, memberships.userId))
       .where(eq(memberships.tenantId, p.tenantId))
       .orderBy(memberships.role);
-    return c.json({ members: rows.map((r) => ({ userId: r.userId, name: r.name ?? null, email: r.email ?? null, role: r.role, status: r.status })) });
+    // Pending invites have no membership row until accepted — surface them as
+    // `invited` entries (keyed by invite id) so the directory badge, counts,
+    // and search reflect the invite immediately after creation.
+    const pending = await tx
+      .select({ id: invites.id, email: invites.email, role: invites.role })
+      .from(invites)
+      .where(
+        and(
+          eq(invites.tenantId, p.tenantId),
+          isNull(invites.acceptedAt),
+          gt(invites.expiresAt, new Date()),
+        ),
+      );
+    return c.json({
+      members: [
+        ...rows.map((r) => ({ userId: r.userId, name: r.name ?? null, email: r.email ?? null, role: r.role, status: r.status })),
+        ...pending.map((r) => ({ userId: r.id, name: null, email: r.email, role: r.role, status: "invited" as const })),
+      ],
+    });
   });
 });
 

@@ -944,14 +944,36 @@ function LagoonBoard() {
         onProjectsChanged={() => projectsQ.mutate()}
       >
         <div className="lagoon-list-wrap" style={{ paddingTop: 32 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                Board
+              </h1>
+              <p className="lagoon-sub">{org?.name ?? "Workspace"}</p>
+            </div>
+            <InputGroup variant="search" className="lagoon-search" style={{ width: 280 }}>
+              <InputGroupAddon align="inline-start">
+                <IconSearch size={14} />
+              </InputGroupAddon>
+              <InputGroupInput
+                type="search"
+                aria-label="Search boards"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search boards…"
+              />
+            </InputGroup>
+          </div>
           <PageEnter className="lagoon-empty">
-            <h3 className="lagoon-display" style={{ fontSize: 16, fontWeight: 600 }}>No boards yet</h3>
+            <h3 className="lagoon-display" style={{ fontSize: 16, fontWeight: 600 }}>{search ? "No boards match" : "No boards yet"}</h3>
             <p style={{ marginTop: 8, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>
-              Create your first board to start adding cards.
+              {search ? "Try a different search term." : "Create your first board to start adding cards."}
             </p>
-            <Button type="button" size="sm" className="lagoon-create-btn border-0" style={{ marginTop: 16 }} onClick={openNewBoard}>
-              <IconPlus size={14} /> New board
-            </Button>
+            {!search ? (
+              <Button type="button" size="sm" className="lagoon-create-btn border-0" style={{ marginTop: 16 }} onClick={openNewBoard}>
+                <IconPlus size={14} /> New board
+              </Button>
+            ) : null}
           </PageEnter>
         </div>
       </LagoonShell>
@@ -996,6 +1018,7 @@ function LagoonBoard() {
               <IconSearch size={14} />
             </InputGroupAddon>
             <InputGroupInput
+              type="search"
               aria-label="Search tasks"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
