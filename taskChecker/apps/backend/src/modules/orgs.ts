@@ -88,7 +88,31 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
 
   const created = await inTenant(c, async (tx) => {
     assertCanRoleScale(p.role, parsed.data.role);
-    // Usage limit: seat cap per subscription tier (active members + pending invites).
+    const emailLower = parsed.data.email.toLowerCase();
+    // Already an active member? Say so plainly — there is no invite to create.
+    const existingUser = await tx.select({ id: users.id }).from(users).where(eq(users.email, emailLower)).limit(1);
+    if (existingUser[0]) {
+      const existingMembership = await tx
+        .select({ status: memberships.status })
+        .from(memberships)
+        .where(and(eq(memberships.tenantId, orgId), eq(memberships.userId, existingUser[0].id)))
+        .limit(1);
+      if (existingMembership[0]?.status === "active") {
+        throw badRequest(`${emailLower} is already an active member of this organization.`);
+      }
+    }
+    // Refresh path: a prior invite for this email (pending or expired) is
+    // replaced with a fresh link + code, so repeating an invite succeeds
+    // idempotently instead of 400ing on the (tenant, email) conflict.
+    const prior = await tx
+      .select({ id: invites.id })
+      .from(invites)
+      .where(and(eq(invites.tenantId, orgId), eq(invites.email, emailLower)))
+      .limit(1);
+    const refreshing = prior.length > 0;
+    // Usage limit: seat cap per subscription tier (active members + live
+    // pending invites — expired ones hold no seat). A refresh replaces its
+    // own seat, so it never trips the cap.
     const tenant = await tx.query.tenants.findFirst({ where: (t, { eq: e }) => e(t.id, orgId) });
     const plan = tenant?.plan ?? "free";
     const seats = tierLimits(plan).seats;
@@ -99,12 +123,11 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
     const pendingInvitesRows = await tx
       .select({ n: count() })
       .from(invites)
-      .where(and(eq(invites.tenantId, orgId), isNull(invites.acceptedAt)));
+      .where(and(eq(invites.tenantId, orgId), isNull(invites.acceptedAt), gt(invites.expiresAt, new Date())));
     const usedSeats = (activeSeatsRows[0]?.n ?? 0) + (pendingInvitesRows[0]?.n ?? 0);
-    if (usedSeats >= seats) {
+    if (usedSeats >= seats && !refreshing) {
       throw quotaExceeded(`Seat limit (${seats}) reached for the ${plan} plan. Deactivate inactive members or upgrade.`);
     }
-    const emailLower = parsed.data.email.toLowerCase();
     const token = randomToken(32);
     // Short shareable code (typable from an email/chat/whiteboard). Hash at
     // rest like the token; regenerate on the (astronomical) hash collision.
@@ -120,6 +143,9 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
     // Invite links live 24 hours — the expiry is enforced on accept/preview
     // and surfaced to the inviter so they can relay the deadline.
     const expiresAt = new Date(Date.now() + 24 * 3600 * 1000);
+    if (refreshing) {
+      await tx.delete(invites).where(and(eq(invites.tenantId, orgId), eq(invites.email, emailLower)));
+    }
     const invite = await tx
       .insert(invites)
       .values({
@@ -134,11 +160,11 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
       })
       .onConflictDoNothing()
       .returning();
-    if (!invite[0]) throw badRequest("An invite for this email already exists.");
+    if (!invite[0]) throw badRequest("Could not create invite; retry.");
     await audit(tx, {
       tenantId: orgId,
       actorId: p.userId,
-      action: "invite.created",
+      action: refreshing ? "invite.refreshed" : "invite.created",
       entityType: "invite",
       entityId: invite[0].id,
       after: { email: emailLower, role: parsed.data.role },
@@ -152,6 +178,7 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
       code,
       orgName: tenant?.name ?? "a workspace",
       expiresAt,
+      refreshed: refreshing,
     };
   });
 
@@ -168,8 +195,8 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
     inviterName: inviter[0]?.name ?? undefined,
   });
   return c.json(
-    { invite: created.invite, invitationUrl: created.invitationUrl, code: created.code, email: { sent: email.sent, error: email.sent ? undefined : email.error } },
-    201,
+    { invite: created.invite, invitationUrl: created.invitationUrl, code: created.code, refreshed: created.refreshed, email: { sent: email.sent, error: email.sent ? undefined : email.error } },
+    created.refreshed ? 200 : 201,
   );
 });
 

@@ -344,12 +344,12 @@ export default function MembersPage() {
       setInviteEmail("");
       await membersQ.mutate();
       toast({
-        title: res.email.sent ? "Invite emailed" : "Invite ready",
+        title: res.refreshed ? "Invite refreshed" : res.email.sent ? "Invite emailed" : "Invite ready",
         msg: res.email.sent
-          ? `${email} got the join link + code by email (expires in 24 hours).`
+          ? `${email} got the ${res.refreshed ? "new " : ""}join link + code by email (expires in 24 hours).${res.refreshed ? " The previous link no longer works." : ""}`
           : res.email.error && res.email.error !== "email_unconfigured"
-            ? `Email send failed (${res.email.error}) — share the link or code with ${email} yourself (expires in 24 hours).`
-            : `Email isn't configured — send the link or code to ${email} yourself (expires in 24 hours).`,
+            ? `Email send failed (${res.email.error}) — share the ${res.refreshed ? "new " : ""}link or code with ${email} yourself (expires in 24 hours).`
+            : `Email isn't configured — send the ${res.refreshed ? "new " : ""}link or code to ${email} yourself (expires in 24 hours).`,
       });
     } catch (err) {
       toast({ title: "Invite failed", msg: err instanceof Error ? err.message : "Try again." });

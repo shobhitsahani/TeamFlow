@@ -55,7 +55,11 @@ coreRoutes.get("/orgs/:orgId/projects", async (c) => {
       .where(and(eq(projects.tenantId, p.tenantId), isNull(projects.deletedAt)))
       .orderBy(projects.createdAt);
     void key; // cache-aside wired in the board endpoint (see tasks.ts)
-    return c.json({ projects: rows });
+    // Quota context so the UI can show plan usage (X of N projects) before
+    // creation hits the cap — additive, existing readers ignore it.
+    const tenant = await tx.query.tenants.findFirst({ where: (t, { eq: e }) => e(t.id, p.tenantId) });
+    const plan = tenant?.plan ?? "free";
+    return c.json({ projects: rows, quota: { plan, used: rows.length, limit: tierLimits(plan).activeProjects } });
   });
 });
 

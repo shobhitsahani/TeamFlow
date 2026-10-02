@@ -516,6 +516,7 @@ export const api = {
         invite: { id: string; email: string; role: Role; expiresAt: string };
         invitationUrl: string;
         code: string;
+        refreshed: boolean;
         email: { sent: boolean; error?: string };
       }>(`/orgs/${orgId}/invites`, {
         method: "POST",
@@ -559,7 +560,7 @@ export const api = {
 
   projects: {
     list: (orgId: string) =>
-      request<{ projects: Project[] }>(`/orgs/${orgId}/projects`),
+      request<{ projects: Project[]; quota?: { plan: string; used: number; limit: number } }>(`/orgs/${orgId}/projects`),
 
     create: (data: { teamId?: string; name: string; key: string }) =>
       request<{ project: Project }>("/projects", { method: "POST", body: JSON.stringify(data) }),
