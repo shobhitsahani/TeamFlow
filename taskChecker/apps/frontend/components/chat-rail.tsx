@@ -33,8 +33,11 @@ import {
   IconSend,
   IconSmile,
   IconTrash,
+  IconUsers,
   IconX,
 } from "./icons";
+import PeopleList, { type PeopleListPerson } from "./ui/messaging-people-list";
+import { DmChatDialog, type DmPeer } from "./dm-chat-dialog";
 
 /* ---------------- constants ---------------- */
 
@@ -193,9 +196,44 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
     orgId ? `chat-messages-${orgId}` : null,
     () => api.chat.list({ limit: 60 }),
   );
-  const membersQ = useSWR<{ members: Array<{ userId: string; name: string | null; email: string | null }> }>(
+  const membersQ = useSWR<{ members: Array<{ userId: string; name: string | null; email: string | null; status: string }> }>(
     orgId ? `ctx-members-${orgId}` : null,
     () => api.orgs.listMembers(orgId!),
+  );
+  const [peopleOpen, setPeopleOpen] = useState(false);
+  const [dmPeer, setDmPeer] = useState<DmPeer | null>(null);
+  const [dmOpen, setDmOpen] = useState(false);
+
+  // Real workspace members as the DM directory (self excluded — the API
+  // rejects messaging yourself). Active = online, anything else = offline.
+  const dmPeople = useMemo<PeopleListPerson[]>(
+    () =>
+      (membersQ.data?.members ?? [])
+        .filter((m) => m.userId !== user?.id)
+        .map((m) => ({
+          id: m.userId,
+          name: m.name ?? m.email ?? "Member",
+          status: m.status === "active" ? "online" : "offline",
+        })),
+    [membersQ.data, user?.id],
+  );
+
+  const openDmWith = useCallback(
+    async (person: PeopleListPerson) => {
+      try {
+        const res = await api.dm.openConversation(person.id);
+        setDmPeer({
+          conversationId: res.conversation.id,
+          peerId: res.conversation.peerId,
+          peerName: res.conversation.peerName,
+          peerEmail: res.conversation.peerEmail,
+        });
+        setDmOpen(true);
+      } catch (err) {
+        toast({ title: "Couldn't open chat", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
+      }
+    },
+    [toast],
   );
 
   const names = useMemo(() => {
@@ -573,11 +611,34 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
             <span className="st7-team-name">{teamName}</span>
           </span>
           <span className="st7-head-actions">
+            <button
+              className="st-col-add"
+              onClick={() => setPeopleOpen((v) => !v)}
+              title={peopleOpen ? "Hide chats" : "Show chats — message a member securely"}
+              aria-label={peopleOpen ? "Hide chats" : "Show chats"}
+              aria-expanded={peopleOpen}
+            >
+              <IconUsers size={16} />
+            </button>
             <button className="st-col-add" onClick={onToggle} title="Collapse chat" aria-label="Collapse chat">
               <IconChevronRight size={16} />
             </button>
           </span>
         </div>
+        {peopleOpen ? (
+          <div className="st-chat-people" style={{ padding: "0 12px 12px" }}>
+            <PeopleList
+              groups={[{ id: "team", name: `${org?.name ?? "Team"} chat` }]}
+              people={dmPeople}
+              onGroupClick={() => {
+                setPeopleOpen(false);
+                scrollToBottom();
+              }}
+              onPersonClick={(p) => void openDmWith(p)}
+              onNewChat={() => setPeopleOpen(false)}
+            />
+          </div>
+        ) : null}
         <div
           className="st-chat-list"
           role="log"
@@ -671,6 +732,14 @@ export function ChatRail({ open, onToggle }: { open: boolean; onToggle: () => vo
           onTypingScroll={scrollToBottom}
         />
       </div>
+      {dmPeer ? (
+        <DmChatDialog
+          open={dmOpen}
+          onClose={() => setDmOpen(false)}
+          peer={dmPeer}
+          currentUserId={user?.id}
+        />
+      ) : null}
       <AnimatePresence>
         {lightbox ? (
           <motion.div
