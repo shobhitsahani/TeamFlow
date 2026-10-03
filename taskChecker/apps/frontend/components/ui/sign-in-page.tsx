@@ -53,14 +53,15 @@ export function LoginPage({
   }
 
   return (
-    <div className="flex h-screen w-screen gap-6 bg-white p-4 sm:gap-8 sm:p-6">
-      {/* Left Panel - brand image by default, swappable (desktop only) */}
+    <div className="flex min-h-screen w-screen flex-col gap-6 bg-white p-4 sm:gap-8 sm:p-6 lg:h-screen lg:flex-row">
+      {/* Left Panel - brand image by default, swappable. Side-by-side on
+          desktop, stacked above the form on smaller screens. */}
       {leftPanel !== undefined ? (
-        <div className="relative hidden flex-1 items-center justify-center overflow-hidden lg:flex">
+        <div className="relative flex flex-1 items-center justify-center overflow-hidden py-2">
           {leftPanel}
         </div>
       ) : (
-        <div className="relative hidden flex-1 overflow-hidden rounded-2xl lg:block">
+        <div className="relative min-h-72 flex-1 overflow-hidden rounded-2xl lg:min-h-0">
           {/* Back Button */}
           <div className="absolute left-6 top-6 z-10">
             <button
