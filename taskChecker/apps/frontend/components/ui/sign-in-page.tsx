@@ -67,8 +67,8 @@ export function LoginPage({
 
         <div className="absolute inset-0">
           <Image
-            src="https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=1920&auto=format&fit=crop"
-            alt="City skyline at night"
+            src="https://cdn.21st.dev/assets/mirror/0d/0d205a1a31d40e927885b0ec5f603407caa10585b5bc6e8b08240402c7417e86.png"
+            alt="Brand Asset"
             fill
             priority
             sizes="50vw"
