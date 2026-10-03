@@ -5,6 +5,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["@/components/icons"],
   },
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],
+  },
   async rewrites() {
     return [
       {
