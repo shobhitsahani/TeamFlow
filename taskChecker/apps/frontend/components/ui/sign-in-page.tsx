@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
@@ -21,12 +21,15 @@ export function LoginPage({
   error = '',
   onSocial,
   onForgotPassword,
+  leftPanel,
 }: {
   onSubmit: (data: LoginFormData) => void | Promise<void>
   submitting?: boolean
   error?: string
   onSocial?: (provider: 'google' | 'github') => void
   onForgotPassword?: () => void
+  /** Replaces the brand-image panel (e.g. a chats directory). Defaults to the brand asset. */
+  leftPanel?: ReactNode
 }) {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
@@ -50,32 +53,38 @@ export function LoginPage({
   }
 
   return (
-    <div className="flex h-screen w-screen bg-white">
-      {/* Left Panel - Brand image (desktop only) */}
-      <div className="relative hidden flex-1 overflow-hidden lg:block">
-        {/* Back Button */}
-        <div className="absolute left-6 top-6 z-10">
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            aria-label="Back to home"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm transition-all hover:bg-black/30"
-          >
-            <ArrowLeft className="h-5 w-5 text-white" />
-          </button>
+    <div className="flex h-screen w-screen gap-6 bg-white p-4 sm:gap-8 sm:p-6">
+      {/* Left Panel - brand image by default, swappable (desktop only) */}
+      {leftPanel !== undefined ? (
+        <div className="relative hidden flex-1 items-center justify-center overflow-hidden lg:flex">
+          {leftPanel}
         </div>
+      ) : (
+        <div className="relative hidden flex-1 overflow-hidden rounded-2xl lg:block">
+          {/* Back Button */}
+          <div className="absolute left-6 top-6 z-10">
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              aria-label="Back to home"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm transition-all hover:bg-black/30"
+            >
+              <ArrowLeft className="h-5 w-5 text-white" />
+            </button>
+          </div>
 
-        <div className="absolute inset-0">
-          <Image
-            src="https://cdn.21st.dev/assets/mirror/0d/0d205a1a31d40e927885b0ec5f603407caa10585b5bc6e8b08240402c7417e86.png"
-            alt="Brand Asset"
-            fill
-            priority
-            sizes="50vw"
-            className="object-cover"
-          />
+          <div className="absolute inset-0">
+            <Image
+              src="https://cdn.21st.dev/assets/mirror/0d/0d205a1a31d40e927885b0ec5f603407caa10585b5bc6e8b08240402c7417e86.png"
+              alt="Brand Asset"
+              fill
+              priority
+              sizes="50vw"
+              className="object-cover"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Right Panel - Form Section */}
       <div className="flex flex-1 items-center justify-center overflow-y-auto bg-white">
