@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/overlay";
 import { LoginPage, type LoginFormData } from "@/components/ui/sign-in-page";
-import PeopleList from "@/components/ui/messaging-people-list";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -33,7 +32,6 @@ export default function SignInPage() {
       onSubmit={handleSubmit}
       submitting={submitting}
       error={error}
-      leftPanel={<PeopleList className="mx-auto" />}
       onSocial={(provider) =>
         toast({
           title: `${provider === "google" ? "Google" : "GitHub"} sign-in isn't enabled`,

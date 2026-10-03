@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { GradientOrb } from '@/components/ui/gradient-orb'
 
 export interface LoginFormData {
   email: string
@@ -60,7 +60,7 @@ export function LoginPage({
           {leftPanel}
         </div>
       ) : (
-        <div className="relative hidden flex-1 overflow-hidden rounded-2xl lg:block">
+        <div className="relative min-h-72 flex-1 overflow-hidden rounded-2xl lg:min-h-0">
           {/* Back Button */}
           <div className="absolute left-6 top-6 z-10">
             <button
@@ -74,14 +74,7 @@ export function LoginPage({
           </div>
 
           <div className="absolute inset-0">
-            <Image
-              src="https://cdn.21st.dev/assets/mirror/0d/0d205a1a31d40e927885b0ec5f603407caa10585b5bc6e8b08240402c7417e86.png"
-              alt="Brand Asset"
-              fill
-              priority
-              sizes="50vw"
-              className="object-cover"
-            />
+            <GradientOrb />
           </div>
         </div>
       )}
