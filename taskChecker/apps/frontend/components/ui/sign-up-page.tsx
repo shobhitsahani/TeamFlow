@@ -59,7 +59,7 @@ export function SignupPage({
           {leftPanel}
         </div>
       ) : (
-        <div className="relative hidden flex-1 overflow-hidden rounded-2xl lg:block">
+        <div className="relative min-h-72 flex-1 overflow-hidden rounded-2xl lg:min-h-0">
           {/* Back Button */}
           <div className="absolute left-6 top-6 z-10">
             <button
