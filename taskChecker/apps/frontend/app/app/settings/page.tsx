@@ -50,7 +50,7 @@ const SectionCard = memo(function SectionCard({ section }: { section: typeof SET
 interface DeleteCodeInfo {
   expiresAt: string;
   email: string;
-  /** Why the mail did not go out (email_unconfigured, resend_403: …). */
+  /** Why the mail did not go out (email_unconfigured, supabase_4xx: …). */
   reason?: string;
   code?: string;
   devFallback?: boolean;
@@ -58,7 +58,7 @@ interface DeleteCodeInfo {
 
 /** Danger zone — owner-only permanent organization deletion.
  * Two factors: the owner's account password plus a single-use code emailed
- * (Resend) to their own address. Deleting removes every project, task,
+ * (Supabase Auth) to their own address. Deleting removes every project, task,
  * message, and member; users (global accounts) are untouched. */
 function DangerZone() {
   const { org, setOrg } = useTenant();
@@ -100,8 +100,8 @@ function DangerZone() {
         msg: res.sent
           ? `A 6-digit code is on its way to ${res.email} (expires in 15 minutes).`
           : res.reason === "email_unconfigured"
-            ? "Outbound email is not configured (RESEND_API_KEY / INVITE_FROM_EMAIL) — use the fallback code below."
-            : `Resend refused the send (${res.reason ?? "unknown error"}) — use the fallback code below.`,
+            ? "Outbound email is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) — use the fallback code below."
+            : `Supabase refused the send (${res.reason ?? "unknown error"}) — use the fallback code below.`,
         kind: res.sent ? "ok" : "err",
       });
     } catch (err) {
@@ -241,7 +241,7 @@ function DangerZone() {
                 <FieldDescription>Didn&apos;t get it? You can request a new code — the old one stops working.</FieldDescription>
               </Field>
               <Button variant="secondary" size="sm" onClick={() => void handleSendCode()} disabled={sending} loading={sending}>
-                <IconMail size={14} /> Resend code
+                <IconMail size={14} /> Send new code
               </Button>
             </>
           )}

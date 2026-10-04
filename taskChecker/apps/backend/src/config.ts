@@ -28,10 +28,13 @@ export interface Config {
   deadlineSweepMs: number;
   webhookRetries: number;
   logLevel: string;
-  /** Resend outbound email (invite delivery). Optional: when unset, invites
-   * are manual-relay only (link + code returned to the inviter). */
-  resendApiKey?: string;
-  inviteFromEmail?: string;
+  /** Supabase Auth outbound email (invite + verification delivery).
+   * Optional: when unset, invites are manual-relay only (link + code
+   * returned to the inviter). Supabase is mailer-only — passwords and
+   * sessions stay custom (Postgres + JWT). */
+  supabaseUrl?: string;
+  supabaseServiceRoleKey?: string;
+  supabaseAnonKey?: string;
   /** Google OAuth client ID(s) for "Sign in with Google" (GSI ID tokens).
    * Comma-separated to allow web + local dev client IDs. Empty = disabled. */
   googleClientIds: string[];
@@ -117,8 +120,9 @@ export function loadConfig(): Config {
     deadlineSweepMs: Number(process.env.DEADLINE_SWEEP_MS ?? 5 * 60 * 1000),
     webhookRetries: Number(process.env.WORKER_WEBHOOK_RETRIES ?? 10),
     logLevel: process.env.LOG_LEVEL ?? "info",
-    resendApiKey: process.env.RESEND_API_KEY,
-    inviteFromEmail: process.env.INVITE_FROM_EMAIL,
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY,
     googleClientIds: (process.env.GOOGLE_CLIENT_ID ?? "")
       .split(",")
       .map((s) => s.trim())

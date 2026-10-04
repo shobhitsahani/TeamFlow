@@ -28,8 +28,8 @@ describe("org deletion codes", () => {
   });
 
   it("delete-code email is best-effort: always resolves, never throws", async () => {
-    // Mirrors the invite contract: a mailer failure (unconfigured, bad sender
-    // domain, network) is reported as { sent:false, error } so the endpoint can
+    // Mirrors the invite contract: a mailer failure (unconfigured, bad key,
+    // rate-limited, network) is reported as { sent:false, error } so the endpoint can
     // fall back to handing the code back instead of 500-ing the owner.
     const { sendOrgDeleteCodeEmail } = await import("../src/lib/email.js");
     const res = await sendOrgDeleteCodeEmail({

@@ -537,7 +537,7 @@ export const api = {
         sent: boolean;
         expiresAt: string;
         email: string;
-        /** Why the email did not go out (email_unconfigured, resend_403: …). */
+        /** Why the email did not go out (email_unconfigured, supabase_4xx: …). */
         reason?: string;
         code?: string;
         devFallback?: boolean;

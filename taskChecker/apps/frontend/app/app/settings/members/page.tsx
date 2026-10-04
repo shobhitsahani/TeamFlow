@@ -250,7 +250,7 @@ export default function MembersPage() {
   const [inviting, setInviting] = useState(false);
   // Last created invite — shown inline so the link + code can be copied/sent.
   // Links/codes live 24h (backend-enforced). The backend also emails the
-  // invite via Resend when configured; otherwise the inviter relays manually.
+  // invite via Supabase Auth when configured; otherwise the inviter relays manually.
   const [lastInvite, setLastInvite] = useState<{ email: string; role: Role; url: string; code: string; expiresAt: string; emailSent: boolean; emailError?: string } | null>(null);
   const [copiedWhat, setCopiedWhat] = useState<"link" | "code" | null>(null);
   // Right-click menu + E2E DM + profile preview state.
@@ -349,7 +349,7 @@ export default function MembersPage() {
           ? `${email} got the ${res.refreshed ? "new " : ""}join link + code by email (expires in 24 hours).${res.refreshed ? " The previous link no longer works." : ""}`
           : res.email.error && res.email.error !== "email_unconfigured"
             ? `Email send failed (${res.email.error}) — share the ${res.refreshed ? "new " : ""}link or code with ${email} yourself (expires in 24 hours).`
-            : `Email isn't configured — send the ${res.refreshed ? "new " : ""}link or code to ${email} yourself (expires in 24 hours).`,
+            : `Email isn't configured (Supabase Auth) — send the ${res.refreshed ? "new " : ""}link or code to ${email} yourself (expires in 24 hours).`,
       });
     } catch (err) {
       toast({ title: "Invite failed", msg: err instanceof Error ? err.message : "Try again." });
@@ -626,7 +626,7 @@ export default function MembersPage() {
                           ? " They were emailed the link + code."
                           : lastInvite.emailError && lastInvite.emailError !== "email_unconfigured"
                             ? ` Email send failed (${lastInvite.emailError}) — share it yourself.`
-                            : " Email isn't configured, so share it yourself."}
+                            : " Email isn't configured (Supabase Auth), so share it yourself."}
                       </p>
                     </div>
                     <Field>

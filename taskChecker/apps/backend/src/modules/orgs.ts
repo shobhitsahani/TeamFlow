@@ -431,7 +431,7 @@ function maskEmail(email: string): string {
 }
 
 // POST /v1/orgs/{orgId}/delete-code — owner only. Mints a single-use 6-digit
-// code and emails it (Resend) to the requesting owner's own address — the
+// code and emails it (Supabase Auth) to the requesting owner's own address — the
 // code half of the two-factor organization delete (password is the other).
 // Earlier unused codes are retired so exactly one code is live at a time.
 orgRoutes.post("/orgs/:orgId/delete-code", async (c) => {
@@ -486,7 +486,7 @@ orgRoutes.post("/orgs/:orgId/delete-code", async (c) => {
       sent: email.sent,
       expiresAt: created.expiresAt.toISOString(),
       email: to ? maskEmail(to) : "",
-      // Why the mail didn't go out (email_unconfigured, resend_403: …) — the
+      // Why the mail didn't go out (email_unconfigured, supabase_4xx: …) — the
       // UI shows this verbatim so a misconfigured sender is diagnosable.
       ...(email.sent ? {} : { reason: email.error ?? "email_failed" }),
       // Dev fallback: without a mailer the owner could never receive the code,

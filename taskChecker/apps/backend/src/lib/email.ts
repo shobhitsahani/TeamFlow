@@ -1,19 +1,42 @@
-/** Outbound email via Resend (https://resend.com) — plain fetch, no SDK.
+/** Outbound email via Supabase Auth (mailer-only — no Resend).
  *
  * Best-effort by contract: every caller treats a failed send as
  * `{ sent: false, error }` and keeps a manual relay path (copyable link +
  * code). Email must never fail invite creation — the inviter always gets the
  * link + code back to relay by hand.
  *
- * Required env (see .env.example):
- *   RESEND_API_KEY — from https://resend.com/api-keys
- *   INVITE_FROM_EMAIL — verified sender, e.g. `TeamFlow <invites@yourdomain.com>`
- *     (unverified `onboarding@resend.dev` only delivers to the account owner).
+ * How it works: the backend calls the linked Supabase project's Auth API, so
+ * delivery uses Supabase's built-in mailer — no separate mail provider or
+ * verified sender domain is needed for basic delivery. TeamFlow passwords and
+ * sessions stay custom (Postgres + JWT); Supabase is only the envelope.
+ * Side effect: inviting an address creates a row in `auth.users` on the
+ * Supabase project (harmless, and useful if auth ever migrates fully).
  *
- * Ops gotcha: a key present but sender unset is NOT a silent success — callers
- * get `{ sent: false, error: "email_unconfigured" }`, and a sender on an
- * unverified domain yields `resend_403: …`. Both surface to the client so a
+ * Required env (see .env.example):
+ *   SUPABASE_URL — e.g. `https://<ref>.supabase.co`
+ *   SUPABASE_SERVICE_ROLE_KEY — Dashboard → Project Settings → API keys
+ *     (service_role, SECRET — never commit, never expose to the browser).
+ *   SUPABASE_ANON_KEY — same page (optional; OTP sends fall back to the
+ *     service key when unset).
+ *
+ * Required Supabase dashboard setup (Auth → Email Templates + URL Config):
+ *   1. Invite template must render the TeamFlow fields carried in
+ *      `user_metadata`:
+ *        Join link: {{ .Data.invitation_url }}
+ *        Code:      {{ .Data.invite_code }}
+ *      (also {{ .Data.org_name }}, {{ .Data.role }}, {{ .Data.inviter_name }}).
+ *   2. Magic Link template must render the same invite fields (existing-user
+ *      fallback path) plus the workspace-deletion code:
+ *        {{ .Data.delete_code }} (with {{ .Data.org_name }}).
+ *   3. URL Configuration: Site URL + Redirect URLs must allowlist the
+ *      frontend origin(s), e.g. your `*.vercel.app` URL and
+ *      `http://localhost:4000` — otherwise `redirect_to` is ignored.
+ *
+ * Ops gotcha: keys present but wrong/unreachable is NOT a silent success —
+ * callers get `{ sent: false, error: "supabase_<status>: …" }`, and a project
+ * over its email rate limit surfaces the same way. Both reach the client so a
  * misconfigured mailer is diagnosable instead of looking like a missing code.
+ * For production volume, configure custom SMTP in the Supabase dashboard.
  */
 import { config } from "../config.js";
 
@@ -32,50 +55,78 @@ export interface EmailResult {
   id?: string;
   error?: string;
 }
-/** True when Resend is configured and able to attempt a send. */
+
+/** True when Supabase Auth is configured and able to attempt a send. */
 export function isEmailConfigured(): boolean {
-  const { resendApiKey, inviteFromEmail } = config();
-  return !!resendApiKey && !!inviteFromEmail;
+  const { supabaseUrl, supabaseServiceRoleKey } = config();
+  return !!supabaseUrl && !!supabaseServiceRoleKey;
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+interface Mailer {
+  base: string;
+  serviceKey: string;
+  anonKey: string;
+}
+
+function mailer(): Mailer | null {
+  const { supabaseUrl, supabaseServiceRoleKey, supabaseAnonKey } = config();
+  if (!supabaseUrl || !supabaseServiceRoleKey) return null;
+  return {
+    base: `${supabaseUrl.replace(/\/+$/, "")}/auth/v1`,
+    serviceKey: supabaseServiceRoleKey,
+    anonKey: supabaseAnonKey ?? supabaseServiceRoleKey,
+  };
+}
+
+async function readError(res: Response): Promise<string> {
+  const body = await res.text().catch(() => "");
+  return `supabase_${res.status}: ${body.slice(0, 200)}`;
 }
 
 export async function sendInviteEmail(invite: InviteEmail): Promise<EmailResult> {
-  const { resendApiKey, inviteFromEmail } = config();
-  if (!resendApiKey || !inviteFromEmail) {
+  const m = mailer();
+  if (!m) {
     return { sent: false, error: "email_unconfigured" };
   }
-  const subject = `You're invited to join ${invite.orgName} on TeamFlow`;
-  const text =
-    `Hi,\n\n` +
-    `${invite.inviterName ? `${invite.inviterName} has invited` : "You've been invited"} you to join ${invite.orgName} on TeamFlow as ${invite.role}.\n\n` +
-    `Join with this link (expires ${invite.expiresAt.toLocaleString()}):\n${invite.invitationUrl}\n\n` +
-    `Or open ${invite.invitationUrl.split("?")[0]} and enter this code:\n${invite.code}\n\n` +
-    `This invitation was sent to ${invite.to}. If you weren't expecting it, ignore this email.`;
-  const html =
-    `<p>Hi,</p>` +
-    `<p>${escapeHtml(invite.inviterName ? `${invite.inviterName} has invited` : "You've been invited")} you to join ` +
-    `<strong>${escapeHtml(invite.orgName)}</strong> on TeamFlow as <strong>${escapeHtml(invite.role)}</strong>.</p>` +
-    `<p><a href="${escapeHtml(invite.invitationUrl)}">Accept the invitation</a> ` +
-    `(expires ${escapeHtml(invite.expiresAt.toLocaleString())}).</p>` +
-    `<p>Or enter this code on the accept page: <code style="font-size:16px;letter-spacing:2px;">${escapeHtml(invite.code)}</code></p>` +
-    `<p style="color:#888;font-size:12px;">Sent to ${escapeHtml(invite.to)}. If you weren't expecting it, ignore this email.</p>`;
+  const data = {
+    org_name: invite.orgName,
+    role: invite.role,
+    invitation_url: invite.invitationUrl,
+    invite_code: invite.code,
+    expires_at: invite.expiresAt.toISOString(),
+    ...(invite.inviterName ? { inviter_name: invite.inviterName } : {}),
+  };
+  const redirect = `?redirect_to=${encodeURIComponent(invite.invitationUrl)}`;
 
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    // 1) Supabase invite — sends the project's Invite email template and
+    // creates an auth user when the address is new.
+    const res = await fetch(`${m.base}/admin/invite${redirect}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: inviteFromEmail, to: [invite.to], subject, text, html }),
+      headers: { apikey: m.serviceKey, Authorization: `Bearer ${m.serviceKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: invite.to, data }),
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      return { sent: false, error: `resend_${res.status}: ${body.slice(0, 200)}` };
+    if (res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { id?: string };
+      return { sent: true, id: body.id };
     }
-    const data = (await res.json().catch(() => ({}))) as { id?: string };
-    return { sent: true, id: data.id };
+    if (res.status !== 422) {
+      return { sent: false, error: await readError(res) };
+    }
+    // 2) 422 = address already registered in Supabase Auth (common on
+    // re-invites and for existing TeamFlow members). Fall back to the
+    // magic-link/OTP send so they still get the link + code by email.
+    const otp = await fetch(`${m.base}/otp${redirect}`, {
+      method: "POST",
+      headers: { apikey: m.anonKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: invite.to, create_user: true, data }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!otp.ok) {
+      return { sent: false, error: await readError(otp) };
+    }
+    return { sent: true };
   } catch (err) {
     return { sent: false, error: err instanceof Error ? err.message : "email_failed" };
   }
@@ -89,45 +140,40 @@ export interface OrgDeleteCodeEmail {
   requesterName?: string;
 }
 
-/** Organization-deletion verification code via Resend — the second factor
+/** Organization-deletion verification code via Supabase Auth — the second factor
  * (after the account password) for destroying a workspace. Same best-effort
- * contract as invites: callers surface a manual path when unconfigured. */
+ * contract as invites: callers surface a manual path when unconfigured.
+ *
+ * Supabase Auth has no generic send API, so the code rides in `user_metadata`
+ * (`{{ .Data.delete_code }}`) on a magic-link/OTP send — the project's Magic
+ * Link template must render it (see header). Verification still uses the local
+ * `org_delete_codes` table; nothing about the delete flow changes. */
 export async function sendOrgDeleteCodeEmail(mail: OrgDeleteCodeEmail): Promise<EmailResult> {
-  const { resendApiKey, inviteFromEmail } = config();
-  if (!resendApiKey || !inviteFromEmail) {
+  const m = mailer();
+  if (!m) {
     return { sent: false, error: "email_unconfigured" };
   }
-  const subject = `Delete ${mail.orgName}? Your verification code`;
-  const text =
-    `Hi${mail.requesterName ? ` ${mail.requesterName}` : ""},\n\n` +
-    `A request was made to permanently DELETE the ${mail.orgName} organization on TeamFlow. ` +
-    `This removes every project, task, message, and member — it cannot be undone.\n\n` +
-    `Your verification code (expires ${mail.expiresAt.toLocaleString()}):\n${mail.code}\n\n` +
-    `Enter this code together with your account password on the Settings page to confirm. ` +
-    `If you didn't request this, ignore this email and consider changing your password.`;
-  const html =
-    `<p>Hi${mail.requesterName ? ` ${escapeHtml(mail.requesterName)}` : ""},</p>` +
-    `<p>A request was made to permanently <strong>DELETE</strong> the ` +
-    `<strong>${escapeHtml(mail.orgName)}</strong> organization on TeamFlow. ` +
-    `This removes every project, task, message, and member — it cannot be undone.</p>` +
-    `<p>Your verification code (expires ${escapeHtml(mail.expiresAt.toLocaleString())}):</p>` +
-    `<p><code style="font-size:22px;letter-spacing:6px;">${escapeHtml(mail.code)}</code></p>` +
-    `<p>Enter this code together with your account password on the Settings page to confirm. ` +
-    `If you didn't request this, ignore this email and consider changing your password.</p>`;
-
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    const res = await fetch(`${m.base}/otp`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: inviteFromEmail, to: [mail.to], subject, text, html }),
+      headers: { apikey: m.anonKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: mail.to,
+        create_user: true,
+        data: {
+          purpose: "org_delete",
+          delete_code: mail.code,
+          org_name: mail.orgName,
+          expires_at: mail.expiresAt.toISOString(),
+          ...(mail.requesterName ? { requester_name: mail.requesterName } : {}),
+        },
+      }),
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      return { sent: false, error: `resend_${res.status}: ${body.slice(0, 200)}` };
+      return { sent: false, error: await readError(res) };
     }
-    const data = (await res.json().catch(() => ({}))) as { id?: string };
-    return { sent: true, id: data.id };
+    return { sent: true };
   } catch (err) {
     return { sent: false, error: err instanceof Error ? err.message : "email_failed" };
   }

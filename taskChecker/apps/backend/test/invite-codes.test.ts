@@ -1,5 +1,5 @@
 /**
- * Invite codes + Resend delivery contract:
+ * Invite codes + Supabase Auth delivery contract:
  * - codes are 8 chars from the unambiguous alphabet, normalize tolerant.
  * - email send is best-effort: unconfigured → { sent:false }, never throws.
  */
@@ -27,7 +27,7 @@ describe("invite codes", () => {
 });
 
 describe("invite email best-effort", () => {
-  it("returns sent:false (never throws) when Resend is unconfigured", async () => {
+    it("returns sent:false (never throws) when Supabase Auth is unconfigured", async () => {
     const { sendInviteEmail } = await import("../src/lib/email.js");
     const res = await sendInviteEmail({
       to: "nobody@test.local",
