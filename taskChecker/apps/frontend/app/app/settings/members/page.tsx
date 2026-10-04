@@ -66,6 +66,15 @@ const ROLE_LABELS: Record<Role, string> = {
 };
 const ROLE_HIERARCHY: Record<Role, number> = { owner: 4, admin: 3, member: 2, viewer: 1 };
 
+/** Raw mailer errors are ops diagnostics (`supabase_404: …`) — translate the
+ * known config failure into what the inviter should actually check. */
+function friendlyEmailError(raw?: string): string {
+  if (!raw) return "unknown mail error";
+  if (raw.startsWith("supabase_404"))
+    return "mail server 404 — backend SUPABASE_URL must be exactly https://<ref>.supabase.co (no /auth/v1 suffix), key from the same project";
+  return raw;
+}
+
 function initials(name: string | null, email: string | null): string {
   const src = (name ?? email ?? "?").trim();
   if (!src) return "?";
@@ -348,7 +357,7 @@ export default function MembersPage() {
         msg: res.email.sent
           ? `${email} got the ${res.refreshed ? "new " : ""}join link + code by email (expires in 24 hours).${res.refreshed ? " The previous link no longer works." : ""}`
           : res.email.error && res.email.error !== "email_unconfigured"
-            ? `Email send failed (${res.email.error}) — share the ${res.refreshed ? "new " : ""}link or code with ${email} yourself (expires in 24 hours).`
+            ? `Email send failed (${friendlyEmailError(res.email.error)}) — share the ${res.refreshed ? "new " : ""}link or code with ${email} yourself (expires in 24 hours).`
             : `Email isn't configured (Supabase Auth) — send the ${res.refreshed ? "new " : ""}link or code to ${email} yourself (expires in 24 hours).`,
       });
     } catch (err) {
@@ -625,7 +634,7 @@ export default function MembersPage() {
                         {lastInvite.emailSent
                           ? " They were emailed the link + code."
                           : lastInvite.emailError && lastInvite.emailError !== "email_unconfigured"
-                            ? ` Email send failed (${lastInvite.emailError}) — share it yourself.`
+                            ? ` Email send failed (${friendlyEmailError(lastInvite.emailError)}) — share it yourself.`
                             : " Email isn't configured (Supabase Auth), so share it yourself."}
                       </p>
                     </div>

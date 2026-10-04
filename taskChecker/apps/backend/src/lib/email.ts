@@ -72,15 +72,37 @@ function mailer(): Mailer | null {
   const { supabaseUrl, supabaseServiceRoleKey, supabaseAnonKey } = config();
   if (!supabaseUrl || !supabaseServiceRoleKey) return null;
   return {
-    base: `${supabaseUrl.replace(/\/+$/, "")}/auth/v1`,
+    base: supabaseAuthBase(supabaseUrl),
     serviceKey: supabaseServiceRoleKey,
     anonKey: supabaseAnonKey ?? supabaseServiceRoleKey,
   };
 }
 
+/** Auth API root for a configured SUPABASE_URL.
+ *
+ * SUPABASE_URL must be the project root (`https://<ref>.supabase.co`) — the
+ * mailer appends `/auth/v1` itself. A common misconfig copies a URL that
+ * already ends in `/auth/v1` (API docs show the full path), which doubles it
+ * to `/auth/v1/auth/v1/admin/invite`; GoTrue then answers plain-text
+ * `404 page not found`. Normalize the suffix so sends survive it (config.ts
+ * also logs a warning telling ops to fix the env var). */
+export function supabaseAuthBase(supabaseUrl: string): string {
+  const root = supabaseUrl
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/auth\/v1$/i, "");
+  return `${root}/auth/v1`;
+}
+
 async function readError(res: Response): Promise<string> {
   const body = await res.text().catch(() => "");
-  return `supabase_${res.status}: ${body.slice(0, 200)}`;
+  // 404 from GoTrue is almost always a wrong SUPABASE_URL (see above) — say
+  // so inline, otherwise ops chase a "missing page" that is really config.
+  const hint =
+    res.status === 404
+      ? " (likely wrong SUPABASE_URL: must be https://<ref>.supabase.co with no /auth/v1 suffix, key from the same project)"
+      : "";
+  return `supabase_${res.status}: ${body.slice(0, 200)}${hint}`;
 }
 
 export async function sendInviteEmail(invite: InviteEmail): Promise<EmailResult> {

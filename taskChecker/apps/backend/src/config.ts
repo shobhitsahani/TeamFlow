@@ -98,6 +98,13 @@ function resolveJwtSecret(nodeEnv: string): string {
 
 export function loadConfig(): Config {
   const nodeEnv = process.env.NODE_ENV ?? "development";
+  const supabaseUrl = process.env.SUPABASE_URL;
+  if (supabaseUrl && /\/auth\/v1\/?$/i.test(supabaseUrl.trim())) {
+    // The mailer appends /auth/v1 itself — leaving the suffix doubles the
+    // path and GoTrue 404s invite sends. Normalized automatically, but fix
+    // the env var to the project root (https://<ref>.supabase.co).
+    log.warn("SUPABASE_URL ends in /auth/v1 — strip it to the project root (https://<ref>.supabase.co).");
+  }
   return {
     port: Number(process.env.PORT ?? 4002),
     nodeEnv,
@@ -120,7 +127,7 @@ export function loadConfig(): Config {
     deadlineSweepMs: Number(process.env.DEADLINE_SWEEP_MS ?? 5 * 60 * 1000),
     webhookRetries: Number(process.env.WORKER_WEBHOOK_RETRIES ?? 10),
     logLevel: process.env.LOG_LEVEL ?? "info",
-    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseUrl,
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY,
     googleClientIds: (process.env.GOOGLE_CLIENT_ID ?? "")
