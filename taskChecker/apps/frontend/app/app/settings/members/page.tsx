@@ -28,6 +28,7 @@ import { MemberContextMenu } from "@/components/member-context-menu";
 import { DmChatDialog, type DmPeer } from "@/components/dm-chat-dialog";
 import { PlusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Item24 } from "@/components/ui/item-24";
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -513,6 +514,14 @@ export default function MembersPage() {
               <PlusIcon size={14} /> Invite Member
             </Button>
           </div>
+
+          {/* Solo-workspace nudge — you're the only member, grow the team.
+              Item24 empty-state card; Invite opens the existing invite flow. */}
+          {!membersQ.isLoading && members.length <= 1 && !search.trim() ? (
+            <div className="dir-invite-nudge">
+              <Item24 members={members} onInvite={openInviteModal} />
+            </div>
+          ) : null}
 
           {/* Directory table */}
           <div className="dir-table-wrap">
