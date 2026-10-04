@@ -9,7 +9,7 @@
     "check-types": "turbo run check-types --filter=!TeamFlow"
   },
   "dependencies": {
-    "turbo": "^2.10.12"
+    "turbo": "^2.11.7"
   },
   "devDependencies": {
     "prettier": "3.9.6",
