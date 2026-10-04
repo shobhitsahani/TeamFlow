@@ -26,6 +26,14 @@ declare global {
             opts: { theme?: string; size?: string; width?: number; text?: string; shape?: string },
           ) => void;
           cancel: () => void;
+          /** One-Tap prompt for custom-styled buttons (same ID credential callback). */
+          prompt: (
+            cb?: (n: {
+              isNotDisplayed: () => boolean;
+              isSkippedMoment: () => boolean;
+              isDismissedMoment: () => boolean;
+            }) => void,
+          ) => void;
         };
       };
     };
@@ -82,28 +90,33 @@ export function GoogleSignInButton({
   orgName,
   onError,
   text = "continue_with",
+  variant = "official",
 }: {
   /** Org name for newly provisioned accounts (sign-up form value). */
   orgName?: string;
   onError: (message: string) => void;
   text?: "signin_with" | "signup_with" | "continue_with";
+  /** official = Google-rendered button; custom = app-styled two-line button
+   * (matches the GitHub button) that opens the same One-Tap flow. */
+  variant?: "official" | "custom";
 }) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const router = useRouter();
   const { loginWithGoogle } = useAuth();
   const slotRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
-  const live = useRef({ loginWithGoogle, onError, orgName, text });
+  const live = useRef({ loginWithGoogle, onError, orgName, text, variant });
   useEffect(() => {
-    live.current = { loginWithGoogle, onError, orgName, text };
+    live.current = { loginWithGoogle, onError, orgName, text, variant };
   });
 
   useEffect(() => {
-    if (!clientId || !slotRef.current) return;
+    if (!clientId) return;
+    if (variant === "official" && !slotRef.current) return;
     let cancelled = false;
     loadGsi()
       .then(() => {
-        if (cancelled || !slotRef.current || !window.google) return;
+        if (cancelled || !window.google) return;
         window.google.accounts.id.initialize({
           client_id: clientId,
           auto_select: false,
@@ -128,14 +141,16 @@ export function GoogleSignInButton({
               .finally(() => setBusy(false));
           },
         });
-        slotRef.current.innerHTML = "";
-        window.google.accounts.id.renderButton(slotRef.current, {
-          theme: "outline",
-          size: "large",
-          width: 340,
-          text: live.current.text,
-          shape: "rectangular",
-        });
+        if (live.current.variant === "official" && slotRef.current) {
+          slotRef.current.innerHTML = "";
+          window.google.accounts.id.renderButton(slotRef.current, {
+            theme: "outline",
+            size: "large",
+            width: 340,
+            text: live.current.text,
+            shape: "rectangular",
+          });
+        }
       })
       .catch(() => {
         if (!cancelled) live.current.onError("Could not load Google sign-in. Check your connection and retry.");
@@ -148,7 +163,32 @@ export function GoogleSignInButton({
         /* ignore */
       }
     };
-  }, [clientId, router]);
+  }, [clientId, router, variant]);
+
+  const openOneTap = () => {
+    if (!window.google) {
+      live.current.onError("Could not load Google sign-in. Check your connection and retry.");
+      return;
+    }
+    setBusy(true);
+    try {
+      window.google.accounts.id.prompt((moment) => {
+        // Credential arrives via the initialize callback; these are the dead
+        // ends (origin not allowlisted yet, popup blocked, tap dismissed)
+        // that never will. Naming the origin tells the user exactly which
+        // string belongs in the console's JavaScript origins list.
+        if (moment.isNotDisplayed() || moment.isSkippedMoment() || moment.isDismissedMoment()) {
+          setBusy(false);
+          live.current.onError(
+            `Google sign-in didn't open from ${window.location.origin}. Allowlist that exact origin, or continue with email.`,
+          );
+        }
+      });
+    } catch {
+      setBusy(false);
+      live.current.onError("Google sign-in didn't open. Allow popups, or continue with email.");
+    }
+  };
 
   if (!clientId) {
     return (
@@ -162,6 +202,25 @@ export function GoogleSignInButton({
         <GoogleGlyph />
         Continue with Google (not configured)
       </Button>
+    );
+  }
+
+  if (variant === "custom") {
+    return (
+      <button
+        type="button"
+        onClick={openOneTap}
+        disabled={busy}
+        aria-busy={busy}
+        className="flex items-center justify-center rounded-xl border border-white/10 px-4 py-3 hover:bg-white/5 disabled:opacity-60"
+      >
+        <GoogleGlyph />
+        <span className="ml-2 text-center text-sm font-medium leading-snug text-gray-200">
+          Continue with
+          <br />
+          Google
+        </span>
+      </button>
     );
   }
 

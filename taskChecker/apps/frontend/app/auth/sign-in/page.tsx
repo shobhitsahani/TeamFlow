@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/overlay";
 import { LoginPage, type LoginFormData } from "@/components/ui/sign-in-page";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -34,10 +35,20 @@ export default function SignInPage() {
       error={error}
       onSocial={(provider) =>
         toast({
-          title: `${provider === "google" ? "Google" : "GitHub"} sign-in isn't enabled`,
-          msg: "Ask your workspace admin to configure OAuth, or continue with email.",
+          title: provider === "github" ? "GitHub sign-in isn't supported" : "Google sign-in isn't enabled",
+          msg:
+            provider === "github"
+              ? "This workspace only supports Google — use it or continue with email."
+              : "Ask your workspace admin to configure OAuth, or continue with email.",
         })
       }
+      renderGoogle={() => (
+        <GoogleSignInButton
+          text="signin_with"
+          variant="custom"
+          onError={(message) => toast({ title: "Google sign-in failed", msg: message, kind: "err" })}
+        />
+      )}
       onForgotPassword={() =>
         toast({
           title: "Password reset isn't enabled",
