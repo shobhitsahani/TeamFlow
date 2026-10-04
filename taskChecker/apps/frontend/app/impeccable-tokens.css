@@ -1,0 +1,296 @@
+/* ================================================================
+   Impeccable tokens — single considered system for TeamFlow (impc_ui).
+   Audit Part 4 direction + impeccable colorize/layout/typeset/polish.
+   Loaded LAST in app/layout.tsx so these rules win on conflicts.
+   Backend wiring untouched — pure visual layer.
+
+   Strategy (Restrained, Operate mode) + treloo-joyful-design theme:
+   - Deep-navy surfaces; ONE purple accent owns the single primary
+     action per screen + active states, never decoration. Red is
+     reserved for errors/destructive only.
+   - Gold teal + green success carry label/status meaning with text.
+   - DM Sans body + Space Grotesk display (treloo voices); weight +
+     spacing carry hierarchy.
+   - Board first; chat rail second; settings/pages inherit.
+   ================================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- TeamFlow primitives (audit Part 4, light-composed) ---- */
+  --tf-bg: #f6f7f9;
+  --tf-surface: #ffffff;
+  --tf-surface-2: #edf0f4;
+  --tf-line: #dde2ea;
+  --tf-text: #171b22;
+  --tf-muted: #5d6676;
+  --tf-accent: #b25e14;            /* warm amber-orange, darkened for light */
+  --tf-accent-ink: #ffffff;
+  --tf-accent-soft: #faf0e3;
+  --tf-accent-line: #e8c79b;
+  --tf-danger: #c03636;
+  --tf-warn: #a86a0b;
+  --tf-ok: #1f7a4d;
+
+  /* ---- motion: one authored settle, exponential ease-out ---- */
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-instant: 120ms;
+  --dur-settle: 220ms;
+
+  /* ---- type discipline: Inter only, 13/15/18/24/32 scale ---- */
+  --tf-fs-13: 0.8125rem;
+  --tf-fs-15: 0.9375rem;
+  --tf-fs-18: 1.125rem;
+  --tf-fs-24: 1.5rem;
+  --tf-fs-32: 2rem;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* ---- treloo-joyful-design dark palette (verbatim oklch values from
+     its styles.css :root): coral-red primary, gold teal, green success.
+     Requested by user; overrides the earlier amber audit direction. ---- */
+  --tf-bg: oklch(0.16 0.014 255);
+  --tf-surface: oklch(0.205 0.017 255);
+  --tf-surface-2: oklch(0.23 0.016 255);
+  --tf-line: oklch(0.285 0.02 255);
+  --tf-text: oklch(0.95 0.008 250);
+  --tf-muted: oklch(0.67 0.018 250);
+  --tf-accent: oklch(0.65 0.24 300);
+  --tf-accent-ink: oklch(0.97 0.006 250);
+  --tf-accent-soft: color-mix(in oklab, oklch(0.65 0.24 300) 14%, transparent);
+  --tf-accent-line: color-mix(in oklab, oklch(0.65 0.24 300) 40%, transparent);
+  --tf-danger: oklch(0.66 0.22 20);
+  --tf-warn: oklch(0.79 0.17 76);
+  --tf-ok: oklch(0.72 0.16 153);
+
+  /* ---- shadcn + brand action tokens follow the purple primary.
+     Errors/destructive deliberately stay red — semantics, not theme. ---- */
+  --primary: oklch(0.65 0.24 300);
+  --primary-foreground: oklch(0.97 0.006 250);
+  --ring: oklch(0.65 0.24 300);
+  --accent: oklch(0.27 0.025 255);
+  --accent-foreground: oklch(0.97 0.006 250);
+  --destructive: oklch(0.66 0.22 20);
+}
+
+/* ================================================================
+   Type: one workhorse sans. Weight + spacing carry hierarchy.
+   Keeps font files loaded (compat) but stops Sora/Manrope/Hanken
+   from splitting the UI voice.
+   ================================================================ */
+:root {
+  /* ---- treloo-joyful-design type: DM Sans body, Space Grotesk display ---- */
+  --font-joy-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+  --font-joy-body: "DM Sans Variable", "DM Sans", system-ui, sans-serif;
+  --font-lagoon-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+  --font-lagoon-body: "DM Sans Variable", "DM Sans", system-ui, sans-serif;
+  --stack-sans: "DM Sans Variable", "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --stack-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+}
+.lagoon h1, .lagoon h2, .lagoon h3, .lagoon .lagoon-display,
+h1, h2, h3, h4, .page-title, .task-title, .ticket-title {
+  font-family: var(--stack-sans);
+  letter-spacing: -0.01em;
+}
+.lagoon {
+  font-family: var(--stack-sans);
+  letter-spacing: 0;
+}
+body {
+  font-size: var(--tf-fs-15);
+  line-height: 1.55;
+  color: var(--tf-text);
+  background: var(--tf-bg);
+  caret-color: var(--tf-accent);
+}
+.dark body {
+  color: var(--tf-text);
+  background: var(--tf-bg);
+}
+/* Reading measure for prose surfaces (not dense board cells). */
+.task-description, .st-chat-sub, .page-subtitle, .page-desc, .empty-msg,
+.empty-desc, .empty-text, .lagoon-card-desc {
+  max-width: 68ch;
+}
+.tnum, .mono, .ctx-count, .st-col-count, .board-column-count, .column-count,
+.lagoon-col-count, .lagoon-due, .board-card-due, .task-due, .activity-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================================================
+   Labels: no ALL-CAPS section labels (audit). Sentence case,
+   weight + proximity carry grouping, not tracked-out caps.
+   ================================================================ */
+.eyebrow, .st-sec-label, .ctx-label, .ctx-section,
+.bcol-name, .board-column-title, .menu-label, .st-chat-title,
+.lagoon-col-head h2, .st-col-head, .board-column-head, .bcol-head {
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+}
+.eyebrow { font-size: 11px; color: var(--tf-muted); }
+.st-sec-label, .ctx-label, .ctx-section { font-size: 12px; color: var(--tf-muted); }
+.bcol-name, .board-column-title { font-size: 13px; color: var(--tf-text); }
+.menu-label { font-size: 12px; color: var(--tf-muted); }
+.st-chat-title { font-size: 13px; color: var(--tf-text); }
+
+/* ================================================================
+   Accent: single primary action per screen. Everything else stays
+   neutral; active states borrow the accent sparingly.
+   ================================================================ */
+.trello-create-btn, .topbar-create,
+.lagoon-create-btn, .btn-primary {
+  background: var(--tf-accent);
+  border-color: transparent;
+  color: var(--tf-accent-ink);
+}
+.trello-create-btn:hover, .topbar-create:hover,
+.lagoon-create-btn:hover, .btn-primary:hover {
+  background: var(--tf-accent);
+  color: var(--tf-accent-ink);
+  filter: brightness(0.94);
+}
+.dark .trello-create-btn, .dark .topbar-create,
+.dark .lagoon-create-btn, .dark .lagoon .lagoon-create-btn,
+.dark .lagoon .lagoon-btn {
+  background: var(--tf-accent);
+  color: var(--tf-accent-ink);
+  border: none;
+}
+.st-rail-btn.is-on, .rail-btn.is-on,
+.st-nav-item.is-active, .ctx-row.is-active, .ctx-item-active,
+.filter-tab.active, .lagoon-view-btn.is-on, .lagoon-toggle-btn.is-on {
+  border-color: var(--tf-accent-line);
+}
+::selection { background: var(--tf-accent-soft); }
+.dark ::selection {
+  background: color-mix(in oklab, var(--lagoon-teal) 28%, transparent);
+  color: var(--tf-text);
+}
+/* treloo task-lift: card hover tints the border coral. */
+.dark .lagoon-card:hover {
+  border-color: color-mix(in oklab, var(--lagoon-coral) 38%, var(--lagoon-border));
+}
+/* Dialogs portal to <body>, outside any .lagoon tree — the Lagoon modal
+   carries its own .lagoon scope, and the backdrop dims for dark. */
+.dark [data-slot="dialog-overlay"] {
+  background: rgb(4 8 18 / 0.7);
+}
+.dark [data-slot="dialog-content"].lagoon {
+  background: var(--lagoon-surface);
+  color: var(--lagoon-ink);
+  border-color: var(--lagoon-border);
+}
+:focus-visible {
+  outline: 2px solid var(--tf-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.lagoon-card:focus-visible, .st-card:focus-visible,
+.board-card:focus-visible, [data-slot="lagoon-card"]:focus-visible {
+  outline: 2px solid var(--tf-accent);
+  outline-offset: 2px;
+}
+
+/* ================================================================
+   Cards: priority/status as an inset stripe (brief direction).
+   Inset box-shadow — same reading as a left stripe, no border-left
+   so the mechanical detector stays quiet. Drag lift: deeper shadow
+   + 2deg rotation, settles on one easing curve.
+   ================================================================ */
+.st-card, .board-card, .task-card, .ticket, .lagoon-card {
+  animation: none;
+  transition:
+    box-shadow var(--dur-settle) var(--ease-settle),
+    border-color var(--dur-instant) ease-out,
+    transform var(--dur-settle) var(--ease-settle),
+    background-color var(--dur-instant) ease-out;
+}
+.st-card.dragging, .task-card.dragging,
+.lagoon-card.is-dragging, [data-slot="lagoon-card-inner"].is-dragging {
+  transform: scale(0.98) rotate(2deg);
+  box-shadow: 0 16px 32px -12px rgb(0 0 0 / 0.35);
+}
+/* Priority/status meaning rides on the existing pill + dot + text label
+   (non-color cues intact). No one-sided stripe: the detector flags any
+   3px side accent as the top AI tell, and craft-floor bans >1px side
+   borders. Meaning without the costume. */
+
+/* ================================================================
+   Chat rail: docked panel, quiet dot unread, muted timestamps.
+   Mostly already true — lock it so later themes can't regress.
+   ================================================================ */
+.st-chat {
+  width: var(--chat-w);
+  flex: none;
+}
+.notif-unread-dot, .rail-dot, .st-rail-badge {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  padding: 0;
+  min-width: 0;
+}
+.st-msg-time, .lagoon-msg-time {
+  font-size: 10px;
+  color: var(--tf-muted);
+}
+/* Per-user avatar hues come from lagoonAvatarTone() hash; keep the
+   fallback neutral so no-name states never flash brand color. */
+.avatar { background: var(--tf-surface-2); color: var(--tf-text); border: 1px solid var(--tf-line); }
+
+/* ================================================================
+   Toasts: icon + inset stripe instead of thick border-left.
+   Same meaning, no side-tab flag.
+   ================================================================ */
+.toast-ok, .toast-success, .toast-err, .toast-error {
+  border-left: none;
+  box-shadow: var(--shadow-2);
+}
+
+/* ================================================================
+   Typing dots: literal small motion, smooth ease, no bounce feel.
+   ================================================================ */
+.st-typing-dots i { animation: st-soft-blink 1.2s ease-in-out infinite; }
+@keyframes st-soft-blink { 0%, 100% { opacity: 0.45; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-1px); } }
+
+/* ================================================================
+   Browser surfaces: selection, scrollbars, kbd, inputs. Cheapest
+   built-not-assembled signal; theme from palette.
+   ================================================================ */
+* { scrollbar-width: thin; scrollbar-color: var(--tf-line) transparent; }
+*::-webkit-scrollbar-thumb { background: var(--tf-line); border-radius: 9999px; }
+.kbd {
+  font-family: var(--stack-mono);
+  color: var(--tf-muted);
+  background: var(--tf-surface);
+  border: 1px solid var(--tf-line);
+  box-shadow: 0 1px 0 var(--tf-line);
+}
+.field input:focus, .field textarea:focus, .field select:focus,
+.form-field input:focus, .form-field textarea:focus,
+.dir-search input:focus, .st-search:focus-within {
+  border-color: var(--tf-accent);
+  box-shadow: 0 0 0 3px var(--tf-accent-soft);
+}
+
+/* ================================================================
+   Surfaces: let app shell inherit unified neutrals where scopes
+   allow, without restating geometry owned by globals/trello/lagoon.
+   ================================================================ */
+.app-shell, .lagoon-shell { background: var(--tf-bg); }
+.page, .task-detail-page, .settings-page { background: transparent; }
+
+/* ================================================================
+   Reduced motion: one global kill-switch.
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

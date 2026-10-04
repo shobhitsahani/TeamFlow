@@ -246,7 +246,7 @@ export function LagoonShell({
                 <TooltipContent>Close menu</TooltipContent>
               </Tooltip>
             </div>
-            {/* Account menu — shadcn Avatar + DropdownMenu over the ocean
+            {/* Account menu — shadcn Avatar + DropdownMenu over the purple
                 trigger. Same destinations as the /app shell menu (settings,
                 notifications, sign out); no new behavior besides the menu. */}
             <DropdownMenu modal={false}>
@@ -266,7 +266,7 @@ export function LagoonShell({
                     width: 24,
                     height: 24,
                     borderRadius: 8,
-                    background: "var(--lagoon-coral)",
+                    background: "var(--lagoon-purple)",
                     fontSize: 10,
                     fontWeight: 700,
                     flex: "none",
@@ -387,7 +387,7 @@ export function LagoonShell({
                         width: 8,
                         height: 8,
                         borderRadius: 9999,
-                        background: "var(--lagoon-teal)",
+                        background: "var(--lagoon-gold)",
                         flex: "none",
                       }}
                     />
@@ -467,7 +467,7 @@ export function LagoonShell({
                       size="sm"
                       onClick={() => setNewBoardOpen(true)}
                       className="lagoon-new-board-btn w-[calc(100%-24px)] justify-center"
-                      style={{ background: "var(--lagoon-coral)", color: "#fff" }}
+                      style={{ background: "var(--lagoon-purple)", color: "#fff" }}
                     />
                   }
                 >

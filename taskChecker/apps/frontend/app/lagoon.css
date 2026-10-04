@@ -27,20 +27,20 @@
   color-scheme: light;
 }
 
-/* Dark treatments — same roles, lifted surfaces, lightened tones so
-   label pills, due badges and counts keep contrast on dark cards. */
+/* Dark treatments — treloo-joyful-design palette, with the red primary
+   swapped to purple per user request (errors stay red elsewhere). */
 .dark .lagoon {
-  --lagoon-background: oklch(0.235 0.018 250);
-  --lagoon-card: oklch(0.29 0.022 252);
-  --lagoon-muted: oklch(0.345 0.025 252);
-  --lagoon-muted-fg: oklch(0.74 0.035 245);
-  --lagoon-border: oklch(0.42 0.035 250);
-  --lagoon-ocean: oklch(0.72 0.115 245);
-  --lagoon-teal: oklch(0.78 0.1 190);
-  --lagoon-coral: oklch(0.74 0.14 25);
-  --lagoon-surface: oklch(0.235 0.018 250);
-  --lagoon-ink: oklch(0.93 0.012 250);
-  --lagoon-success: oklch(0.72 0.12 160);
+  --lagoon-background: oklch(0.16 0.014 255);
+  --lagoon-card: oklch(0.205 0.017 255);
+  --lagoon-muted: oklch(0.23 0.016 255);
+  --lagoon-muted-fg: oklch(0.67 0.018 250);
+  --lagoon-border: oklch(0.285 0.02 255);
+  --lagoon-ocean: oklch(0.65 0.24 300);
+  --lagoon-teal: oklch(0.79 0.17 76);
+  --lagoon-coral: oklch(0.72 0.17 160);
+  --lagoon-surface: oklch(0.16 0.014 255);
+  --lagoon-ink: oklch(0.95 0.008 250);
+  --lagoon-success: oklch(0.72 0.16 153);
   --lagoon-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --lagoon-shadow-md: 0 12px 28px -12px rgb(0 0 0 / 0.6);
   --lagoon-shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 0.65);

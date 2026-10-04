@@ -5,9 +5,10 @@
 
 import type { Priority } from "@/lib/utils";
 
-export type LagoonTone = "teal" | "coral" | "ocean";
+/* Tone names match the actual hues: gold, green, purple. */
+export type LagoonTone = "gold" | "green" | "purple";
 
-export const LAGOON_TONES: LagoonTone[] = ["teal", "coral", "ocean"];
+export const LAGOON_TONES: LagoonTone[] = ["gold", "green", "purple"];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -16,11 +17,11 @@ export function toneForPriority(priority: Priority): LagoonTone | null {
   switch (priority) {
     case "critical":
     case "high":
-      return "coral";
+      return "green";
     case "medium":
-      return "ocean";
+      return "purple";
     case "low":
-      return "teal";
+      return "gold";
     default:
       return null;
   }
@@ -57,9 +58,16 @@ function readMeta(taskId: string): LagoonTaskMeta {
     return {
       label: typeof parsed.label === "string" ? parsed.label : undefined,
       tone:
-        parsed.tone === "teal" || parsed.tone === "coral" || parsed.tone === "ocean"
+        parsed.tone === "gold" || parsed.tone === "green" || parsed.tone === "purple"
           ? parsed.tone
-          : undefined,
+          : // Migrate pre-rename overrides to their same-hue successors.
+            parsed.tone === "teal"
+            ? "gold"
+            : parsed.tone === "coral"
+              ? "green"
+              : parsed.tone === "ocean"
+                ? "purple"
+                : undefined,
       checklist: Array.isArray(parsed.checklist)
         ? parsed.checklist.filter(
             (c): c is LagoonCheckItem =>
@@ -117,7 +125,7 @@ export function effectiveLabel(
 ): { text: string; tone: LagoonTone } | null {
   const text = meta.label !== undefined ? meta.label : defaultLabelForPriority(priority);
   if (!text || !text.trim()) return null;
-  const tone = meta.tone ?? toneForPriority(priority) ?? "ocean";
+  const tone = meta.tone ?? toneForPriority(priority) ?? "purple";
   return { text: text.trim(), tone };
 }
 

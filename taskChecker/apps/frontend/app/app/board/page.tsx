@@ -35,6 +35,7 @@ import { useSWR } from "@/lib/swr";
 import { useUpdateTask } from "@/lib/mutations";
 import { AnimatePresence, DUR, LAYOUT_SPRING, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -1153,6 +1154,7 @@ function LagoonBoard() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <ThemeToggle id="board-theme-mode" showLabel={false} />
           <Button
             type="button"
             size="sm"
