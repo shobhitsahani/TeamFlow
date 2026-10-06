@@ -4,30 +4,30 @@
    Loaded LAST in app/layout.tsx so these rules win on conflicts.
    Backend wiring untouched — pure visual layer.
 
-   Strategy (Restrained, Operate mode) + treloo-joyful-design theme:
-   - Deep-navy surfaces; ONE purple accent owns the single primary
-     action per screen + active states, never decoration. Red is
-     reserved for errors/destructive only.
-   - Gold teal + green success carry label/status meaning with text.
-   - DM Sans body + Space Grotesk display (treloo voices); weight +
-     spacing carry hierarchy.
+   Strategy (Restrained, Operate mode) + Trello-blue incumbent world:
+   - Trello blue #0c66e4 owns the single primary action per screen +
+     active states, never decoration. Red is reserved for
+     errors/destructive only.
+   - Gold + green carry label/status meaning with text labels.
+   - Inter UI body + Hanken Grotesk display + JetBrains Mono data
+     (globals UNIFIED GRAMMAR); weight + spacing carry hierarchy.
    - Board first; chat rail second; settings/pages inherit.
    ================================================================ */
 
 :root {
   color-scheme: light;
 
-  /* ---- TeamFlow primitives (audit Part 4, light-composed) ---- */
+  /* ---- TeamFlow primitives (Trello-blue unified, light) ---- */
   --tf-bg: #f6f7f9;
   --tf-surface: #ffffff;
   --tf-surface-2: #edf0f4;
   --tf-line: #dde2ea;
   --tf-text: #171b22;
   --tf-muted: #5d6676;
-  --tf-accent: #b25e14;            /* warm amber-orange, darkened for light */
+  --tf-accent: #0c66e4;            /* Trello blue — single primary action */
   --tf-accent-ink: #ffffff;
-  --tf-accent-soft: #faf0e3;
-  --tf-accent-line: #e8c79b;
+  --tf-accent-soft: #e9f2ff;
+  --tf-accent-line: #85b8ff;
   --tf-danger: #c03636;
   --tf-warn: #a86a0b;
   --tf-ok: #1f7a4d;
@@ -48,46 +48,45 @@
 .dark {
   color-scheme: dark;
 
-  /* ---- treloo-joyful-design dark palette (verbatim oklch values from
-     its styles.css :root): coral-red primary, gold teal, green success.
-     Requested by user; overrides the earlier amber audit direction. ---- */
+  /* ---- Trello-blue dark scale (matches globals .dark primary
+     #579dff): blue primary, red errors stay red — semantics, not theme. ---- */
   --tf-bg: oklch(0.16 0.014 255);
   --tf-surface: oklch(0.205 0.017 255);
   --tf-surface-2: oklch(0.23 0.016 255);
   --tf-line: oklch(0.285 0.02 255);
   --tf-text: oklch(0.95 0.008 250);
   --tf-muted: oklch(0.67 0.018 250);
-  --tf-accent: oklch(0.65 0.24 300);
-  --tf-accent-ink: oklch(0.97 0.006 250);
-  --tf-accent-soft: color-mix(in oklab, oklch(0.65 0.24 300) 14%, transparent);
-  --tf-accent-line: color-mix(in oklab, oklch(0.65 0.24 300) 40%, transparent);
+  --tf-accent: #579dff;
+  --tf-accent-ink: #1d2125;
+  --tf-accent-soft: #09326c;
+  --tf-accent-line: #388bff;
   --tf-danger: oklch(0.66 0.22 20);
   --tf-warn: oklch(0.79 0.17 76);
   --tf-ok: oklch(0.72 0.16 153);
 
-  /* ---- shadcn + brand action tokens follow the purple primary.
+  /* ---- shadcn + brand action tokens follow the Trello-blue primary.
      Errors/destructive deliberately stay red — semantics, not theme. ---- */
-  --primary: oklch(0.65 0.24 300);
-  --primary-foreground: oklch(0.97 0.006 250);
-  --ring: oklch(0.65 0.24 300);
+  --primary: #579dff;
+  --primary-foreground: #1d2125;
+  --ring: #579dff;
   --accent: oklch(0.27 0.025 255);
   --accent-foreground: oklch(0.97 0.006 250);
   --destructive: oklch(0.66 0.22 20);
 }
 
 /* ================================================================
-   Type: one workhorse sans. Weight + spacing carry hierarchy.
-   Keeps font files loaded (compat) but stops Sora/Manrope/Hanken
-   from splitting the UI voice.
+   Type: Inter UI + Hanken Grotesk display + JetBrains Mono data.
+   Matches globals UNIFIED GRAMMAR. Font files stay loaded (compat)
+   but Sora/Manrope/Space-Grotesk/DM-Sans no longer split the UI voice.
    ================================================================ */
 :root {
-  /* ---- treloo-joyful-design type: DM Sans body, Space Grotesk display ---- */
-  --font-joy-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
-  --font-joy-body: "DM Sans Variable", "DM Sans", system-ui, sans-serif;
-  --font-lagoon-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
-  --font-lagoon-body: "DM Sans Variable", "DM Sans", system-ui, sans-serif;
-  --stack-sans: "DM Sans Variable", "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --stack-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+  /* ---- unified type voices (see globals --stack-* aliases) ---- */
+  --font-joy-display: "Hanken Grotesk Variable", "Hanken Grotesk", "Inter", system-ui, sans-serif;
+  --font-joy-body: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-lagoon-display: "Hanken Grotesk Variable", "Hanken Grotesk", "Inter", system-ui, sans-serif;
+  --font-lagoon-body: "Inter Variable", "Inter", system-ui, sans-serif;
+  --stack-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --stack-display: "Hanken Grotesk Variable", "Hanken Grotesk", "Inter", system-ui, sans-serif;
 }
 .lagoon h1, .lagoon h2, .lagoon h3, .lagoon .lagoon-display,
 h1, h2, h3, h4, .page-title, .task-title, .ticket-title {
@@ -166,12 +165,12 @@ body {
 }
 ::selection { background: var(--tf-accent-soft); }
 .dark ::selection {
-  background: color-mix(in oklab, var(--lagoon-teal) 28%, transparent);
+  background: color-mix(in oklab, var(--lagoon-gold) 28%, transparent);
   color: var(--tf-text);
 }
 /* treloo task-lift: card hover tints the border coral. */
 .dark .lagoon-card:hover {
-  border-color: color-mix(in oklab, var(--lagoon-coral) 38%, var(--lagoon-border));
+  border-color: color-mix(in oklab, var(--lagoon-purple) 38%, var(--lagoon-border));
 }
 /* Dialogs portal to <body>, outside any .lagoon tree — the Lagoon modal
    carries its own .lagoon scope, and the backdrop dims for dark. */

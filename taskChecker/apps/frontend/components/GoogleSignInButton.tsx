@@ -105,6 +105,9 @@ export function GoogleSignInButton({
   const { loginWithGoogle } = useAuth();
   const slotRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+  /** Set the moment a credential arrives — a later "dismissed" prompt moment
+   * is just One-Tap closing after success, not a failure. Reset per attempt. */
+  const credentialSeen = useRef(false);
   const live = useRef({ loginWithGoogle, onError, orgName, text, variant });
   useEffect(() => {
     live.current = { loginWithGoogle, onError, orgName, text, variant };
@@ -127,6 +130,7 @@ export function GoogleSignInButton({
               live.current.onError("Google sign-in was cancelled. Try again.");
               return;
             }
+            credentialSeen.current = true;
             setBusy(true);
             const org = live.current.orgName?.trim();
             live.current
@@ -170,9 +174,13 @@ export function GoogleSignInButton({
       live.current.onError("Could not load Google sign-in. Check your connection and retry.");
       return;
     }
+    credentialSeen.current = false;
     setBusy(true);
     try {
       window.google.accounts.id.prompt((moment) => {
+        // A credential already in flight means this dismissal is One-Tap
+        // closing after success — never an error.
+        if (credentialSeen.current) return;
         // Credential arrives via the initialize callback; these are the dead
         // ends (origin not allowlisted yet, popup blocked, tap dismissed)
         // that never will. Naming the origin tells the user exactly which
@@ -215,7 +223,7 @@ export function GoogleSignInButton({
         className="flex items-center justify-center rounded-xl border border-white/10 px-4 py-3 hover:bg-white/5 disabled:opacity-60"
       >
         <GoogleGlyph />
-        <span className="ml-2 text-center text-sm font-medium leading-snug text-gray-200">
+        <span className="ml-2 text-center text-sm font-medium leading-snug text-slate-800 dark:text-gray-200">
           Continue with
           <br />
           Google

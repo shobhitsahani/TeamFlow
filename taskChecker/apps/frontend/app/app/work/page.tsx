@@ -4,7 +4,7 @@ import { useMemo, memo, startTransition, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/store";
-import { AppShell } from "@/components/app-shell";
+import { LagoonShell } from "@/components/lagoon/LagoonShell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconFile, IconClock, IconSearch, IconPlus } from "@/components/icons";
@@ -53,12 +53,17 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
       <Link
         href={`/app/tasks/${task.id}`}
         className="task-card trello-card"
-        style={{ display: "block", borderLeft: `3px solid ${PRIORITY_COLORS[task.priority] ?? "var(--muted)"}` }}
+        style={{ display: "block", border: "1px solid var(--border-subtle)", boxShadow: `inset 3px 0 0 0 ${PRIORITY_COLORS[task.priority] ?? "var(--muted)"}` }}
         title={task.priority !== "none" ? `Priority: ${task.priority}` : undefined}
       >
         <h3 className="trello-card-title">{task.title}</h3>
         <div className="trello-card-badges">
           <span style={{ fontSize: 11, color: "var(--slate-500)" }}>{STATUS_LABEL[task.status] ?? task.status}</span>
+          {task.priority !== "none" ? (
+            <span className="trello-prio tabular-nums" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--slate-600)" }}>
+              {task.priority}
+            </span>
+          ) : null}
           {task.dueAt ? (
             <span
               className={cx("trello-due tabular-nums", overdue && "is-overdue", task.status === "done" && "is-done")}
@@ -138,7 +143,14 @@ export default function WorkPage() {
   };
 
   return (
-    <AppShell>
+    <LagoonShell
+      projects={projects}
+      activeProjectId=""
+      onSelectProject={(id) => router.push(`/app/board?project=${id}`)}
+      onProjectsChanged={() => projectsQ.mutate()}
+    >
+      <div className="lagoon-dash" style={{ overflowY: "auto" }}>
+        <div className="lagoon-dash-inner">
       <PageEnter className="page">
         <motion.header
           className="page-header"
@@ -208,7 +220,9 @@ export default function WorkPage() {
           )}
         </div>
       </PageEnter>
-    </AppShell>
+        </div>
+      </div>
+    </LagoonShell>
   );
 }
 

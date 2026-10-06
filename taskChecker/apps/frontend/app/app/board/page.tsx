@@ -8,7 +8,7 @@
 import { Suspense, memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LagoonShell, useLagoonChrome } from "@/components/lagoon/LagoonShell";
-import { LagoonCalendar } from "@/components/lagoon/LagoonCalendar";
+import { EventManager, type CalendarEvent } from "@/components/ui/event-manager";
 import { LagoonCardModal } from "@/components/lagoon/LagoonCardModal";
 import {
   IconBell,
@@ -78,9 +78,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 /* Joyful column dots — Lagoon backlog teal / progress ocean / review coral. */
 const STATUS_DOT: Record<string, string> = {
-  backlog: "var(--lagoon-teal)",
-  todo: "var(--lagoon-ocean)",
-  in_progress: "var(--lagoon-coral)",
+  backlog: "var(--lagoon-gold)",
+  todo: "var(--lagoon-purple)",
+  in_progress: "var(--lagoon-green)",
   done: "var(--lagoon-success)",
 };
 
@@ -856,6 +856,80 @@ function LagoonBoard() {
     [tasksQ, toast, restoreOpenerFocus],
   );
 
+  /** Calendar view: tasks with due dates become draggable events. */
+  const calendarEvents = useMemo<CalendarEvent[]>(
+    () =>
+      flatTasks
+        .filter((t) => t.dueAt)
+        .map((t) => {
+          const start = new Date(t.dueAt as string);
+          const color =
+            t.priority === "critical"
+              ? "red"
+              : t.priority === "high"
+                ? "orange"
+                : t.priority === "medium"
+                  ? "blue"
+                  : t.priority === "low"
+                    ? "green"
+                    : "purple";
+          return {
+            id: t.id,
+            title: t.title,
+            description: t.description ?? undefined,
+            startTime: start,
+            endTime: new Date(start.getTime() + 3600000),
+            color,
+            category: labelFor(t.status),
+            tags: [t.priority],
+          };
+        }),
+    [flatTasks, labelFor],
+  );
+
+  const handleCalCreate = useCallback(
+    async (ev: Omit<CalendarEvent, "id">) => {
+      if (!selectedProjectId) return;
+      try {
+        await api.tasks.create({
+          projectId: selectedProjectId,
+          title: ev.title,
+          description: ev.description,
+          status: "backlog",
+          dueAt: ev.startTime.toISOString(),
+        });
+        await tasksQ.mutate();
+        toast({ title: "Event created", msg: `"${ev.title}" added to the board.` });
+      } catch (err) {
+        toast({ title: "Create failed", msg: err instanceof Error ? err.message : "Try again." });
+      }
+    },
+    [selectedProjectId, tasksQ, toast],
+  );
+
+  const handleCalUpdate = useCallback(
+    async (id: string, patch: Partial<CalendarEvent>) => {
+      const next: Partial<Task> = {};
+      if (patch.title !== undefined) next.title = patch.title;
+      if (patch.description !== undefined) next.description = patch.description;
+      if (patch.startTime !== undefined) next.dueAt = (patch.startTime as Date).toISOString();
+      try {
+        await patchTask(id, next);
+      } catch (err) {
+        toast({ title: "Reschedule failed", msg: err instanceof Error ? err.message : "Try again." });
+      }
+    },
+    [patchTask, toast],
+  );
+
+  const handleCalDelete = useCallback(
+    async (id: string) => {
+      const target = projectTasks.find((t) => t.id === id);
+      if (target) await handleDeleteTask(target);
+    },
+    [projectTasks, handleDeleteTask],
+  );
+
   const openCard = useCallback((task: Task) => {
     // Remember the trigger so focus can return to the exact card/row/chip
     // on close (Base UI has no Trigger here to return to on its own).
@@ -1006,12 +1080,12 @@ function LagoonBoard() {
           </TooltipTrigger>
           <TooltipContent>Menu</TooltipContent>
         </Tooltip>
-        <span style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-teal)", flex: "none" }} />
+        <span style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-gold)", flex: "none" }} />
         <div style={{ minWidth: 0 }}>
           <h1 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {selectedProject?.name ?? "Board"}
           </h1>
-          <p className="lagoon-sub">{org?.name ?? "Workspace"} · updated just now</p>
+          <p className="lagoon-sub">{org?.name ?? "Workspace"}</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
           <InputGroup variant="search" className="lagoon-search hidden min-w-0 sm:flex sm:w-56" data-lagoon-desktop-search>
@@ -1134,7 +1208,7 @@ function LagoonBoard() {
               <span className="relative inline-flex">
                 <IconMoreHorizontal size={18} />
                 {unread > 0 ? (
-                  <Badge className="absolute top-0 right-0 border-0 p-0" style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-coral)", padding: 0 }}>
+                  <Badge className="absolute top-0 right-0 border-0 p-0" style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-green)", padding: 0 }}>
                     <span className="sr-only">{unread} unread notifications</span>
                   </Badge>
                 ) : null}
@@ -1155,19 +1229,23 @@ function LagoonBoard() {
             </DropdownMenuContent>
           </DropdownMenu>
           <ThemeToggle id="board-theme-mode" showLabel={false} />
-          <Button
-            type="button"
-            size="sm"
-            className="lagoon-create-btn border-0"
-            onClick={() => {
-              setComposerText("");
-              setComposerFor(columns[0]?.status ?? "backlog");
-              setView("board");
-            }}
-            disabled={!selectedProjectId || !user}
-          >
-            <IconPlus size={14} /> <span data-lagoon-create-label>Create</span>
-          </Button>
+          {/* Calendar view owns creation via the EventManager's New Event
+              action — one primary CTA per screen, never two side by side. */}
+          {view !== "calendar" ? (
+            <Button
+              type="button"
+              size="sm"
+              className="lagoon-create-btn border-0"
+              onClick={() => {
+                setComposerText("");
+                setComposerFor(columns[0]?.status ?? "backlog");
+                setView("board");
+              }}
+              disabled={!selectedProjectId || !user}
+            >
+              <IconPlus size={14} /> <span data-lagoon-create-label>Create</span>
+            </Button>
+          ) : null}
         </div>
       </header>
 
@@ -1235,7 +1313,7 @@ function LagoonBoard() {
 
       {tasksQ.error && selectedProjectId ? (
         <div style={{ padding: "12px 20px 0" }} role="alert">
-          <p style={{ fontSize: 12, color: "var(--lagoon-coral)" }}>
+          <p style={{ fontSize: 12, color: "var(--lagoon-green)" }}>
             Couldn&apos;t load cards: {tasksQ.error instanceof Error ? tasksQ.error.message : "Something went wrong."}{" "}
             <Button
               type="button"
@@ -1400,13 +1478,15 @@ function LagoonBoard() {
         </div>
       ) : (
         <div className="lagoon-list-wrap">
-          <LagoonCalendar
-            tasks={flatTasks}
-            projectLabel={selectedProject ? `${selectedProject.name} (${selectedProject.key})` : ""}
-            today={today}
-            metaTick={metaTick}
-            memberName={memberName}
-            onOpen={openCard}
+          <EventManager
+            key={`${selectedProjectId}-${projectTasks.length}`}
+            events={calendarEvents}
+            onEventCreate={handleCalCreate}
+            onEventUpdate={handleCalUpdate}
+            onEventDelete={handleCalDelete}
+            categories={STATUS_ORDER.map((s) => labelFor(s))}
+            availableTags={["critical", "high", "medium", "low"]}
+            defaultView="month"
           />
         </div>
       )}

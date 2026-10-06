@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo, memo, useEffect, useRef } from "react";
+import { useState, useMemo, memo, useEffect, useRef, type ComponentProps } from "react";
+import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/store";
+import { LagoonShell } from "@/components/lagoon/LagoonShell";
 import { useRealtime } from "@/lib/realtime";
 import { Modal, ConfirmDialog, useToast } from "@/components/overlay";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { AppShell } from "@/components/app-shell";
 import {
   IconPlus,
   IconSearch,
@@ -248,6 +249,7 @@ const MemberRow = memo(function MemberRow({
 
 export default function MembersPage() {
   const { org } = useTenant();
+  const router = useRouter();
   const { user } = useAuth();
   const toast = useToast();
   const orgId = getCurrentTenantId();
@@ -272,6 +274,15 @@ export default function MembersPage() {
   const membersQ = useSWR<{ members: Member[] }>(
     orgId ? `members-${orgId}` : null,
     () => api.orgs.listMembers(orgId!),
+  );
+  // Boards list for the purple Lagoon sidebar (same chrome as board/projects).
+  const projectsQ = useSWR<{ projects: Array<{ id: string; name: string; key: string }> }>(
+    orgId ? `members-projects-${orgId}` : null,
+    () => api.projects.list(orgId!) as unknown as Promise<{ projects: Array<{ id: string; name: string; key: string }> }>,
+  );
+  const sidebarProjects = useMemo(
+    () => (projectsQ.data?.projects ?? []) as unknown as ComponentProps<typeof LagoonShell>["projects"],
+    [projectsQ.data],
   );
   const members = useMemo(() => membersQ.data?.members ?? [], [membersQ.data]);
   const currentUser = useMemo(
@@ -475,8 +486,14 @@ export default function MembersPage() {
   };
 
   return (
-    <AppShell>
-      <div className="page">
+    <LagoonShell
+      projects={sidebarProjects}
+      activeProjectId=""
+      onSelectProject={(id) => router.push(`/app/board?project=${id}`)}
+      onProjectsChanged={() => projectsQ.mutate()}
+    >
+      <div className="lagoon-dash" style={{ overflowY: "auto" }}>
+        <div className="lagoon-dash-inner">
         <div className="dir-card">
           {/* Header — Stitch "Tenant Members & Team Directory" */}
           <div className="dir-head">
@@ -794,7 +811,9 @@ export default function MembersPage() {
             </div>
           </Modal>
         )}
+        </div>
+        </div>
       </div>
-    </AppShell>
+    </LagoonShell>
   );
 }
