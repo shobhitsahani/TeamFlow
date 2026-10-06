@@ -1333,7 +1333,7 @@ function LagoonBoard() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <CinematicThemeSwitcher />
+          <CinematicThemeSwitcher size="sm" />
           {/* Calendar view owns creation via the EventManager's New Event
               action — one primary CTA per screen, never two side by side. */}
           {view !== "calendar" ? (

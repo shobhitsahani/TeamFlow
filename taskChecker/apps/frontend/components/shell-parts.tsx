@@ -786,7 +786,7 @@ export function ScopeStrip({
       <PaletteSearchTrigger onOpen={onOpenPalette} />
 
       <div className="topbar-right">
-        <CinematicThemeSwitcher />
+        <CinematicThemeSwitcher size="sm" />
         <Link href="/app/board" className={buttonVariants({ variant: "default", size: "sm" }) + " trello-create-btn"}>
           <IconPlus size={14} /><span className="trello-create-label">Create</span>
         </Link>

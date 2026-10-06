@@ -18,8 +18,12 @@ interface Particle {
  * uses `useTheme` from `@/components/theme-provider` instead of
  * `next-themes`, so there is exactly one theme store. Drop-in anywhere a
  * `ThemeToggle` is used, e.g. the board header or the app-shell topbar.
+ *
+ * `size="sm"` renders the same switch scaled into a 62x38 header slot via
+ * a measured transform wrapper (layout box stays header-sized, visuals
+ * scale uniformly). `size="md"` is the full 104x64 original.
  */
-export function CinematicThemeSwitcher() {
+export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) {
   const { theme, setTheme } = useTheme();
 
   // State Management
@@ -67,16 +71,19 @@ export function CinematicThemeSwitcher() {
     setTheme(isDark ? 'light' : 'dark');
   };
 
-  // Prevent hydration mismatch - show placeholder during SSR
+  // Prevent hydration mismatch - show placeholder during SSR (sized to match).
   if (!mounted) {
     return (
       <div className="relative inline-block">
-        <div className="relative flex h-[64px] w-[104px] items-center rounded-full bg-gray-200 p-1" />
+        <div
+          className="relative flex items-center rounded-full bg-gray-200 p-1"
+          style={size === "sm" ? { width: 62, height: 38 } : { width: 104, height: 64 }}
+        />
       </div>
     );
   }
 
-  return (
+  const core = (
     <div className="relative inline-block">
         {/* SVG Filter for Film Grain Texture */}
         <svg className="absolute w-0 h-0">
@@ -306,6 +313,18 @@ export function CinematicThemeSwitcher() {
           </div>
         </motion.div>
       </motion.button>
+    </div>
+  );
+
+  if (size === "md") return core;
+
+  // Header slot: fixed 62x38 layout box, visuals uniformly scaled so the
+  // switch sits centered on the header row instead of overflowing it.
+  return (
+    <div style={{ width: 62, height: 38, display: "grid", placeItems: "center", flex: "none" }}>
+      <div style={{ width: 104, height: 64, transform: "scale(0.58)", transformOrigin: "center" }}>
+        {core}
+      </div>
     </div>
   );
 }
