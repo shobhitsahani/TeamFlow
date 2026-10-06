@@ -809,7 +809,6 @@ export default function MembersPage() {
           </Modal>
         )}
         </div>
-        </div>
       </div>
     </LagoonShell>
   );
