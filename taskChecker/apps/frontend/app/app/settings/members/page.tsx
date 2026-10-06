@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, memo, useEffect, useRef, type ComponentProps } from "react";
+import { useState, useMemo, memo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/store";
 import { LagoonShell } from "@/components/lagoon/LagoonShell";
@@ -21,7 +21,7 @@ import {
   IconClock,
   IconMessageSquare,
 } from "@/components/icons";
-import { api, getCurrentTenantId, type Role } from "@/lib/api";
+import { api, getCurrentTenantId, type Project, type Role } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSWR } from "@/lib/swr";
 import { cx, hueFrom } from "@/lib/utils";
@@ -276,14 +276,11 @@ export default function MembersPage() {
     () => api.orgs.listMembers(orgId!),
   );
   // Boards list for the purple Lagoon sidebar (same chrome as board/projects).
-  const projectsQ = useSWR<{ projects: Array<{ id: string; name: string; key: string }> }>(
+  const projectsQ = useSWR<{ projects: Project[] }>(
     orgId ? `members-projects-${orgId}` : null,
-    () => api.projects.list(orgId!) as unknown as Promise<{ projects: Array<{ id: string; name: string; key: string }> }>,
+    () => api.projects.list(orgId!),
   );
-  const sidebarProjects = useMemo(
-    () => (projectsQ.data?.projects ?? []) as unknown as ComponentProps<typeof LagoonShell>["projects"],
-    [projectsQ.data],
-  );
+  const sidebarProjects = useMemo(() => projectsQ.data?.projects ?? [], [projectsQ.data]);
   const members = useMemo(() => membersQ.data?.members ?? [], [membersQ.data]);
   const currentUser = useMemo(
     () => members.find((m) => m.userId === user?.id),
