@@ -35,7 +35,7 @@ import { useSWR } from "@/lib/swr";
 import { useUpdateTask } from "@/lib/mutations";
 import { AnimatePresence, DUR, LAYOUT_SPRING, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { CinematicThemeSwitcher } from "@/components/ui/cinematic-theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -185,7 +185,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
           setMoveOpen(true);
         }
       }}
-      initial={{ opacity: 0, y: 8 }}
+      initial={layoutReady ? { opacity: 0, y: 8 } : false}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: DUR.fast, ease: "easeOut" }}
@@ -193,7 +193,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
     >
     <Card
       data-slot="lagoon-card-inner"
-      className={cx("lagoon-card cursor-grab transition-[box-shadow,border-color] hover:-translate-y-0.5", dragging && "is-dragging opacity-45", isDone && "is-done opacity-70")}
+      className={cx("lagoon-card cursor-grab", dragging && "is-dragging opacity-45", isDone && "is-done opacity-70")}
     >
       {label ? (
         <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)}>{label.text}</Badge>
@@ -209,6 +209,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
         <TooltipContent>{task.title}</TooltipContent>
       </Tooltip>
       {task.description ? <p className="lagoon-card-desc mt-1 line-clamp-2 text-[11px]">{task.description}</p> : null}
+      {assigneeName || due || meta.checklist.length > 0 || isDone || canWrite ? (
       <div className="lagoon-card-foot mt-3 flex min-h-6 items-center gap-2">
         {assigneeName ? (
           <Avatar size="sm" title={assigneeName} style={{ background: lagoonAvatarTone(task.assigneeId ?? "?") }}>
@@ -309,6 +310,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
           ) : null}
         </span>
       </div>
+      ) : null}
     </Card>
     </motion.div>
   );
@@ -1183,7 +1185,7 @@ function LagoonBoard() {
           </TooltipTrigger>
           <TooltipContent>Menu</TooltipContent>
         </Tooltip>
-        <span style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-gold)", flex: "none" }} />
+        <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-gold)", flex: "none" }} />
         <div style={{ minWidth: 0 }}>
           <h1 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {selectedProject?.name ?? "Board"}
@@ -1331,7 +1333,7 @@ function LagoonBoard() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <ThemeToggle id="board-theme-mode" showLabel={false} />
+          <CinematicThemeSwitcher />
           {/* Calendar view owns creation via the EventManager's New Event
               action — one primary CTA per screen, never two side by side. */}
           {view !== "calendar" ? (
@@ -1356,19 +1358,19 @@ function LagoonBoard() {
         <div role="group" aria-label="View" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
           <Button type="button" variant={view === "board" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "board" && "is-on")} aria-pressed={view === "board"} onClick={() => setView("board")}>
             {view === "board" ? (
-              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-primary" />
+              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
             ) : null}
             <IconColumns size={14} /> Board
           </Button>
           <Button type="button" variant={view === "timeline" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "timeline" && "is-on")} aria-pressed={view === "timeline"} onClick={() => setView("timeline")}>
             {view === "timeline" ? (
-              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-primary" />
+              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
             ) : null}
             <IconList size={14} /> Timeline
           </Button>
           <Button type="button" variant={view === "calendar" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "calendar" && "is-on")} aria-pressed={view === "calendar"} onClick={() => setView("calendar")}>
             {view === "calendar" ? (
-              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-primary" />
+              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
             ) : null}
             <IconCalendar size={14} /> Calendar
           </Button>
@@ -1464,7 +1466,16 @@ function LagoonBoard() {
       {view === "board" ? (
         <div className="lagoon-board-scroll">
           <div className="lagoon-cols">
-            {filteredColumns.map((col) => (
+            {tasksQ.isLoading && projectTasks.length === 0 ? (
+              STATUS_ORDER.map((status) => (
+                <div key={status} className="lagoon-col" aria-hidden="true" style={{ gap: 8 }}>
+                  <Skeleton className="h-5 w-24 rounded" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                </div>
+              ))
+            ) : (
+            filteredColumns.map((col) => (
               <Card
                 key={col.status}
                 data-status={col.status}
@@ -1476,7 +1487,7 @@ function LagoonBoard() {
                 onDrop={(e) => void handleDrop(e, col.status)}
               >
                 <div className="lagoon-col-head px-1 pt-1 pb-2">
-                  <span style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[col.status], flex: "none" }} />
+                  <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[col.status], flex: "none" }} />
                   <LagoonListTitle
                     status={col.status as Task["status"]}
                     title={labelFor(col.status)}
@@ -1513,6 +1524,11 @@ function LagoonBoard() {
                       />
                     ))}
                   </AnimatePresence>
+                  {col.tasks.length === 0 && composerFor !== col.status ? (
+                    <p className="st-empty-quiet" style={{ padding: "12px 8px" }}>
+                      {deferredSearch.trim() || toneFilter || activeOnly ? "No matching cards" : "No cards yet"}
+                    </p>
+                  ) : null}
                   {composerFor === col.status && canWrite ? (
                     <Card data-slot="lagoon-composer" className="lagoon-composer gap-2 p-2 shadow-xs">
                     <form
@@ -1582,7 +1598,7 @@ function LagoonBoard() {
                   ) : null}
                 </div>
               </Card>
-            ))}
+            )))}
           </div>
         </div>
       ) : view === "timeline" ? (
