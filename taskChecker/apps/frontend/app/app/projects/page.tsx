@@ -8,13 +8,17 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LagoonShell, useLagoonChrome } from "@/components/lagoon/LagoonShell";
-import { IconChevronRight, IconLayers, IconPlus, IconSearch } from "@/components/icons";
+import { IconChevronRight, IconLayers, IconPlus, IconSearch, IconTrash } from "@/components/icons";
 import { api, getCurrentTenantId, type Project, type Task, type Team } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { useTenant } from "@/components/store";
 import { useSWR } from "@/lib/swr";
 import { motion, PageEnter, contentFade } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Modal, useToast } from "@/components/overlay";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { toYmd, todayYmd } from "@/components/lagoon/lagoon-utils";
 
@@ -24,6 +28,15 @@ function LagoonProjects() {
   const { openNewBoard } = useLagoonChrome();
   const orgId = getCurrentTenantId();
   const [search, setSearch] = useState("");
+  const toast = useToast();
+  // Viewers get no delete affordance (backend enforces member+; the board
+  // page uses the same canWrite gate for its destructive controls).
+  const { memberships } = useAuth();
+  const myRole = memberships.find((m) => m.tenant_id === orgId)?.role;
+  const canWrite = myRole === "owner" || myRole === "admin" || myRole === "member";
+  const [deletingProj, setDeletingProj] = useState<Project | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
 
   const projectsQ = useSWR<{ projects: Project[]; quota?: { plan: string; used: number; limit: number } }>(
     orgId ? `dash-projects-${orgId}` : null,
@@ -88,6 +101,35 @@ function LagoonProjects() {
 
   const activeTasks = rows.reduce((sum, b) => sum + b.active, 0);
 
+  const deletingMeta = useMemo(
+    () => rows.find((r) => r.project.id === deletingProj?.id) ?? null,
+    [rows, deletingProj],
+  );
+  const confirmMatches =
+    (confirmText.trim().toUpperCase() === deletingProj?.key.toUpperCase()) &&
+    (deletingProj !== null);
+
+  const openDelete = (project: Project) => {
+    setDeletingProj(project);
+    setConfirmText("");
+  };
+
+  const handleDeleteProject = async () => {
+    if (!deletingProj || deleting || !confirmMatches) return;
+    setDeleting(true);
+    try {
+      await api.projects.delete(deletingProj.id);
+      setDeletingProj(null);
+      setConfirmText("");
+      await projectsQ.mutate();
+      toast({ title: "Project deleted", msg: `${deletingProj.name} was removed.` });
+    } catch (err) {
+      toast({ title: "Delete failed", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <LagoonShell
       projects={projects}
@@ -108,7 +150,7 @@ function LagoonProjects() {
           >
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "var(--lagoon-teal)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "var(--lagoon-gold)" }}>
                   <IconLayers size={14} /> {org?.name ?? "Workspace"}
                 </div>
                 <h1 className="lagoon-display" style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.01em" }}>
@@ -173,40 +215,121 @@ function LagoonProjects() {
             <motion.div variants={contentFade} initial="hidden" animate="show">
               <section aria-label="All projects" style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 32 }}>
                 {filtered.map((b) => (
-                  <Link
+                  <div
                     key={b.project.id}
-                    href={`/app/board?project=${b.project.id}`}
+                    className="group"
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 16,
-                      padding: "16px 20px",
+                      gap: 8,
+                      padding: "16px 12px 16px 20px",
                       borderRadius: 12,
                       border: "1px solid var(--lagoon-border)",
                       background: "var(--lagoon-card)",
-                      textDecoration: "none",
                       color: "inherit",
                     }}
                   >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                        <h2 className="lagoon-display" style={{ fontSize: 17, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.project.name}</h2>
-                        <span style={{ flex: "none", fontSize: 11, fontWeight: 600, color: "var(--lagoon-muted-fg)", border: "1px solid var(--lagoon-border)", borderRadius: 6, padding: "2px 6px" }}>
-                          {b.project.key}
-                        </span>
+                    <Link
+                      href={`/app/board?project=${b.project.id}`}
+                      aria-label={`Open ${b.project.name} board`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                        flex: 1,
+                        minWidth: 0,
+                        textDecoration: "none",
+                        color: "inherit",
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                          <h2 className="lagoon-display" style={{ fontSize: 17, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.project.name}</h2>
+                          <span style={{ flex: "none", fontSize: 11, fontWeight: 600, color: "var(--lagoon-muted-fg)", border: "1px solid var(--lagoon-border)", borderRadius: 6, padding: "2px 6px" }}>
+                            {b.project.key}
+                          </span>
+                        </div>
+                        <p style={{ marginTop: 6, fontSize: 12, color: "var(--lagoon-muted-fg)" }}>
+                          {[b.team, `${b.tasks} ${b.tasks === 1 ? "task" : "tasks"}`, `${b.active} active`, b.dueLabel ? `Due ${b.dueLabel}` : "No due dates"].filter(Boolean).join(" · ")}
+                        </p>
                       </div>
-                      <p style={{ marginTop: 6, fontSize: 12, color: "var(--lagoon-muted-fg)" }}>
-                        {[b.team, `${b.tasks} ${b.tasks === 1 ? "task" : "tasks"}`, `${b.active} active`, b.dueLabel ? `Due ${b.dueLabel}` : "No due dates"].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                    <IconChevronRight size={16} style={{ flex: "none", color: "var(--lagoon-muted-fg)" }} />
-                  </Link>
+                      <IconChevronRight size={16} style={{ flex: "none", color: "var(--lagoon-muted-fg)" }} />
+                    </Link>
+                    {canWrite ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Delete ${b.project.name}`}
+                        title="Delete project"
+                        onClick={() => openDelete(b.project)}
+                        className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/40"
+                      >
+                        <IconTrash size={15} />
+                      </Button>
+                    ) : null}
+                  </div>
                 ))}
               </section>
             </motion.div>
           )}
         </div>
       </div>
+      <Modal
+        open={deletingProj !== null}
+        onClose={() => (deleting ? null : setDeletingProj(null))}
+        title={`Delete ${deletingProj?.name ?? "project"}?`}
+        sub="This removes the project from the sidebar and board. Tasks inside it will no longer be listed. This can't be undone."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeletingProj(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleDeleteProject()}
+              disabled={deleting || !confirmMatches}
+              loading={deleting}
+            >
+              <IconTrash size={14} /> Delete project
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ fontSize: 13, color: "var(--slate-600)" }}>
+            Project key <span className="mono" style={{ fontWeight: 700 }}>{deletingProj?.key}</span>
+            {deletingMeta ? (
+              <> · {deletingMeta.tasks} {deletingMeta.tasks === 1 ? "task" : "tasks"}, {deletingMeta.active} active</>
+            ) : null}{" "}
+            will be permanently removed from this workspace.
+          </p>
+          <Field>
+            <FieldLabel htmlFor="delete-confirm-key">
+              Type <span className="mono" style={{ fontWeight: 700 }}>{deletingProj?.key}</span> to confirm
+            </FieldLabel>
+            <Input
+              id="delete-confirm-key"
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10))}
+              placeholder={deletingProj?.key ?? ""}
+              autoFocus
+              autoComplete="off"
+              maxLength={10}
+              className="mono"
+              disabled={deleting}
+              aria-describedby="delete-confirm-hint"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && confirmMatches) void handleDeleteProject();
+              }}
+            />
+            <FieldDescription id="delete-confirm-hint">
+              Re-confirm deletion — this step prevents accidental deletes. {confirmMatches ? "Ready to delete." : `Delete stays disabled until it matches.`}
+            </FieldDescription>
+          </Field>
+        </div>
+      </Modal>
     </LagoonShell>
   );
 }

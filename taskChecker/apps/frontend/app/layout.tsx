@@ -11,10 +11,13 @@ import "@fontsource-variable/hanken-grotesk/index.css";
 import "@fontsource-variable/jetbrains-mono/index.css";
 import "@fontsource-variable/sora/index.css";
 import "@fontsource-variable/manrope/index.css";
+import "@fontsource-variable/space-grotesk/index.css";
+import "@fontsource-variable/dm-sans/index.css";
 import "./globals.css";
 import "./trello.css";
 import "./theme.css";
 import "./lagoon.css";
+import "./impeccable-tokens.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toast";
 
@@ -32,10 +35,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Set .dark pre-paint to avoid a light flash (matches ThemeProvider key). */}
+        {/* Dark-first: default to .dark pre-paint to avoid a light flash (matches ThemeProvider key). */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("tf.theme.v1");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}if(t==="dark"){document.documentElement.classList.add("dark")}document.documentElement.style.colorScheme=t}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("tf.theme.v2");if(t!=="light"&&t!=="dark"){t="dark"}if(t==="dark"){document.documentElement.classList.add("dark")}document.documentElement.style.colorScheme=t}catch(e){}})();`,
           }}
         />
       </head>

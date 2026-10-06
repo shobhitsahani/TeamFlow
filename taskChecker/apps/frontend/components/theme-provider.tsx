@@ -12,7 +12,9 @@ import {
 
 export type Theme = "light" | "dark";
 
-const STORAGE_KEY = "tf.theme.v1";
+/* v2: re-defaults every browser to dark (v1 stored-light choices from the
+   follow-OS era are retired, not honored). Users can still pick light. */
+const STORAGE_KEY = "tf.theme.v2";
 
 type ThemeContextValue = {
   theme: Theme;
@@ -22,8 +24,8 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: "light",
-  isDark: false,
+  theme: "dark",
+  isDark: true,
   setTheme: () => {},
   toggle: () => {},
 });
@@ -33,16 +35,9 @@ function getStoredTheme(): Theme | null {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw === "light" || raw === "dark") return raw;
   } catch {
-    // storage unavailable — fall through to system preference
+    // storage unavailable — fall through to the dark default
   }
   return null;
-}
-
-function getSystemTheme(): Theme {
-  if (typeof window === "undefined" || !window.matchMedia) return "light";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
 }
 
 function applyTheme(t: Theme) {
@@ -57,29 +52,16 @@ function applyTheme(t: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Start from the client-only source when available; SSR falls back to light
+  // Dark-first: stored choice wins, otherwise dark. SSR falls back to dark
   // (layout inline script already set the class pre-paint, this syncs state).
   // Lazy initializer — no mount effect, no cascading render.
   const [theme, setThemeState] = useState<Theme>(() =>
-    typeof window === "undefined" ? "light" : (getStoredTheme() ?? getSystemTheme()),
+    typeof window === "undefined" ? "dark" : (getStoredTheme() ?? "dark"),
   );
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme ]);
-
-  // Follow OS changes only when the user hasn't picked explicitly.
-  useEffect(() => {
-    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-    if (!mq) return;
-    const onChange = (e: MediaQueryListEvent) => {
-      if (getStoredTheme() == null) {
-        setThemeState(e.matches ? "dark" : "light");
-      }
-    };
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
 
   const setTheme = useCallback((t: Theme) => setThemeState(t), []);
   const toggle = useCallback(

@@ -3,7 +3,12 @@
 /* Shared Framer Motion primitives — one place for easings, durations and
    reusable variants so animations stay consistent across board, overlays,
    chat and pages. Respects prefers-reduced-motion via MotionConfig (see
-   app/providers.tsx) AND per-component opacity-only fallbacks below. */
+   app/providers.tsx) AND per-component opacity-only fallbacks below.
+   Motion thesis (Quiet Harbor, Operate): one authored settle (exponential
+   ease-out, transform/shadow/blur only); continuity via layoutId tab slide
+   + position-only card layout + opacity view crossfades; feedback is the
+   smallest press/hover/drag change that makes cause unmistakable. Budgets:
+   100-150ms feedback, 150-300ms state, 300-500ms overlay max, exits faster. */
 
 import {
   AnimatePresence,
@@ -42,6 +47,18 @@ export const LAYOUT_SPRING = {
   stiffness: 500,
   damping: 40,
   mass: 0.8,
+} as const;
+
+/* Tactile presets — Quiet Harbor is confident, not bouncy. Press is the
+   standard acknowledgment for buttons/rows; lift is hover-only and stays
+   in CSS for cards (motion.* is reserved for mount/unmount + layout). */
+export const PRESS_TAP = { scale: 0.97 } as const;
+export const HOVER_LIFT = { y: -2 } as const;
+
+/* Single settle transition — exponential ease-out, 220ms ceiling. */
+export const SETTLE = {
+  duration: DUR.base,
+  ease: [...EASE_OUT],
 } as const;
 
 /** @deprecated Use LAYOUT_SPRING. Kept for backward compat. */
@@ -141,6 +158,47 @@ export const backdropFade: Variants = {
   exit: { opacity: 0, transition: { duration: DUR.instant } },
 };
 
+/* Focal settle — the ONE authored Harbor moment (card modal panel).
+   Transform + blur + shadow territory: 8px rise, 0.97 scale, 4px blur
+   resolving to sharp on the same exponential ease-out. Exits run faster
+   and keep a whisper of blur so dismissal feels like docking, not vanishing.
+   Reduced-motion falls back to opacity via MotionConfig + useAccessibleVariants. */
+export const focalPop: Variants = {
+  hidden: { opacity: 0, scale: 0.97, y: 8, filter: "blur(4px)" },
+  show: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: DUR.base, ease: [...EASE_OUT] },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.98,
+    y: 6,
+    filter: "blur(2px)",
+    transition: { duration: DUR.fast, ease: [...EASE_IN] },
+  },
+};
+
+/* Harbor rise — focal entrance for empty states and first-run panels.
+   Same settle curve with blur; supporting lists use fadeUp/listItem instead. */
+export const harborRise: Variants = {
+  hidden: { opacity: 0, y: 8, filter: "blur(4px)" },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: DUR.base, ease: [...EASE_OUT] },
+  },
+  exit: {
+    opacity: 0,
+    y: 6,
+    filter: "blur(2px)",
+    transition: { duration: DUR.fast, ease: [...EASE_IN] },
+  },
+};
+
 export const sheetRight: Variants = {
   hidden: { opacity: 0, x: 24 },
   show: {
@@ -173,7 +231,7 @@ export const dropdownMenu: Variants = {
 
 export const staggerParent: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.03, delayChildren: 0.04 } },
+  show: { transition: { staggerChildren: 0.025, delayChildren: 0.02 } },
   exit: {},
 };
 

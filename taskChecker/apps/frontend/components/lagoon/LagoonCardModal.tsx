@@ -6,7 +6,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import { AnimatePresence, motion, popIn, staggerChild, staggerParent } from "@/components/motion";
+import { AnimatePresence, focalPop, listItem, motion, staggerChild, staggerParent } from "@/components/motion";
 import { api, type Comment, type Member, type PaginatedResponse, type Project, type Task } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { useToast } from "@/components/overlay";
@@ -31,7 +31,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,6 +84,14 @@ export function LagoonCardModal({
   const [commentSending, setCommentSending] = useState(false);
   const [visible, setVisible] = useState(true);
   const [closeFired, setCloseFired] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Disarm the delete confirm when a different card opens (render-adjustment
+  // pattern: no effect, no cascading render).
+  const [confirmingTaskId, setConfirmingTaskId] = useState(task.id);
+  if (task.id !== confirmingTaskId) {
+    setConfirmingTaskId(task.id);
+    setConfirmingDelete(false);
+  }
 
   /** Start motion exit; parent unmounts once the exit animation completes. */
   const requestClose = () => setVisible(false);
@@ -243,10 +250,10 @@ export function LagoonCardModal({
           <DialogContent
             aria-label="Card details"
             showCloseButton
-            className="lagoon-scroll-fade max-w-lg gap-0 overflow-y-auto p-5 duration-0 data-open:animate-none sm:max-w-lg"
+            className="lagoon lagoon-scroll-fade max-w-lg gap-0 overflow-y-auto p-5 duration-0 data-open:animate-none sm:max-w-lg"
             style={{ maxHeight: "85dvh" }}
           >
-            <motion.div variants={popIn} initial="hidden" animate="show" exit="exit">
+            <motion.div variants={focalPop} initial="hidden" animate="show" exit="exit">
               <DialogHeader className="flex-row items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <DialogTitle className="sr-only">Card details</DialogTitle>
@@ -255,10 +262,10 @@ export function LagoonCardModal({
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     disabled={!canWrite}
-                    className="border-0 bg-transparent px-0 text-base font-semibold shadow-none focus-visible:ring-1"
+                    className="border-0 bg-transparent px-0 pr-9 text-lg font-semibold shadow-none focus-visible:border-transparent focus-visible:ring-2"
                   />
                   {project ? (
-                    <DialogDescription className="mt-1 text-xs">
+                    <DialogDescription className="mt-1.5 font-mono text-[11px] tabular-nums">
                       {project.key} · {project.name}
                     </DialogDescription>
                   ) : null}
@@ -268,7 +275,7 @@ export function LagoonCardModal({
               {/* Body sections stagger in subtly on open (30ms stagger, mount
                   only — typing/editing never replays it). Header and footer
                   ride the panel pop; they are not stagger children. */}
-              <motion.div variants={staggerParent} initial="hidden" animate="show" exit="exit">
+              <motion.div variants={staggerParent} initial="hidden" animate="show" exit="exit" className="flex flex-col gap-5">
               <motion.div variants={staggerChild} className="mt-4 grid gap-4">
                 <Field>
                   <FieldLabel>Description</FieldLabel>
@@ -276,7 +283,7 @@ export function LagoonCardModal({
                     aria-label="Description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-20 resize-y"
+                    className="min-h-24 resize-y"
                     placeholder="Add a more detailed description…"
                     disabled={!canWrite}
                   />
@@ -285,34 +292,33 @@ export function LagoonCardModal({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="grid gap-3">
                     <Field>
-                      <FieldLabel>Label</FieldLabel>
+                      <FieldLabel>My tag</FieldLabel>
                       <Input
-                        aria-label="Label"
+                        aria-label="My tag (personal, only visible to you)"
                         value={label}
                         onChange={(e) => persistLabel(e.target.value, tone)}
-                        placeholder="Label name"
+                        placeholder="e.g. Urgent"
                         disabled={!canWrite}
                       />
+                      <p style={{ fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
+                        Only you see this — saved on this device, not shared with the team.
+                      </p>
                     </Field>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       {LAGOON_TONES.map((t) => (
                         <button
                           key={t}
                           type="button"
-                          aria-label={`Set ${t} label color`}
+                          aria-label={tone === t ? `Clear ${t} personal tag color, only you see this` : `Set ${t} personal tag color, only you see this`}
                           aria-pressed={tone === t}
+                          title={`${t} — personal, only you see this`}
                           onClick={() => persistLabel(label, tone === t ? undefined : t)}
                           disabled={!canWrite}
                           data-active={tone === t}
-                          className="size-6 rounded-full transition-transform hover:scale-105 disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-ring data-[active=true]:ring-offset-2"
+                          className="size-8 rounded-full transition-transform hover:scale-105 active:scale-90 focus-visible:ring-2 focus-visible:ring-[var(--lagoon-purple)] focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-[var(--lagoon-purple)] data-[active=true]:ring-offset-2"
                           style={{ background: `var(--lagoon-${t})` }}
                         />
                       ))}
-                      {label.trim() ? (
-                        <Badge variant="secondary" className="ml-1 max-w-32 truncate">
-                          {label.trim()}
-                        </Badge>
-                      ) : null}
                     </div>
                     <Field>
                       <FieldLabel>Priority</FieldLabel>
@@ -321,7 +327,7 @@ export function LagoonCardModal({
                         onValueChange={(v) => void handlePriority(v as Task["priority"])}
                         disabled={!canWrite}
                       >
-                        <SelectTrigger aria-label="Priority" className="w-full">
+                        <SelectTrigger aria-label="Priority" className="w-full capitalize">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -345,7 +351,7 @@ export function LagoonCardModal({
                           onClick={() => void handleMember(null)}
                           disabled={!canWrite}
                           data-active={task.assigneeId === null}
-                          className="grid size-8 place-items-center rounded-full text-[10px] font-semibold text-white transition-opacity disabled:opacity-50"
+                          className="grid size-8 place-items-center rounded-full text-[10px] font-semibold text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50"
                           style={{ background: "var(--lagoon-muted-fg)", opacity: task.assigneeId === null ? 1 : 0.6 }}
                         >
                           –
@@ -367,7 +373,7 @@ export function LagoonCardModal({
                               disabled={!canWrite}
                               data-active={active}
                               onClick={() => void handleMember(m.userId)}
-                              className="cursor-pointer rounded-full ring-2 ring-background transition-opacity disabled:cursor-not-allowed"
+                              className="cursor-pointer rounded-full ring-2 ring-background transition-opacity focus-visible:ring-[var(--tf-accent)] disabled:cursor-not-allowed"
                               style={{
                                 opacity: active || task.assigneeId === null ? 1 : 0.6,
                               }}
@@ -387,8 +393,10 @@ export function LagoonCardModal({
                         })}
                       </AvatarGroup>
                       {assignee ? (
-                        <p className="text-xs text-muted-foreground">{assignee.name ?? assignee.email}</p>
-                      ) : null}
+                        <p className="text-xs font-medium">{assignee.name ?? assignee.email}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Unassigned — pick a member above</p>
+                      )}
                     </Field>
                     <Field>
                       <FieldLabel>Due date</FieldLabel>
@@ -416,29 +424,36 @@ export function LagoonCardModal({
               Checklist{checklist.length > 0 ? ` · ${doneCount}/${checklist.length}` : ""}
             </FieldLabel>
             <div className="flex flex-col gap-1">
-              {checklist.map((item) => (
-                <label
-                  key={item.id}
-                  data-done={item.done}
-                  className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-[background-color,color,opacity] duration-150 hover:bg-muted data-[done=true]:text-muted-foreground data-[done=true]:[&>span]:line-through"
-                >
-                  <Checkbox
-                    checked={item.done}
-                    disabled={!canWrite}
-                    onCheckedChange={() =>
-                      persistChecklist(
-                        checklist.map((c) => (c.id === item.id ? { ...c, done: !c.done } : c)),
-                      )
-                    }
-                  />
-                  <span>{item.text}</span>
-                </label>
-              ))}
+              <AnimatePresence initial={false}>
+                {checklist.map((item) => (
+                  <motion.label
+                    key={item.id}
+                    layout
+                    variants={listItem}
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    data-done={item.done}
+                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-[background-color,color,opacity] duration-150 hover:bg-muted data-[done=true]:text-muted-foreground data-[done=true]:[&>span]:line-through"
+                  >
+                    <Checkbox
+                      checked={item.done}
+                      disabled={!canWrite}
+                      onCheckedChange={() =>
+                        persistChecklist(
+                          checklist.map((c) => (c.id === item.id ? { ...c, done: !c.done } : c)),
+                        )
+                      }
+                    />
+                    <span>{item.text}</span>
+                  </motion.label>
+                ))}
+              </AnimatePresence>
             </div>
             {canWrite ? (
               <form onSubmit={handleAddCheck} className="mt-2 flex gap-2">
                 <Input name="checkItem" aria-label="New checklist item" placeholder="Add an item" />
-                <Button type="submit" variant="secondary">
+                <Button type="submit" variant="secondary" className="font-medium active:scale-[0.97]">
                   Add
                 </Button>
               </form>
@@ -458,8 +473,17 @@ export function LagoonCardModal({
               ) : comments.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No comments yet.</p>
               ) : (
-                comments.map((c) => (
-                  <div key={c.id} className="rounded-lg border bg-muted/40 px-3 py-2 text-xs">
+                <AnimatePresence initial={false}>
+                {comments.map((c) => (
+                  <motion.div
+                    key={c.id}
+                    layout
+                    variants={listItem}
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    className="rounded-lg border bg-muted/40 px-3 py-2 text-xs"
+                  >
                     <div className="mb-1 flex items-center gap-2">
                       <span className="text-[11px] font-semibold">
                         {names.get(c.authorId) ?? "Someone"}
@@ -487,8 +511,9 @@ export function LagoonCardModal({
                       ) : null}
                     </div>
                     <p className="whitespace-pre-wrap">{c.body}</p>
-                  </div>
-                ))
+                  </motion.div>
+                ))}
+                </AnimatePresence>
               )}
             </div>
             {canWrite ? (
@@ -502,6 +527,7 @@ export function LagoonCardModal({
                 <Button
                   type="submit"
                   variant="secondary"
+                  className="font-medium active:scale-[0.97]"
                   disabled={!commentText.trim() || commentSending}
                   loading={commentSending}
                 >
@@ -517,13 +543,44 @@ export function LagoonCardModal({
 
           <DialogFooter className="flex-row items-center justify-between border-0 bg-transparent p-0 pt-4 sm:justify-between">
             {canWrite ? (
-              <Button variant="destructive" onClick={() => onDelete(task)}>
-                <IconTrash size={14} /> Delete card
-              </Button>
+              confirmingDelete ? (
+                <div
+                  role="group"
+                  aria-label="Confirm card deletion"
+                  className="flex items-center gap-2"
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setConfirmingDelete(false);
+                  }}
+                >
+                  <span className="text-[12px] font-medium text-muted-foreground">Delete this card?</span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)}>
+                    Keep
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    autoFocus
+                    onClick={() => onDelete(task)}
+                    className="active:scale-[0.97]"
+                  >
+                    <IconTrash size={14} /> Yes, delete
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="destructive" onClick={() => setConfirmingDelete(true)} className="active:scale-[0.97]">
+                  <IconTrash size={14} /> Delete card
+                </Button>
+              )
             ) : (
               <span />
             )}
-            <Button onClick={() => void handleDone()} disabled={saving} loading={saving}>
+            <Button
+              onClick={() => void handleDone()}
+              disabled={saving}
+              loading={saving}
+              className="lagoon-create-btn border-0 font-semibold active:scale-[0.97]"
+            >
               Done
             </Button>
           </DialogFooter>

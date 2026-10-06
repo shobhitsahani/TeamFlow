@@ -246,7 +246,7 @@ export function LagoonShell({
                 <TooltipContent>Close menu</TooltipContent>
               </Tooltip>
             </div>
-            {/* Account menu — shadcn Avatar + DropdownMenu over the ocean
+            {/* Account menu — shadcn Avatar + DropdownMenu over the purple
                 trigger. Same destinations as the /app shell menu (settings,
                 notifications, sign out); no new behavior besides the menu. */}
             <DropdownMenu modal={false}>
@@ -266,7 +266,7 @@ export function LagoonShell({
                     width: 24,
                     height: 24,
                     borderRadius: 8,
-                    background: "var(--lagoon-coral)",
+                    background: "var(--lagoon-purple)",
                     fontSize: 10,
                     fontWeight: 700,
                     flex: "none",
@@ -277,9 +277,6 @@ export function LagoonShell({
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {org?.name ?? "Workspace"}
-                  </span>
-                  <span style={{ display: "block", fontSize: 10, color: "rgb(255 255 255 / 0.55)" }}>
-                    {org?.plan ? `${org.plan} plan` : "Free plan"}
                   </span>
                 </span>
                 <IconChevronDown size={12} />
@@ -362,7 +359,38 @@ export function LagoonShell({
             </nav>
 
             <nav style={{ padding: "16px 12px 0", overflowY: "auto" }} aria-label="Boards">
-              <p className="lagoon-nav-label">Boards</p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "0 4px 4px 8px" }}>
+                <p className="lagoon-nav-label" style={{ padding: 0, margin: 0 }}>
+                  Boards
+                </p>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        aria-label="Create new board"
+                        onClick={openNewBoard}
+                        className="bg-transparent text-white/60 hover:bg-white/10 hover:text-white"
+                        style={{
+                          display: "grid",
+                          placeItems: "center",
+                          width: 22,
+                          height: 22,
+                          borderRadius: 6,
+                          border: "none",
+                          padding: 0,
+                          cursor: "pointer",
+                          flex: "none",
+                          transition: "background-color 150ms ease-out, color 150ms ease-out",
+                        }}
+                      />
+                    }
+                  >
+                    <IconPlus size={14} />
+                  </TooltipTrigger>
+                  <TooltipContent>Create new board</TooltipContent>
+                </Tooltip>
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {projects.map((p) => (
                   <Button
@@ -383,11 +411,12 @@ export function LagoonShell({
                     style={{ color: "rgb(255 255 255 / 0.6)" }}
                   >
                     <span
+                      aria-hidden="true"
                       style={{
                         width: 8,
                         height: 8,
                         borderRadius: 9999,
-                        background: "var(--lagoon-teal)",
+                        background: "var(--lagoon-gold)",
                         flex: "none",
                       }}
                     />
@@ -465,9 +494,9 @@ export function LagoonShell({
                     <Button
                       type="button"
                       size="sm"
-                      onClick={() => setNewBoardOpen(true)}
+                      onClick={openNewBoard}
                       className="lagoon-new-board-btn w-[calc(100%-24px)] justify-center"
-                      style={{ background: "var(--lagoon-coral)", color: "#fff" }}
+                      style={{ background: "var(--lagoon-purple)", color: "#fff" }}
                     />
                   }
                 >

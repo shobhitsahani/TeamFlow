@@ -417,7 +417,7 @@ h4 { font-size: var(--fs-13); font-weight: 600; }
 }
 
 .meter { position: relative; height: 4px; border-radius: 3px; background: var(--slate-100); overflow: hidden; }
-.meter > i, .meter-fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: linear-gradient(90deg, var(--brand-600), var(--brand-400)); transition: width 320ms ease; display: block; height: 100%; }
+.meter > i, .meter-fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: linear-gradient(90deg, var(--brand-600), var(--brand-400)); transition: transform 320ms ease, opacity 180ms ease; transform-origin: left center; will-change: transform; display: block; height: 100%; }
 .meter.is-high > i { background: #e11d48; }
 
 select, textarea, input[type="text"], input[type="email"], input[type="password"], input[type="search"] {
@@ -1083,7 +1083,9 @@ select, textarea, input[type="text"], input[type="email"], input[type="password"
 .st-drop, .column-dropzone, .bcol-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px; border-radius: var(--r-lg); min-height: 60px; }
 .st-drop.drag-over, .column-dropzone.drag-over { background: rgba(237, 233, 254, 0.65); border: 1px dashed var(--brand-400); }
 .st-empty-quiet { margin: 0; padding: 20px 16px; text-align: center; font-size: 12px; line-height: 1.6; color: var(--slate-400); }
-.hidden { display: none !important; }
+/* NOTE: no global `.hidden` override — Tailwind owns `hidden`, and an
+   unlayered `display:none !important` here would silently defeat every
+   responsive `hidden sm:flex` / `sm:hidden` pair in the app. */
 
 /* Stitch cards (Lumina: white, hairline #e9e5f5, 6px, micro hover lift) */
 .st-card, .board-card, .task-card, .ticket {
@@ -1583,8 +1585,7 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
 .menu-check { color: var(--brand-600); margin-left: auto; }
 
 .toast-wrap, .toast-stack { position: fixed; bottom: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
-.toast-ok, .toast-success { border-left: 3px solid #10b981; }
-.toast-err, .toast-error { border-left: 3px solid #e11d48; }
+.toast-ok, .toast-success, .toast-err, .toast-error { border-left: none; box-shadow: var(--shadow-2); }
 .toast-ico { width: 20px; height: 20px; border-radius: 50%; background: #ecfdf5; color: #059669; display: grid; place-items: center; flex: none; }
 .toast-title { font-size: 13px; font-weight: 600; color: var(--slate-900); }
 .toast-msg { font-size: 12px; color: var(--slate-500); }
@@ -2008,10 +2009,10 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 .st-reaction-chip.is-me .st-reaction-n { color: var(--brand-700); }
 .st-typing { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--slate-500); padding: 8px 4px 0; }
 .st-typing-dots { display: inline-flex; gap: 3px; }
-.st-typing-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--brand-400); animation: st-bounce 1.2s infinite; }
+.st-typing-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--brand-400); animation: st-soft-blink 1.2s ease-in-out infinite; }
 .st-typing-dots i:nth-child(2) { animation-delay: .15s; }
 .st-typing-dots i:nth-child(3) { animation-delay: .3s; }
-@keyframes st-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+@keyframes st-soft-blink { 0%, 100% { opacity: 0.45; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-1px); } }
 .st-chat-composer { flex-direction: column; align-items: stretch; gap: 6px; }
 .st-composer-row { display: flex; align-items: flex-end; gap: 4px; position: relative; }
 .st-composer-row textarea { flex: 1; }

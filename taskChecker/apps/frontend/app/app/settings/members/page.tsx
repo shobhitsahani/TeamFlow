@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useMemo, memo, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/store";
+import { LagoonShell } from "@/components/lagoon/LagoonShell";
 import { useRealtime } from "@/lib/realtime";
 import { Modal, ConfirmDialog, useToast } from "@/components/overlay";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { AppShell } from "@/components/app-shell";
 import {
   IconPlus,
   IconSearch,
@@ -20,14 +22,15 @@ import {
   IconClock,
   IconMessageSquare,
 } from "@/components/icons";
-import { api, getCurrentTenantId, type Role } from "@/lib/api";
+import { api, getCurrentTenantId, type Project, type Role } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSWR } from "@/lib/swr";
-import { cx, hueFrom } from "@/lib/utils";
+import { hueFrom } from "@/lib/utils";
 import { MemberContextMenu } from "@/components/member-context-menu";
 import { DmChatDialog, type DmPeer } from "@/components/dm-chat-dialog";
 import { PlusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Item24 } from "@/components/ui/item-24";
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,7 +125,8 @@ const MemberRow = memo(function MemberRow({
 
   return (
     <TableRow
-      className="dir-row-hint cursor-pointer"
+      className="cursor-pointer"
+      style={{ cursor: "pointer" }}
       title={isSelf ? "Click to view your profile" : "Click for actions (message, profile, more) — right-click works too"}
       tabIndex={0}
       aria-label={`Open actions for ${member.name ?? member.email ?? "member"} (message, profile)`}
@@ -163,17 +167,30 @@ const MemberRow = memo(function MemberRow({
               {member.name ?? "Unknown"}
               {isSelf ? <Badge variant="secondary">You</Badge> : null}
             </span>
-            <span className="dir-user-email font-mono">{member.email ?? "—"}</span>
+            <span style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--lagoon-muted-fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{member.email ?? "—"}</span>
           </span>
         </span>
       </TableCell>
       <TableCell>
         <span
-          className={cx("dir-status", online ? "is-on" : member.status === "invited" ? "is-invited" : "is-off")}
           title={online ? "Online" : member.status === "invited" ? "Invited" : "Offline"}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--lagoon-muted-fg)" }}
         >
-          <span className="dir-status-dot" />
-          <span className="sr-only">{online ? "Online" : member.status === "invited" ? "Invited" : "Offline"}</span>
+          <span
+            aria-hidden
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 9999,
+              flex: "none",
+              background: online
+                ? "var(--lagoon-success)"
+                : member.status === "invited"
+                  ? "var(--lagoon-gold)"
+                  : "var(--lagoon-muted-fg)",
+            }}
+          />
+          {online ? "Active" : member.status === "invited" ? "Invited" : "Inactive"}
         </span>
       </TableCell>
       <TableCell>
@@ -235,9 +252,9 @@ const MemberRow = memo(function MemberRow({
             <TooltipContent>Remove from organization</TooltipContent>
           </Tooltip>
         ) : isSelf ? (
-          <span className="dim dir-hint">Current user</span>
+          <span style={{ fontSize: 12, color: "var(--lagoon-muted-fg)" }}>Current user</span>
         ) : !isSelf && !canManage ? (
-          <span className="dim dir-hint">No access</span>
+          <span style={{ fontSize: 12, color: "var(--lagoon-muted-fg)" }}>No access</span>
         ) : null}
         </span>
       </TableCell>
@@ -247,6 +264,7 @@ const MemberRow = memo(function MemberRow({
 
 export default function MembersPage() {
   const { org } = useTenant();
+  const router = useRouter();
   const { user } = useAuth();
   const toast = useToast();
   const orgId = getCurrentTenantId();
@@ -272,6 +290,12 @@ export default function MembersPage() {
     orgId ? `members-${orgId}` : null,
     () => api.orgs.listMembers(orgId!),
   );
+  // Boards list for the purple Lagoon sidebar (same chrome as board/projects).
+  const projectsQ = useSWR<{ projects: Project[] }>(
+    orgId ? `members-projects-${orgId}` : null,
+    () => api.projects.list(orgId!),
+  );
+  const sidebarProjects = useMemo(() => projectsQ.data?.projects ?? [], [projectsQ.data]);
   const members = useMemo(() => membersQ.data?.members ?? [], [membersQ.data]);
   const currentUser = useMemo(
     () => members.find((m) => m.userId === user?.id),
@@ -474,48 +498,75 @@ export default function MembersPage() {
   };
 
   return (
-    <AppShell>
-      <div className="page">
-        <div className="dir-card">
-          {/* Header — Stitch "Tenant Members & Team Directory" */}
-          <div className="dir-head">
-            <div className="dir-head-left">
-              <div className="dir-head-icon">
-                <IconUsers size={20} />
+    <LagoonShell
+      projects={sidebarProjects}
+      activeProjectId=""
+      onSelectProject={(id) => router.push(`/app/board?project=${id}`)}
+      onProjectsChanged={() => projectsQ.mutate()}
+    >
+      <div className="lagoon-dash" style={{ overflowY: "auto" }}>
+        <div className="lagoon-dash-inner">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+            borderBottom: "1px solid var(--lagoon-border)",
+            paddingBottom: 32,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "var(--lagoon-gold)" }}>
+                <IconUsers size={14} /> {org?.name ?? "Workspace"}
               </div>
-              <div>
-                <div className="dir-title-row">
-                  <h1 className="dir-title">Members</h1>
-                  <span className="dir-badge-total tabular-nums">{members.length} Total</span>
-                  <span className="dir-badge-active tabular-nums">
-                    <span className="dir-pulse" />
-                    {activeCount} active now
-                  </span>
-                </div>
-
-              </div>
+              <h1 className="lagoon-display" style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.01em" }}>
+                Members
+              </h1>
+              <p style={{ marginTop: 8, maxWidth: 560, fontSize: 14, color: "var(--lagoon-muted-fg)" }}>
+                {members.length === 0
+                  ? "Invite your team to start collaborating."
+                  : `${members.length} ${members.length === 1 ? "member" : "members"} · ${activeCount} active`}
+              </p>
             </div>
+            <Button size="sm" className="lagoon-create-btn border-0" onClick={openInviteModal}>
+              <PlusIcon size={14} /> Invite member
+            </Button>
           </div>
-
-          {/* Toolbar — search + invite */}
-          <div className="dir-toolbar">
-            <div className="dir-search">
-              <IconSearch size={15} />
-              <input
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+            <InputGroup variant="search" className="lagoon-search" style={{ width: 280 }}>
+              <InputGroupAddon align="inline-start">
+                <IconSearch size={14} />
+              </InputGroupAddon>
+              <InputGroupInput
                 type="search"
                 value={search}
                 onChange={handleSearchChange}
-                placeholder="Search members by name, role or email..."
+                placeholder="Search members…"
                 aria-label="Search members"
               />
-            </div>
-            <Button size="sm" className="dir-invite" onClick={openInviteModal}>
-              <PlusIcon size={14} /> Invite Member
-            </Button>
+            </InputGroup>
           </div>
+        </div>
+
+        <div style={{ paddingTop: 32 }}>
+          {/* Solo-workspace nudge — you're the only member, grow the team.
+              Item24 empty-state card; Invite opens the existing invite flow. */}
+          {!membersQ.isLoading && members.length <= 1 && !search.trim() ? (
+            <div style={{ marginBottom: 12 }}>
+              <Item24 members={members} onInvite={openInviteModal} />
+            </div>
+          ) : null}
 
           {/* Directory table */}
-          <div className="dir-table-wrap">
+          <div
+            style={{
+              borderRadius: 12,
+              border: "1px solid var(--lagoon-border)",
+              background: "var(--lagoon-card)",
+              overflow: "hidden",
+            }}
+          >
             {membersQ.isLoading ? (
               <Table aria-hidden>
                 <TableHeader>
@@ -552,12 +603,12 @@ export default function MembersPage() {
                 </TableBody>
               </Table>
             ) : filteredMembers.length === 0 ? (
-              <PageEnter className="empty-state">
-                <IconUsers size={32} className="dim" />
-                <p>{search ? "No matching members" : "No members yet"}</p>
+              <PageEnter className="lagoon-empty" style={{ margin: 24 }}>
+                <IconUsers size={32} style={{ color: "var(--lagoon-muted-fg)" }} />
+                <p style={{ marginTop: 12, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>{search ? "No matching members" : "No members yet"}</p>
                 {search ? null : (
-                  <Button size="sm" onClick={openInviteModal}>
-                    <PlusIcon size={14} /> Invite Member
+                  <Button size="sm" className="lagoon-create-btn border-0" style={{ marginTop: 16 }} onClick={openInviteModal}>
+                    <PlusIcon size={14} /> Invite member
                   </Button>
                 )}
               </PageEnter>
@@ -591,12 +642,12 @@ export default function MembersPage() {
           </div>
 
           {/* Footer — counts */}
-          <div className="dir-foot">
-            <span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 16, fontSize: 12, color: "var(--lagoon-muted-fg)", flexWrap: "wrap" }}>
+            <span className="tabular-nums">
               Showing {filteredMembers.length} {search ? "matching" : "active"} • {members.length} tenant
               member{members.length === 1 ? "" : "s"}
             </span>
-            <span className="dim mono dir-foot-org">{org?.name ?? ""}</span>
+            <span className="font-mono">{org?.name ?? ""}</span>
           </div>
         </div>
 
@@ -785,7 +836,8 @@ export default function MembersPage() {
             </div>
           </Modal>
         )}
+        </div>
       </div>
-    </AppShell>
+    </LagoonShell>
   );
 }

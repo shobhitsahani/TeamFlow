@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
-import { GradientOrb } from '@/components/ui/gradient-orb'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { CardContent } from '@/components/ui/card'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { AuthCard, AuthError, AuthFieldIcon } from '@/app/auth/card'
+import { IconArrowRight, IconEye, IconEyeOff, IconLock, IconMail, IconUser } from '@/components/icons'
 
 export interface SignupFormData {
   name: string
@@ -12,9 +16,11 @@ export interface SignupFormData {
   orgName: string
 }
 
-/* Split-screen sign-up matching LoginPage: animated orb left, dark form
- * right. Google OAuth (when configured) renders above the email form via
- * `renderGoogle`, which receives the live org-name field value. */
+/* Sign-up on the shared auth shell (same card spec as sign-in and the
+ * invite flow): flat muted backdrop, brand lockup, token-driven inputs,
+ * Harbor Purple primary via Button/text-primary. Behavior and copy are
+ * unchanged — only the divergent split-screen look is retired. `leftPanel`
+ * is kept for API compatibility and intentionally not rendered. */
 export function SignupPage({
   onSubmit,
   submitting = false,
@@ -26,10 +32,10 @@ export function SignupPage({
   submitting?: boolean
   error?: string
   renderGoogle?: (orgName: string) => ReactNode
-  /** Replaces the orb panel. Defaults to the animated gradient orb. */
+  /** Retired split-screen brand panel — accepted for compatibility, not rendered. */
   leftPanel?: ReactNode
 }) {
-  const router = useRouter()
+  void leftPanel
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState<SignupFormData>({
     name: '',
@@ -48,118 +54,79 @@ export function SignupPage({
     void onSubmit(formData)
   }
 
-  const inputCls =
-    'w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 disabled:opacity-60'
-
   return (
-    <div className="flex min-h-screen w-screen flex-col gap-6 bg-[#0a0a0a] p-4 sm:gap-8 sm:p-6 lg:h-screen lg:flex-row">
-      {/* Left Panel - orb by default, swappable (desktop only) */}
-      {leftPanel !== undefined ? (
-        <div className="relative hidden flex-1 items-center justify-center overflow-hidden lg:flex">
-          {leftPanel}
-        </div>
-      ) : (
-        <div className="relative min-h-72 flex-1 overflow-hidden rounded-2xl lg:min-h-0">
-          {/* Back Button */}
-          <div className="absolute left-6 top-6 z-10">
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              aria-label="Back to home"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm transition-all hover:bg-white/20"
-            >
-              <ArrowLeft className="h-5 w-5 text-white" />
-            </button>
-          </div>
+    <AuthCard
+      sub="Create your account"
+      footer={
+        <p className="text-[13px] text-muted-foreground">
+          Already have an account?{' '}
+          <Link href="/auth/sign-in" className="font-semibold text-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit}>
+        <CardContent>
+          <FieldGroup>
+            {error ? <AuthError message={error} /> : null}
 
-          <div className="absolute inset-0">
-            <GradientOrb />
-          </div>
-        </div>
-      )}
+            {renderGoogle ? renderGoogle(formData.orgName) : null}
 
-      {/* Right Panel - Form Section */}
-      <div className="flex flex-1 items-center justify-center overflow-y-auto bg-[#0a0a0a]">
-        <div className="w-full max-w-md p-8">
-          <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold text-white">
-              Create your account
-            </h1>
-            <p className="text-gray-400">
-              Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => router.push('/auth/sign-in')}
-                className="font-medium text-blue-400 hover:text-blue-300"
-              >
-                Sign in
-              </button>
-            </p>
-          </div>
-
-          {error ? (
-            <p role="alert" className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error}
-            </p>
-          ) : null}
-
-          {renderGoogle ? renderGoogle(formData.orgName) : null}
-
-          {renderGoogle ? (
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-[#0a0a0a] px-2 text-gray-500">or with email</span>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="signup-name" className="mb-2 block text-sm font-medium text-gray-300">
-                Your name
-              </label>
-              <input
-                id="signup-name"
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="Jane Doe"
-                autoComplete="name"
-                disabled={submitting}
-                className={inputCls}
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="signup-email" className="mb-2 block text-sm font-medium text-gray-300">
-                Email Address
-              </label>
-              <input
-                id="signup-email"
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Email Address"
-                autoComplete="email"
-                disabled={submitting}
-                className={inputCls}
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="signup-password" className="mb-2 block text-sm font-medium text-gray-300">
-                Password
-              </label>
+            {renderGoogle ? (
               <div className="relative">
-                <input
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-[13px]">
+                  <span className="bg-card px-2 text-muted-foreground">or with email</span>
+                </div>
+              </div>
+            ) : null}
+
+            <Field>
+              <FieldLabel htmlFor="signup-name">Your name</FieldLabel>
+              <div className="relative">
+                <AuthFieldIcon><IconUser size={16} /></AuthFieldIcon>
+                <Input
+                  id="signup-name"
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Jane Doe"
+                  autoComplete="name"
+                  disabled={submitting}
+                  required
+                  className="pl-9"
+                />
+              </div>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="signup-email">Email address</FieldLabel>
+              <div className="relative">
+                <AuthFieldIcon><IconMail size={16} /></AuthFieldIcon>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Email address"
+                  autoComplete="email"
+                  disabled={submitting}
+                  required
+                  className="pl-9"
+                />
+              </div>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="signup-password">Password</FieldLabel>
+              <div className="relative">
+                <AuthFieldIcon><IconLock size={16} /></AuthFieldIcon>
+                <Input
                   id="signup-password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
@@ -169,55 +136,51 @@ export function SignupPage({
                   autoComplete="new-password"
                   disabled={submitting}
                   minLength={8}
-                  className={`${inputCls} pr-12`}
                   required
+                  className="pr-10 pl-9"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-white/10"
+                  className="absolute top-1/2 right-1 -translate-y-1/2"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
+                  {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+                </Button>
               </div>
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="signup-org" className="mb-2 block text-sm font-medium text-gray-300">
-                Organization name
-              </label>
-              <input
-                id="signup-org"
-                type="text"
-                name="orgName"
-                value={formData.orgName}
-                onChange={handleInputChange}
-                placeholder="Acme Inc"
-                autoComplete="organization"
-                disabled={submitting}
-                className={inputCls}
-                required
-              />
-              <p className="mt-2 text-xs text-gray-500">
+            <Field>
+              <FieldLabel htmlFor="signup-org">Organization name</FieldLabel>
+              <div className="relative">
+                <AuthFieldIcon><IconUser size={16} /></AuthFieldIcon>
+                <Input
+                  id="signup-org"
+                  type="text"
+                  name="orgName"
+                  value={formData.orgName}
+                  onChange={handleInputChange}
+                  placeholder="Acme Inc"
+                  autoComplete="organization"
+                  disabled={submitting}
+                  required
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
                 This creates your organization workspace. You can invite teammates after.
               </p>
-            </div>
+            </Field>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-xl bg-white px-4 py-3 font-medium text-black transition-colors hover:bg-gray-200 disabled:opacity-60"
-            >
-              {submitting ? 'Creating…' : 'Create account'}
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
+            <Button type="submit" className="mt-1 w-full" disabled={submitting} loading={submitting}>
+              Create account
+              <IconArrowRight size={16} />
+            </Button>
+          </FieldGroup>
+        </CardContent>
+      </form>
+    </AuthCard>
   )
 }

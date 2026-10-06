@@ -5,9 +5,10 @@
 
 import type { Priority } from "@/lib/utils";
 
-export type LagoonTone = "teal" | "coral" | "ocean";
+/* Tone names match the actual hues: gold, green, purple. */
+export type LagoonTone = "gold" | "green" | "purple";
 
-export const LAGOON_TONES: LagoonTone[] = ["teal", "coral", "ocean"];
+export const LAGOON_TONES: LagoonTone[] = ["gold", "green", "purple"];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -16,11 +17,11 @@ export function toneForPriority(priority: Priority): LagoonTone | null {
   switch (priority) {
     case "critical":
     case "high":
-      return "coral";
+      return "green";
     case "medium":
-      return "ocean";
+      return "purple";
     case "low":
-      return "teal";
+      return "gold";
     default:
       return null;
   }
@@ -57,9 +58,16 @@ function readMeta(taskId: string): LagoonTaskMeta {
     return {
       label: typeof parsed.label === "string" ? parsed.label : undefined,
       tone:
-        parsed.tone === "teal" || parsed.tone === "coral" || parsed.tone === "ocean"
+        parsed.tone === "gold" || parsed.tone === "green" || parsed.tone === "purple"
           ? parsed.tone
-          : undefined,
+          : // Migrate pre-rename overrides to their same-hue successors.
+            parsed.tone === "teal"
+            ? "gold"
+            : parsed.tone === "coral"
+              ? "green"
+              : parsed.tone === "ocean"
+                ? "purple"
+                : undefined,
       checklist: Array.isArray(parsed.checklist)
         ? parsed.checklist.filter(
             (c): c is LagoonCheckItem =>
@@ -117,7 +125,7 @@ export function effectiveLabel(
 ): { text: string; tone: LagoonTone } | null {
   const text = meta.label !== undefined ? meta.label : defaultLabelForPriority(priority);
   if (!text || !text.trim()) return null;
-  const tone = meta.tone ?? toneForPriority(priority) ?? "ocean";
+  const tone = meta.tone ?? toneForPriority(priority) ?? "purple";
   return { text: text.trim(), tone };
 }
 
@@ -163,7 +171,7 @@ export function lagoonInitials(name: string): string {
   return `${(parts[0] ?? "?")[0] ?? ""}${(parts[parts.length - 1] ?? "?")[0] ?? ""}`.toUpperCase();
 }
 
-const LAGOON_AVATAR_TONES = ["#0c66e4", "#0d9488", "#e56910", "#7c3aed", "#db2777", "#059669"];
+const LAGOON_AVATAR_TONES = ["#7c3aed", "#a86a0b", "#1f7a4d", "#5d6676", "#6d28d9", "#0f766e"];
 
 /** Stable avatar background hue from any seed string. */
 export function lagoonAvatarTone(seed: string): string {
@@ -171,5 +179,5 @@ export function lagoonAvatarTone(seed: string): string {
   for (let i = 0; i < seed.length; i++) {
     h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   }
-  return LAGOON_AVATAR_TONES[h % LAGOON_AVATAR_TONES.length] ?? "#0c66e4";
+  return LAGOON_AVATAR_TONES[h % LAGOON_AVATAR_TONES.length] ?? "#7c3aed";
 }
