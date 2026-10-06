@@ -49,13 +49,15 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cx } from "@/lib/utils";
+import { cx, errorDetail } from "@/lib/utils";
 import {
   LAGOON_TONES,
   clearLagoonMeta,
@@ -70,6 +72,16 @@ import {
 } from "@/components/lagoon/lagoon-utils";
 
 const STATUS_ORDER = ["backlog", "todo", "in_progress", "done"] as const;
+
+/** Whole-theme variant picker (impeccable generate): localStorage key + the
+ *  html[data-theme] values defined in app/themes/. "" = Quiet Harbor. */
+const VARIANT_KEY = "tf.theme.variant.v1";
+const VARIANTS: { value: "" | "drydock" | "chartroom" | "pier"; label: string }[] = [
+  { value: "", label: "Quiet Harbor (default)" },
+  { value: "drydock", label: "Drydock Amber" },
+  { value: "chartroom", label: "Chart-Room Steel" },
+  { value: "pier", label: "Pier Concrete" },
+];
 const STATUS_LABELS: Record<string, string> = {
   backlog: "Backlog",
   todo: "To do",
@@ -142,12 +154,11 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
     return loadLagoonMeta(task.id);
   }, [task.id, metaTick]);
   const label = useMemo(() => effectiveLabel(task.priority, meta), [task.priority, meta]);
-  // Placeholder-data guard (Image 1: Backlog cards titled "fr"/"free" carry
-  // no meaning) — hide the title text instead of rendering noise. Durable
-  // fix is deleting those test tasks; this keeps the card structure intact.
+  // Card titles render truthfully — even short test input stays visible so
+  // the card never appears blank. Empty titles fall back to a named state.
   const titleText = (task.title ?? "").trim();
-  const loweredTitle = titleText.toLowerCase();
-  const showTitle = titleText.length > 0 && loweredTitle !== "fr" && loweredTitle !== "free";
+  const showTitle = titleText.length > 0;
+  const displayTitle = showTitle ? titleText : "Untitled card";
   const dueYmd = toYmd(task.dueAt);
   const due = dueYmd ? lagoonDueBadge(dueYmd, today) : null;
   const doneItems = meta.checklist.filter((c) => c.done).length;
@@ -164,7 +175,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       data-slot="lagoon-card"
       role="listitem"
       tabIndex={0}
-      aria-label={showTitle ? `Open ${titleText}` : "Open task"}
+      aria-label={showTitle ? `Open ${titleText}` : "Open untitled card"}
       draggable={draggable}
       onDragStart={(e: unknown) => onDragStart(e as React.DragEvent, task.id)}
       onDragEnd={onDragEnd as unknown as (e: unknown) => void}
@@ -204,18 +215,16 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       {label ? (
         <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)}>{label.text}</Badge>
       ) : null}
-      {showTitle ? (
       <Tooltip>
         <TooltipTrigger
           render={
             <h3 className="lagoon-card-title text-[13px] font-semibold leading-snug" />
           }
         >
-          {titleText}
+          {displayTitle}
         </TooltipTrigger>
-        <TooltipContent>{titleText}</TooltipContent>
+        <TooltipContent>{displayTitle}</TooltipContent>
       </Tooltip>
-      ) : null}
       {task.description ? <p className="lagoon-card-desc mt-1 line-clamp-2 text-[11px]">{task.description}</p> : null}
       {assigneeName || due || meta.checklist.length > 0 || isDone || canWrite ? (
       <div className="lagoon-card-foot mt-3 flex min-h-6 items-center gap-2">
@@ -256,7 +265,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
                     variant="ghost"
                     size="icon-xs"
                     className="lagoon-done-btn"
-                    aria-label={showTitle ? `Move ${titleText} to another list` : "Move task to another list"}
+                    aria-label={showTitle ? `Move ${titleText} to another list` : "Move untitled card to another list"}
                     title="Move to another list (M)"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
@@ -302,7 +311,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
                     variant="ghost"
                     size="icon-xs"
                     className="lagoon-done-btn"
-                    aria-label={showTitle ? `Mark ${titleText} as done` : "Mark task as done"}
+                    aria-label={showTitle ? `Mark ${titleText} as done` : "Mark untitled card as done"}
                     onClick={(e) => {
                       e.stopPropagation();
                       onDone(task);
@@ -586,7 +595,12 @@ function LagoonBoard() {
         await listsQ.mutate();
       } catch (err) {
         await listsQ.mutate();
-        toast({ title: "Rename failed", msg: err instanceof Error ? err.message : "Try again." });
+        const detail = errorDetail(err);
+        toast({
+          title: "Couldn't rename list",
+          msg: `The list name wasn't changed. ${detail ?? "Check your connection, then try again."}`,
+          kind: "err",
+        });
       }
     },
     [canWrite, selectedProjectId, listsQ, labelFor, toast],
@@ -673,6 +687,33 @@ function LagoonBoard() {
       return !v;
     });
   }, [selectedProjectId]);
+
+  // Whole-theme variants (impeccable generate, opt-in): "" is the Quiet
+  // Harbor incumbent; the others map to html[data-theme="…"] in
+  // app/themes/. Persisted per browser; the CSS import is inert until set.
+  const [variant, setVariant] = useState<"" | "drydock" | "chartroom" | "pier">(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const v = window.localStorage.getItem(VARIANT_KEY);
+      return v === "drydock" || v === "chartroom" || v === "pier" ? v : "";
+    } catch {
+      return "";
+    }
+  });
+  useEffect(() => {
+    try {
+      if (variant) {
+        document.documentElement.dataset.theme = variant;
+        window.localStorage.setItem(VARIANT_KEY, variant);
+      } else {
+        delete document.documentElement.dataset.theme;
+        window.localStorage.removeItem(VARIANT_KEY);
+      }
+    } catch {
+      // storage unavailable — session-only variant
+    }
+  }, [variant]);
+
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const selectedTask = selectedTaskId ? (projectTasks.find((t) => t.id === selectedTaskId) ?? null) : null;
@@ -788,13 +829,18 @@ function LagoonBoard() {
       );
       try {
         await updateTask(taskId, { status: newStatus as Task["status"] }, selectedProjectId);
-        toast({ title: "Task moved", msg: `Moved to ${labelFor(newStatus)}` });
+        toast({ title: "Card moved", msg: `Moved to ${labelFor(newStatus)}.` });
         setAnnounce(`Moved ${target.title} to ${labelFor(newStatus)}.`);
         await tasksQ.mutate();
       } catch (err) {
         await tasksQ.mutate();
-        toast({ title: "Move failed", msg: err instanceof Error ? err.message : "Try again." });
-        setAnnounce(`Could not move ${target.title}. Try again.`);
+        const detail = errorDetail(err);
+        toast({
+          title: "Couldn't move card",
+          msg: `"${target.title}" stayed in ${labelFor(target.status)}. ${detail ?? "Check your connection, then try again."}`,
+          kind: "err",
+        });
+        setAnnounce(`Could not move ${target.title} to ${labelFor(newStatus)}. It stayed in ${labelFor(target.status)}.`);
       }
     },
     [projectTasks, updateTask, selectedProjectId, toast, tasksQ, labelFor],
@@ -924,7 +970,12 @@ function LagoonBoard() {
       await tasksQ.mutate();
     } catch (err) {
       setComposerText(title);
-      toast({ title: "Create failed", msg: err instanceof Error ? err.message : "Try again." });
+      const detail = errorDetail(err);
+      toast({
+        title: "Couldn't create card",
+        msg: `Your text was kept in the composer. ${detail ?? "Check your connection, then try again."}`,
+        kind: "err",
+      });
     }
   }, [composerText, composerFor, orgId, selectedProjectId, tasksQ, toast]);
 
@@ -957,9 +1008,14 @@ function LagoonBoard() {
         setSelectedTaskId(null);
         restoreOpenerFocus();
         await tasksQ.mutate();
-        toast({ title: "Card deleted", msg: "Soft-deleted and hidden from boards." });
+        toast({ title: "Card deleted", msg: `"${task.title}" was removed from the board.` });
       } catch (err) {
-        toast({ title: "Delete failed", msg: err instanceof Error ? err.message : "Try again." });
+        const detail = errorDetail(err);
+        toast({
+          title: "Couldn't delete card",
+          msg: `"${task.title}" is still on the board. ${detail ?? "Check your connection, then try again."}`,
+          kind: "err",
+        });
       }
     },
     [tasksQ, toast, restoreOpenerFocus],
@@ -1009,7 +1065,12 @@ function LagoonBoard() {
         await tasksQ.mutate();
         toast({ title: "Event created", msg: `"${ev.title}" added to the board.` });
       } catch (err) {
-        toast({ title: "Create failed", msg: err instanceof Error ? err.message : "Try again." });
+        const detail = errorDetail(err);
+        toast({
+          title: "Couldn't create event",
+          msg: `"${ev.title}" wasn't added. ${detail ?? "Check your connection, then try again."}`,
+          kind: "err",
+        });
       }
     },
     [selectedProjectId, tasksQ, toast],
@@ -1024,7 +1085,12 @@ function LagoonBoard() {
       try {
         await patchTask(id, next);
       } catch (err) {
-        toast({ title: "Reschedule failed", msg: err instanceof Error ? err.message : "Try again." });
+        const detail = errorDetail(err);
+        toast({
+          title: "Couldn't reschedule card",
+          msg: `The due date wasn't changed. ${detail ?? "Check your connection, then try again."}`,
+          kind: "err",
+        });
       }
     },
     [patchTask, toast],
@@ -1100,7 +1166,7 @@ function LagoonBoard() {
           <PageEnter className="lagoon-empty">
             <h3 className="lagoon-display" style={{ fontSize: 16, fontWeight: 600 }}>Couldn&apos;t load boards</h3>
             <p style={{ marginTop: 8, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>
-              {projectsQ.error instanceof Error ? projectsQ.error.message : "Something went wrong."}
+              Your boards are still saved. {errorDetail(projectsQ.error) ?? "Check your connection, then try again."}
             </p>
             <Button
               type="button"
@@ -1339,6 +1405,15 @@ function LagoonBoard() {
                 <IconStar size={16} style={starred ? { color: "var(--lagoon-gold)" } : undefined} />
                 {starred ? "Unstar board" : "Star board"}
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Theme variant</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={variant} onValueChange={(v) => setVariant(v as "" | "drydock" | "chartroom" | "pier")}>
+                {VARIANTS.map((opt) => (
+                  <DropdownMenuRadioItem key={opt.label} value={opt.value} closeOnClick>
+                    {opt.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
           <CinematicThemeSwitcher size="sm" />
@@ -1453,7 +1528,7 @@ function LagoonBoard() {
       {tasksQ.error && selectedProjectId ? (
         <div style={{ padding: "12px 20px 0" }} role="alert">
           <p style={{ fontSize: 12, color: "var(--destructive)" }}>
-            Couldn&apos;t load cards: {tasksQ.error instanceof Error ? tasksQ.error.message : "Something went wrong."}{" "}
+            Couldn&apos;t load cards. Your work is still saved — {errorDetail(tasksQ.error) ?? "check your connection, then retry."}{" "}
             <Button
               type="button"
               variant="link"

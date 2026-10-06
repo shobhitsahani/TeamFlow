@@ -1,0 +1,205 @@
+/* ================================================================
+   TeamFlow theme variant C — "Pier Concrete"
+   Static bold variant (bolder / departure, overdrive-adjacent).
+   Operate mode on a committed neobrutalist world.
+   Referent: poured-concrete pier wayfinding — ink slabs, cobalt
+   action, lime selection, sharp corners, honest offset shadows.
+
+   Primary axis: STRUCTURAL DECOMPOSITION (topology + border +
+   shadow system replaced: 2px all-around ink, 0px radii, 4px
+   block shadows). This world CHOOSES neobrutalism, so hard
+   offsets are the depth system here, not decoration.
+
+   Enable (opt-in, incumbent untouched):
+     import "./themes/variant-c-pier.css"; // after impeccable-tokens.css
+     document.documentElement.dataset.theme = "pier";
+   ================================================================ */
+
+html[data-theme="pier"] {
+  color-scheme: light;
+
+  --tf-bg: #fcfcf6;
+  --tf-surface: #ffffff;
+  --tf-surface-2: #f0efe6;
+  --tf-line: #141412;
+  --tf-text: #141412;
+  --tf-muted: #4a4a42;
+  --tf-accent: oklch(0.55 0.22 275);
+  --tf-accent-ink: #ffffff;
+  --tf-accent-soft: oklch(0.9 0.06 275);
+  --tf-accent-line: oklch(0.5 0.2 275);
+  --tf-danger: #c01a1a;
+  --tf-warn: #8a5a00;
+  --tf-ok: #0e7a3d;
+  --pier-lime: oklch(0.86 0.19 130);
+  --pier-lime-ink: #141412;
+
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-instant: 100ms;
+  --dur-settle: 150ms;
+
+  --stack-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --stack-display: "Inter Variable", "Inter", system-ui, sans-serif;
+  --stack-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-display: "Inter Variable", "Inter", system-ui, sans-serif;
+
+  --r-sm: 0px; --r-md: 0px; --r-lg: 0px; --r-xl: 0px;
+  --radius: 0px;
+
+  --bg: #fcfcf6; --bg-soft: #f0efe6;
+  --sidebar-bg: #141412; --col-bg: #f0efe6; --card-bg: #ffffff;
+  --surface-card-hover: #ffffff;
+  --border-subtle: #141412; --border-strong: #141412;
+  --slate-900: #141412; --slate-800: #23231f; --slate-700: #33332e;
+  --slate-600: #3f3f38; --slate-500: #4a4a42; --slate-400: #7a7a6e;
+  --slate-300: #a8a89c; --slate-200: #d8d8cc; --slate-100: #f0efe6;
+  --slate-50: #fcfcf6;
+
+  --brand-50: oklch(0.94 0.04 275); --brand-100: oklch(0.89 0.07 275);
+  --brand-200: oklch(0.8 0.12 275); --brand-300: oklch(0.7 0.17 275);
+  --brand-400: oklch(0.62 0.2 275); --brand-500: oklch(0.55 0.22 275);
+  --brand-600: oklch(0.5 0.2 275); --brand-700: oklch(0.42 0.17 275);
+  --brand-800: oklch(0.32 0.12 275); --brand-900: #141412;
+
+  --primary: oklch(0.55 0.22 275); --primary-foreground: #ffffff;
+  --ring: oklch(0.55 0.22 275);
+  --accent: var(--pier-lime); --accent-foreground: #141412;
+
+  --shadow-xs: 3px 3px 0 #141412;
+  --shadow-1: 4px 4px 0 #141412;
+  --shadow-2: 8px 8px 0 #141412;
+}
+
+html.dark[data-theme="pier"] {
+  color-scheme: dark;
+
+  --tf-bg: #111110;
+  --tf-surface: #1b1b19;
+  --tf-surface-2: #242421;
+  --tf-line: #f2f2e8;
+  --tf-text: #f2f2e8;
+  --tf-muted: #b8b8a8;
+  --tf-accent: oklch(0.7 0.2 275);
+  --tf-accent-ink: #12101e;
+  --tf-accent-soft: color-mix(in oklab, oklch(0.7 0.2 275) 24%, transparent);
+  --tf-accent-line: oklch(0.66 0.18 275);
+  --tf-danger: oklch(0.68 0.2 20);
+  --tf-warn: oklch(0.84 0.16 80);
+  --tf-ok: oklch(0.76 0.16 155);
+  --pier-lime: oklch(0.88 0.19 130);
+  --pier-lime-ink: #141412;
+
+  --bg: #111110; --bg-soft: #0c0c0b;
+  --sidebar-bg: #000000; --col-bg: #1b1b19; --card-bg: #1b1b19;
+  --surface-card-hover: #242421;
+  --border-subtle: #f2f2e8; --border-strong: #ffffff;
+  --slate-900: #f2f2e8; --slate-800: #e0e0d2; --slate-700: #c9c9b8;
+  --slate-600: #b8b8a8; --slate-500: #9a9a8a; --slate-400: #6e6e62;
+  --slate-300: #4a4a44; --slate-200: #2c2c29; --slate-100: #242421;
+  --slate-50: #1b1b19;
+
+  --primary: oklch(0.7 0.2 275); --primary-foreground: #12101e;
+  --ring: oklch(0.7 0.2 275);
+
+  --shadow-xs: 3px 3px 0 #000000;
+  --shadow-1: 4px 4px 0 #000000;
+  --shadow-2: 8px 8px 0 #000000;
+}
+
+html[data-theme="pier"] .lagoon {
+  --lagoon-background: #fcfcf6; --lagoon-card: #ffffff;
+  --lagoon-muted: #f0efe6; --lagoon-muted-fg: #4a4a42;
+  --lagoon-border: #141412;
+  --lagoon-purple: oklch(0.55 0.22 275);
+  --lagoon-gold: oklch(0.72 0.15 80); --lagoon-green: oklch(0.5 0.13 160);
+  --lagoon-danger: #c01a1a;
+  --lagoon-surface: #fcfcf6; --lagoon-ink: #141412;
+  --lagoon-shadow-sm: 3px 3px 0 #141412;
+  --lagoon-shadow-md: 4px 4px 0 #141412;
+  --lagoon-shadow-lg: 8px 8px 0 #141412;
+  color-scheme: light;
+}
+html.dark[data-theme="pier"] .lagoon {
+  --lagoon-background: #111110;
+  --lagoon-card: #1b1b19;
+  --lagoon-muted: #242421;
+  --lagoon-muted-fg: #b8b8a8;
+  --lagoon-border: #f2f2e8;
+  --lagoon-purple: oklch(0.7 0.2 275);
+  --lagoon-surface: #111110;
+  --lagoon-ink: #f2f2e8;
+  --lagoon-shadow-sm: 3px 3px 0 #000;
+  --lagoon-shadow-md: 4px 4px 0 #000;
+  --lagoon-shadow-lg: 8px 8px 0 #000;
+  color-scheme: dark;
+}
+
+/* One family, maximum weight contrast: 800 display, 400 body */
+html[data-theme="pier"] h1 { font-family: var(--stack-display); font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance; margin: 28px 0 8px; }
+html[data-theme="pier"] h2 { font-family: var(--stack-display); font-size: 1.375rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; margin: 24px 0 6px; }
+html[data-theme="pier"] h3 { font-family: var(--stack-display); font-size: 1rem; font-weight: 700; line-height: 1.3; margin: 18px 0 6px; }
+html[data-theme="pier"] body { font-family: var(--stack-sans); font-size: 0.9375rem; line-height: 1.55; background: var(--tf-bg); color: var(--tf-text); caret-color: var(--tf-accent); }
+html[data-theme="pier"] .task-description, html[data-theme="pier"] .empty-msg,
+html[data-theme="pier"] .lagoon-card-desc { max-width: 68ch; }
+html[data-theme="pier"] .tnum, html[data-theme="pier"] .mono,
+html[data-theme="pier"] .ctx-count, html[data-theme="pier"] .st-col-count,
+html[data-theme="pier"] .lagoon-col-count, html[data-theme="pier"] .lagoon-due,
+html[data-theme="pier"] .board-card-due, html[data-theme="pier"] .activity-time {
+  font-family: var(--stack-mono); font-variant-numeric: tabular-nums;
+}
+
+/* Slabs: 2px all-around ink (never side-only), block shadow, sharp */
+html[data-theme="pier"] .st-card, html[data-theme="pier"] .board-card,
+html[data-theme="pier"] .task-card, html[data-theme="pier"] .ticket,
+html[data-theme="pier"] .lagoon-card, html[data-theme="pier"] .lagoon-col-body,
+html[data-theme="pier"] .menu, html[data-theme="pier"] .lagoon-modal {
+  border: 2px solid var(--tf-line); border-radius: 0;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--dur-settle) var(--ease-settle), box-shadow var(--dur-settle) var(--ease-settle);
+}
+html[data-theme="pier"] .lagoon-card:hover, html[data-theme="pier"] .st-card:hover,
+html[data-theme="pier"] .board-card:hover {
+  transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--tf-line);
+}
+html[data-theme="pier"] .st-col, html[data-theme="pier"] .board-column,
+html[data-theme="pier"] .lagoon-col-body { border: 2px solid var(--tf-line); border-radius: 0; background: var(--tf-surface); }
+
+/* Ink beam sidebar + lime selection */
+html[data-theme="pier"] .st-side, html[data-theme="pier"] .ctx,
+html[data-theme="pier"] .lagoon-side { background: #141412; color: #f2f2e8; border-right: 2px solid #141412; }
+html.dark[data-theme="pier"] .st-side, html.dark[data-theme="pier"] .ctx { background: #000; }
+html[data-theme="pier"] .st-nav-item.is-active, html[data-theme="pier"] .lagoon-nav-link.is-on,
+html[data-theme="pier"] .lagoon-board-link.is-on {
+  background: var(--pier-lime); color: var(--pier-lime-ink); border: 2px solid var(--pier-lime-ink); font-weight: 700;
+}
+
+html[data-theme="pier"] .btn-primary, html[data-theme="pier"] .lagoon-create-btn,
+html[data-theme="pier"] .trello-create-btn, html[data-theme="pier"] .lagoon-btn {
+  background: var(--tf-accent); color: var(--tf-accent-ink);
+  border: 2px solid var(--tf-line); border-radius: 0; box-shadow: 3px 3px 0 var(--tf-line);
+}
+html[data-theme="pier"] .btn-primary:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--tf-line); }
+html[data-theme="pier"] .btn-primary:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--tf-line); transition-duration: 100ms; }
+html[data-theme="pier"] .btn-primary:disabled { opacity: 0.5; box-shadow: none; }
+html[data-theme="pier"] :focus-visible { outline: 3px solid var(--tf-accent); outline-offset: 2px; }
+html[data-theme="pier"] ::selection { background: var(--pier-lime); color: var(--pier-lime-ink); }
+html[data-theme="pier"] * { scrollbar-width: thin; scrollbar-color: var(--tf-line) transparent; }
+html[data-theme="pier"] *::-webkit-scrollbar-thumb { background: var(--tf-line); border-radius: 0; }
+html[data-theme="pier"] .kbd { font-family: var(--stack-mono); background: var(--tf-surface); border: 2px solid var(--tf-line); color: var(--tf-text); box-shadow: 2px 2px 0 var(--tf-line); }
+
+html[data-theme="pier"] [data-slot="skeleton"] { position: relative; overflow: hidden; border: 2px solid var(--tf-line); }
+html[data-theme="pier"] [data-slot="skeleton"]::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent 20%, rgb(0 0 0 / 0.12) 50%, transparent 80%);
+  animation: pier-shimmer 1.4s var(--ease-settle) infinite; pointer-events: none;
+}
+@keyframes pier-shimmer { to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="pier"] *, html[data-theme="pier"] *::before, html[data-theme="pier"] *::after {
+    animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;
+  }
+  html[data-theme="pier"] .lagoon-card:hover { transform: none; box-shadow: var(--shadow-xs); }
+  html[data-theme="pier"] [data-slot="skeleton"]::after { display: none; }
+}

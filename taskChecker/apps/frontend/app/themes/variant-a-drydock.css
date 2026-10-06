@@ -1,0 +1,187 @@
+/* ================================================================
+   TeamFlow theme variant A — "Drydock Amber"
+   Static bold variant (bolder / departure). Operate mode.
+   Referent: harbor crane cab control panel — graphite steel,
+   safety-amber action, stencil ledger type.
+
+   Primary axis: COLOR STRATEGY (Committed amber, saturation
+   amplification). Light + dark, sentence case, tabular data,
+   one 180ms settle, transform/shadow only.
+
+   Enable (opt-in, incumbent untouched):
+     import "./themes/variant-a-drydock.css"; // after impeccable-tokens.css
+     document.documentElement.dataset.theme = "drydock";
+   Remove the attribute to return to Quiet Harbor.
+   ================================================================ */
+
+html[data-theme="drydock"] {
+  color-scheme: light;
+
+  --tf-bg: #ede9df;
+  --tf-surface: #ffffff;
+  --tf-surface-2: #e3ddd0;
+  --tf-line: #d5cfc0;
+  --tf-text: #1c1a16;
+  --tf-muted: #5b564a;
+  --tf-accent: oklch(0.68 0.17 78);
+  --tf-accent-ink: #fffdf4;
+  --tf-accent-soft: oklch(0.92 0.05 78);
+  --tf-accent-line: oklch(0.62 0.15 78);
+  --tf-danger: #b3261e;
+  --tf-warn: #8a5a00;
+  --tf-ok: #1e7a46;
+
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-instant: 120ms;
+  --dur-settle: 180ms;
+
+  --stack-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --stack-display: "Sora Variable", "Sora", "Inter", system-ui, sans-serif;
+  --stack-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-display: "Sora Variable", "Sora", system-ui, sans-serif;
+
+  --r-sm: 2px; --r-md: 4px; --r-lg: 6px; --r-xl: 10px;
+  --radius: 6px;
+
+  --bg: #ede9df; --bg-soft: #e3ddd0;
+  --sidebar-bg: #ffffff; --col-bg: #e3ddd0; --card-bg: #ffffff;
+  --surface-card-hover: #fffdf4;
+  --border-subtle: #d5cfc0; --border-strong: #a8a091;
+  --slate-900: #1c1a16; --slate-800: #2e2b25; --slate-700: #3f3b33;
+  --slate-600: #4f4a3f; --slate-500: #5b564a; --slate-400: #8a8474;
+  --slate-300: #b3ac9a; --slate-200: #d5cfc0; --slate-100: #e3ddd0;
+  --slate-50: #ede9df;
+
+  --brand-50: oklch(0.94 0.04 78); --brand-100: oklch(0.88 0.08 78);
+  --brand-200: oklch(0.78 0.12 78); --brand-300: oklch(0.72 0.15 78);
+  --brand-400: oklch(0.68 0.17 78); --brand-500: oklch(0.62 0.17 78);
+  --brand-600: oklch(0.58 0.16 78); --brand-700: oklch(0.5 0.14 78);
+  --brand-800: oklch(0.4 0.1 78); --brand-900: #1c1a16;
+
+  --primary: oklch(0.62 0.17 78); --primary-foreground: #fffdf4;
+  --ring: oklch(0.62 0.17 78);
+  --accent: oklch(0.92 0.05 78); --accent-foreground: #3a2c00;
+
+  --shadow-xs: 0 1px 2px rgb(28 26 22 / 0.08);
+  --shadow-1: 0 2px 6px -1px rgb(28 26 22 / 0.12);
+  --shadow-2: 0 16px 32px -12px rgb(28 26 22 / 0.28);
+}
+
+html.dark[data-theme="drydock"] {
+  color-scheme: dark;
+
+  --tf-bg: oklch(0.18 0.012 260);
+  --tf-surface: oklch(0.24 0.015 260);
+  --tf-surface-2: oklch(0.28 0.016 260);
+  --tf-line: oklch(0.36 0.02 260);
+  --tf-text: oklch(0.95 0.01 90);
+  --tf-muted: oklch(0.74 0.02 90);
+  --tf-accent: oklch(0.84 0.17 78);
+  --tf-accent-ink: #211a00;
+  --tf-accent-soft: color-mix(in oklab, oklch(0.84 0.17 78) 20%, transparent);
+  --tf-accent-line: oklch(0.78 0.15 78);
+  --tf-danger: oklch(0.68 0.2 20);
+  --tf-warn: oklch(0.82 0.16 78);
+  --tf-ok: oklch(0.74 0.16 155);
+
+  --bg: oklch(0.18 0.012 260); --bg-soft: oklch(0.16 0.012 260);
+  --sidebar-bg: oklch(0.2 0.014 260); --col-bg: oklch(0.22 0.014 260);
+  --card-bg: oklch(0.24 0.015 260);
+  --surface-card-hover: oklch(0.27 0.016 260);
+  --border-subtle: oklch(0.36 0.02 260); --border-strong: oklch(0.48 0.025 260);
+  --slate-900: oklch(0.95 0.01 90); --slate-800: oklch(0.88 0.012 90);
+  --slate-700: oklch(0.8 0.015 90); --slate-600: oklch(0.74 0.02 90);
+  --slate-500: oklch(0.66 0.02 90); --slate-400: oklch(0.55 0.02 260);
+  --slate-300: oklch(0.45 0.02 260); --slate-200: oklch(0.36 0.02 260);
+  --slate-100: oklch(0.28 0.016 260); --slate-50: oklch(0.22 0.014 260);
+
+  --primary: oklch(0.84 0.17 78); --primary-foreground: #211a00;
+  --ring: oklch(0.84 0.17 78);
+  --accent: oklch(0.28 0.03 260); --accent-foreground: oklch(0.95 0.01 90);
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-1: 0 2px 8px rgb(0 0 0 / 0.5);
+  --shadow-2: 0 18px 36px -12px rgb(0 0 0 / 0.7);
+}
+
+/* Lagoon scope follows the same amber commitment */
+html[data-theme="drydock"] .lagoon {
+  --lagoon-background: #ede9df; --lagoon-card: #ffffff;
+  --lagoon-muted: #e3ddd0; --lagoon-muted-fg: #5b564a;
+  --lagoon-border: #d5cfc0;
+  --lagoon-purple: oklch(0.58 0.16 78);
+  --lagoon-gold: oklch(0.72 0.16 78); --lagoon-green: oklch(0.55 0.13 160);
+  --lagoon-danger: #b3261e;
+  --lagoon-surface: #ede9df; --lagoon-ink: #1c1a16;
+  --lagoon-success: #1e7a46;
+  --lagoon-shadow-sm: 0 1px 2px rgb(28 26 22 / 0.08);
+  --lagoon-shadow-md: 0 10px 24px -16px rgb(28 26 22 / 0.3);
+  --lagoon-shadow-lg: 0 24px 48px -12px rgb(28 26 22 / 0.32);
+  color-scheme: light;
+}
+html.dark[data-theme="drydock"] .lagoon {
+  --lagoon-background: oklch(0.18 0.012 260);
+  --lagoon-card: oklch(0.24 0.015 260);
+  --lagoon-muted: oklch(0.28 0.016 260);
+  --lagoon-muted-fg: oklch(0.74 0.02 90);
+  --lagoon-border: oklch(0.36 0.02 260);
+  --lagoon-purple: oklch(0.84 0.17 78);
+  --lagoon-gold: oklch(0.82 0.16 78); --lagoon-green: oklch(0.74 0.16 155);
+  --lagoon-danger: oklch(0.68 0.2 20);
+  --lagoon-surface: oklch(0.18 0.012 260);
+  --lagoon-ink: oklch(0.95 0.01 90);
+  --lagoon-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --lagoon-shadow-md: 0 12px 28px -12px rgb(0 0 0 / 0.65);
+  --lagoon-shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
+/* Type voice: Sora display at fixed Operate scale, sentence case */
+html[data-theme="drydock"] h1 { font-family: var(--stack-display); font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; margin: 24px 0 8px; }
+html[data-theme="drydock"] h2 { font-family: var(--stack-display); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; text-wrap: balance; margin: 20px 0 6px; }
+html[data-theme="drydock"] h3 { font-family: var(--stack-display); font-size: 1rem; font-weight: 600; line-height: 1.4; margin: 16px 0 6px; }
+html[data-theme="drydock"] body { font-family: var(--stack-sans); font-size: 0.9375rem; line-height: 1.55; background: var(--tf-bg); color: var(--tf-text); caret-color: var(--tf-accent); }
+html[data-theme="drydock"] .task-description, html[data-theme="drydock"] .empty-msg,
+html[data-theme="drydock"] .lagoon-card-desc { max-width: 68ch; }
+html[data-theme="drydock"] .tnum, html[data-theme="drydock"] .mono,
+html[data-theme="drydock"] .lagoon-due, html[data-theme="drydock"] .board-card-due,
+html[data-theme="drydock"] .activity-time { font-variant-numeric: tabular-nums; }
+
+/* Amber owns the single primary per screen; everything else neutral */
+html[data-theme="drydock"] .btn-primary, html[data-theme="drydock"] .lagoon-create-btn,
+html[data-theme="drydock"] .trello-create-btn, html[data-theme="drydock"] .topbar-create {
+  background: var(--tf-accent); color: var(--tf-accent-ink); border-radius: var(--r-md);
+}
+html[data-theme="drydock"] .btn-primary:hover, html[data-theme="drydock"] .lagoon-create-btn:hover {
+  filter: brightness(1.05);
+}
+html[data-theme="drydock"] .btn-primary:active { transform: scale(0.98); transition-duration: 100ms; }
+html[data-theme="drydock"] .btn-primary:disabled, html[data-theme="drydock"] .lagoon-create-btn:disabled { opacity: 0.5; }
+html[data-theme="drydock"] .lagoon-card, html[data-theme="drydock"] .st-card,
+html[data-theme="drydock"] .board-card {
+  border-radius: var(--r-lg); transition: transform var(--dur-settle) var(--ease-settle), box-shadow var(--dur-settle) var(--ease-settle), border-color var(--dur-instant) ease-out;
+}
+html[data-theme="drydock"] .lagoon-card:hover { transform: translateY(-2px); }
+html[data-theme="drydock"] :focus-visible { outline: 2px solid var(--tf-accent); outline-offset: 2px; border-radius: 4px; }
+html[data-theme="drydock"] ::selection { background: var(--tf-accent-soft); }
+html[data-theme="drydock"] * { scrollbar-width: thin; scrollbar-color: var(--tf-line) transparent; }
+html[data-theme="drydock"] *::-webkit-scrollbar-thumb { background: var(--tf-line); border-radius: 9999px; }
+html[data-theme="drydock"] .kbd { font-family: var(--stack-mono); background: var(--tf-surface); border: 1px solid var(--tf-line); color: var(--tf-muted); }
+
+/* Loading + empty keep Operate honesty: shimmer sweep, teaching copy stays */
+html[data-theme="drydock"] [data-slot="skeleton"] { position: relative; overflow: hidden; }
+html[data-theme="drydock"] [data-slot="skeleton"]::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.4) 50%, transparent 80%);
+  animation: drydock-shimmer 1.6s var(--ease-settle) infinite; pointer-events: none;
+}
+@keyframes drydock-shimmer { to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="drydock"] *, html[data-theme="drydock"] *::before, html[data-theme="drydock"] *::after {
+    animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;
+  }
+  html[data-theme="drydock"] .lagoon-card:hover { transform: none; }
+  html[data-theme="drydock"] [data-slot="skeleton"]::after { display: none; }
+}

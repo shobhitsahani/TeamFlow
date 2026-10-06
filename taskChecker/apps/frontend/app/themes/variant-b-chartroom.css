@@ -1,0 +1,177 @@
+/* ================================================================
+   TeamFlow theme variant B — "Chart-Room Steel"
+   Static bold variant (bolder / departure). Operate mode.
+   Referent: nautical chart table with steel rulers — etched grid,
+   paper daylight, oversized tabular headers, calm steel-blue action.
+
+   Primary axis: TYPOGRAPHIC SYSTEM + DENSITY (scale amplification:
+   14px column heads, 14px card titles, tabular everything, 20px
+   column rhythm). Restrained color, light-first.
+
+   Enable (opt-in, incumbent untouched):
+     import "./themes/variant-b-chartroom.css"; // after impeccable-tokens.css
+     document.documentElement.dataset.theme = "chartroom";
+   ================================================================ */
+
+html[data-theme="chartroom"] {
+  color-scheme: light;
+
+  --tf-bg: #eff2f6;
+  --tf-surface: #ffffff;
+  --tf-surface-2: #e6ebf1;
+  --tf-line: #d6dee8;
+  --tf-text: #0f1e2e;
+  --tf-muted: #4d6479;
+  --tf-accent: oklch(0.5 0.16 250);
+  --tf-accent-ink: #ffffff;
+  --tf-accent-soft: oklch(0.93 0.03 250);
+  --tf-accent-line: oklch(0.62 0.13 250);
+  --tf-danger: #b3261e;
+  --tf-warn: #8a5a00;
+  --tf-ok: #166b43;
+
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-instant: 120ms;
+  --dur-settle: 200ms;
+
+  --stack-sans: "Manrope Variable", "Manrope", system-ui, sans-serif;
+  --stack-display: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
+  --stack-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Manrope Variable", "Manrope", system-ui, sans-serif;
+  --font-display: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
+
+  --r-sm: 4px; --r-md: 8px; --r-lg: 10px; --r-xl: 14px;
+  --radius: 10px;
+
+  --bg: #eff2f6; --bg-soft: #e6ebf1;
+  --sidebar-bg: #ffffff; --col-bg: #e6ebf1; --card-bg: #ffffff;
+  --surface-card-hover: #f8fafc;
+  --border-subtle: #d6dee8; --border-strong: #a9bccd;
+  --slate-900: #0f1e2e; --slate-800: #1e3448; --slate-700: #2f4a61;
+  --slate-600: #3f5a73; --slate-500: #4d6479; --slate-400: #7b93a8;
+  --slate-300: #a9bccd; --slate-200: #d6dee8; --slate-100: #e6ebf1;
+  --slate-50: #eff2f6;
+
+  --brand-50: oklch(0.95 0.025 250); --brand-100: oklch(0.9 0.05 250);
+  --brand-200: oklch(0.8 0.09 250); --brand-300: oklch(0.7 0.12 250);
+  --brand-400: oklch(0.6 0.15 250); --brand-500: oklch(0.5 0.16 250);
+  --brand-600: oklch(0.45 0.15 250); --brand-700: oklch(0.38 0.12 250);
+  --brand-800: oklch(0.3 0.09 250); --brand-900: #0f1e2e;
+
+  --primary: oklch(0.5 0.16 250); --primary-foreground: #ffffff;
+  --ring: oklch(0.5 0.16 250);
+  --accent: oklch(0.93 0.03 250); --accent-foreground: #0f2f52;
+
+  --shadow-xs: 0 1px 2px rgb(15 30 46 / 0.06);
+  --shadow-1: 0 2px 8px -2px rgb(15 30 46 / 0.1);
+  --shadow-2: 0 20px 40px -16px rgb(15 30 46 / 0.25);
+}
+
+html.dark[data-theme="chartroom"] {
+  color-scheme: dark;
+
+  --tf-bg: oklch(0.2 0.025 250);
+  --tf-surface: oklch(0.26 0.028 250);
+  --tf-surface-2: oklch(0.3 0.028 250);
+  --tf-line: oklch(0.4 0.035 250);
+  --tf-text: oklch(0.95 0.008 250);
+  --tf-muted: oklch(0.74 0.025 250);
+  --tf-accent: oklch(0.72 0.15 250);
+  --tf-accent-ink: #0b1c30;
+  --tf-accent-soft: color-mix(in oklab, oklch(0.72 0.15 250) 20%, transparent);
+  --tf-accent-line: oklch(0.66 0.13 250);
+  --tf-danger: oklch(0.68 0.2 20);
+  --tf-warn: oklch(0.82 0.15 80);
+  --tf-ok: oklch(0.74 0.15 160);
+
+  --bg: oklch(0.2 0.025 250); --bg-soft: oklch(0.18 0.022 250);
+  --sidebar-bg: oklch(0.22 0.025 250); --col-bg: oklch(0.24 0.026 250);
+  --card-bg: oklch(0.26 0.028 250);
+  --surface-card-hover: oklch(0.29 0.028 250);
+  --border-subtle: oklch(0.4 0.035 250); --border-strong: oklch(0.52 0.04 250);
+  --slate-900: oklch(0.95 0.008 250); --slate-800: oklch(0.88 0.012 250);
+  --slate-700: oklch(0.8 0.018 250); --slate-600: oklch(0.74 0.025 250);
+  --slate-500: oklch(0.66 0.028 250); --slate-400: oklch(0.56 0.03 250);
+  --slate-300: oklch(0.48 0.032 250); --slate-200: oklch(0.4 0.035 250);
+  --slate-100: oklch(0.3 0.028 250); --slate-50: oklch(0.24 0.026 250);
+
+  --primary: oklch(0.72 0.15 250); --primary-foreground: #0b1c30;
+  --ring: oklch(0.72 0.15 250);
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-1: 0 2px 10px rgb(0 0 0 / 0.5);
+  --shadow-2: 0 22px 44px -14px rgb(0 0 0 / 0.7);
+}
+
+html[data-theme="chartroom"] .lagoon {
+  --lagoon-background: #eff2f6; --lagoon-card: #ffffff;
+  --lagoon-muted: #e6ebf1; --lagoon-muted-fg: #4d6479;
+  --lagoon-border: #d6dee8;
+  --lagoon-purple: oklch(0.5 0.16 250);
+  --lagoon-gold: oklch(0.7 0.13 80); --lagoon-green: oklch(0.55 0.13 160);
+  --lagoon-danger: #b3261e;
+  --lagoon-surface: #eff2f6; --lagoon-ink: #0f1e2e;
+  --lagoon-shadow-sm: 0 1px 2px rgb(15 30 46 / 0.06);
+  --lagoon-shadow-md: 0 12px 28px -16px rgb(15 30 46 / 0.28);
+  --lagoon-shadow-lg: 0 24px 48px -12px rgb(15 30 46 / 0.3);
+  color-scheme: light;
+}
+html.dark[data-theme="chartroom"] .lagoon {
+  --lagoon-background: oklch(0.2 0.025 250);
+  --lagoon-card: oklch(0.26 0.028 250);
+  --lagoon-muted: oklch(0.3 0.028 250);
+  --lagoon-muted-fg: oklch(0.74 0.025 250);
+  --lagoon-border: oklch(0.4 0.035 250);
+  --lagoon-purple: oklch(0.72 0.15 250);
+  --lagoon-gold: oklch(0.8 0.14 80); --lagoon-green: oklch(0.74 0.15 160);
+  --lagoon-surface: oklch(0.2 0.025 250);
+  --lagoon-ink: oklch(0.95 0.008 250);
+  color-scheme: dark;
+}
+
+/* Oversized chart headers: the bold move lives in scale + tabular rhythm */
+html[data-theme="chartroom"] h1 { font-family: var(--stack-display); font-size: 1.875rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; margin: 28px 0 8px; }
+html[data-theme="chartroom"] h2 { font-family: var(--stack-display); font-size: 1.375rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; text-wrap: balance; margin: 22px 0 6px; }
+html[data-theme="chartroom"] h3 { font-family: var(--stack-display); font-size: 1.0625rem; font-weight: 700; line-height: 1.35; margin: 18px 0 6px; }
+html[data-theme="chartroom"] body { font-family: var(--stack-sans); font-size: 0.9375rem; line-height: 1.6; background: var(--tf-bg); color: var(--tf-text); caret-color: var(--tf-accent); }
+html[data-theme="chartroom"] .bcol-name, html[data-theme="chartroom"] .board-column-title,
+html[data-theme="chartroom"] .lagoon-col-head h2 { font-size: 0.875rem; font-weight: 700; letter-spacing: 0.01em; }
+html[data-theme="chartroom"] .st-card-title, html[data-theme="chartroom"] .board-card-title,
+html[data-theme="chartroom"] .lagoon-card-title { font-size: 0.875rem; font-weight: 650; line-height: 1.5; }
+html[data-theme="chartroom"] .task-description, html[data-theme="chartroom"] .empty-msg,
+html[data-theme="chartroom"] .lagoon-card-desc { max-width: 70ch; }
+html[data-theme="chartroom"] .tnum, html[data-theme="chartroom"] .mono,
+html[data-theme="chartroom"] .ctx-count, html[data-theme="chartroom"] .st-col-count,
+html[data-theme="chartroom"] .lagoon-col-count, html[data-theme="chartroom"] .lagoon-due,
+html[data-theme="chartroom"] .board-card-due, html[data-theme="chartroom"] .activity-time {
+  font-family: var(--stack-mono); font-variant-numeric: tabular-nums;
+}
+
+/* Comfortable density: 20px column rhythm, 14px card padding */
+html[data-theme="chartroom"] .st-cols, html[data-theme="chartroom"] .lagoon-cols { gap: 20px; }
+html[data-theme="chartroom"] .st-card, html[data-theme="chartroom"] .board-card,
+html[data-theme="chartroom"] .lagoon-card { padding: 14px; border-radius: var(--r-lg); transition: transform var(--dur-settle) var(--ease-settle), box-shadow var(--dur-settle) var(--ease-settle), border-color var(--dur-instant) ease-out; }
+html[data-theme="chartroom"] .lagoon-card:hover { transform: translateY(-2px); }
+html[data-theme="chartroom"] .btn-primary, html[data-theme="chartroom"] .lagoon-create-btn,
+html[data-theme="chartroom"] .trello-create-btn { background: var(--tf-accent); color: var(--tf-accent-ink); border-radius: var(--r-md); }
+html[data-theme="chartroom"] .btn-primary:disabled { opacity: 0.5; }
+html[data-theme="chartroom"] :focus-visible { outline: 2px solid var(--tf-accent); outline-offset: 2px; border-radius: 4px; }
+html[data-theme="chartroom"] ::selection { background: var(--tf-accent-soft); }
+html[data-theme="chartroom"] * { scrollbar-width: thin; scrollbar-color: var(--tf-line) transparent; }
+html[data-theme="chartroom"] *::-webkit-scrollbar-thumb { background: var(--tf-line); border-radius: 9999px; }
+
+html[data-theme="chartroom"] [data-slot="skeleton"] { position: relative; overflow: hidden; }
+html[data-theme="chartroom"] [data-slot="skeleton"]::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.45) 50%, transparent 80%);
+  animation: chartroom-shimmer 1.6s var(--ease-settle) infinite; pointer-events: none;
+}
+@keyframes chartroom-shimmer { to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="chartroom"] *, html[data-theme="chartroom"] *::before, html[data-theme="chartroom"] *::after {
+    animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;
+  }
+  html[data-theme="chartroom"] .lagoon-card:hover { transform: none; }
+  html[data-theme="chartroom"] [data-slot="skeleton"]::after { display: none; }
+}

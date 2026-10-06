@@ -18,6 +18,12 @@ import "./trello.css";
 import "./theme.css";
 import "./lagoon.css";
 import "./impeccable-tokens.css";
+// Opt-in whole-theme variants (impeccable generate): each is scoped under
+// html[data-theme="…"], so importing is inert until the board options menu
+// sets the attribute. Quiet Harbor incumbent untouched by default.
+import "./themes/variant-a-drydock.css";
+import "./themes/variant-b-chartroom.css";
+import "./themes/variant-c-pier.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toast";
 
