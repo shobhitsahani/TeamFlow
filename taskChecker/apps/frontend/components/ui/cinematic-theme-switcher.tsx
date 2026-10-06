@@ -19,11 +19,16 @@ interface Particle {
  * `next-themes`, so there is exactly one theme store. Drop-in anywhere a
  * `ThemeToggle` is used, e.g. the board header or the app-shell topbar.
  *
- * `size="sm"` renders the same switch scaled into a 62x38 header slot via
- * a measured transform wrapper (layout box stays header-sized, visuals
- * scale uniformly). `size="md"` is the full 104x64 original.
+ * `size="sm"` renders a true header-scale variant (64x36 track, 24px
+ * thumb) with the same visuals. `size="md"` is the full 104x64 original.
  */
 export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) {
+  // Header-scale dimensions (sm) vs full-size original (md). Track travel =
+  // inner width minus thumb so the thumb docks at both ends.
+  const dims =
+    size === "sm"
+      ? { trackW: 64, trackH: 36, pad: 4, thumb: 24, travel: 28, icon: 12, bgPad: 10 }
+      : { trackW: 104, trackH: 64, pad: 6, thumb: 44, travel: 46, icon: 20, bgPad: 16 };
   const { theme, setTheme } = useTheme();
 
   // State Management
@@ -77,16 +82,16 @@ export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) 
       <div className="relative inline-block">
         <div
           className="relative flex items-center rounded-full bg-gray-200 p-1"
-          style={size === "sm" ? { width: 62, height: 38 } : { width: 104, height: 64 }}
+          style={{ width: dims.trackW, height: dims.trackH }}
         />
       </div>
     );
   }
 
-  const core = (
-    <div className="relative inline-block">
-        {/* SVG Filter for Film Grain Texture */}
-        <svg className="absolute w-0 h-0">
+  return (
+    <div className="relative inline-block shrink-0">
+      {/* SVG Filter for Film Grain Texture */}
+      <svg className="absolute w-0 h-0">
         <defs>
           {/* Light mode grain - subtle */}
           <filter id="grain-light">
@@ -134,8 +139,11 @@ export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) 
       <motion.button
         ref={toggleRef}
         onClick={handleToggle}
-        className="relative flex h-[64px] w-[104px] items-center rounded-full p-[6px] transition-all duration-300 focus:outline-none"
+        className="relative flex items-center rounded-full transition-all duration-300 focus:outline-none"
         style={{
+          width: dims.trackW,
+          height: dims.trackH,
+          padding: dims.pad,
           background: isDark
             ? 'radial-gradient(ellipse at top left, #1e293b 0%, #0f172a 40%, #020617 100%)'
             : 'radial-gradient(ellipse at top left, #ffffff 0%, #f1f5f9 40%, #cbd5e1 100%)',
@@ -215,15 +223,17 @@ export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) 
           }}
         />
         {/* Background Icons */}
-        <div className="absolute inset-0 flex items-center justify-between px-4">
-          <Sun size={20} className={isDark ? 'text-yellow-100' : 'text-amber-600'} />
-          <Moon size={20} className={isDark ? 'text-yellow-100' : 'text-slate-700'} />
+        <div className="absolute inset-0 flex items-center justify-between" style={{ paddingLeft: dims.bgPad, paddingRight: dims.bgPad }}>
+          <Sun size={dims.icon} className={isDark ? 'text-yellow-100' : 'text-amber-600'} />
+          <Moon size={dims.icon} className={isDark ? 'text-yellow-100' : 'text-slate-700'} />
         </div>
 
         {/* Circular Thumb with Bouncy Spring Physics */}
         <motion.div
-          className="relative z-10 flex h-[44px] w-[44px] items-center justify-center rounded-full overflow-hidden"
+          className="relative z-10 flex items-center justify-center rounded-full overflow-hidden"
           style={{
+            width: dims.thumb,
+            height: dims.thumb,
             background: isDark
               ? 'linear-gradient(145deg, #64748b 0%, #475569 50%, #334155 100%)'
               : 'linear-gradient(145deg, #ffffff 0%, #fefefe 50%, #f8fafc 100%)',
@@ -251,7 +261,7 @@ export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) 
               : '2px solid rgba(255, 255, 255, 0.9)',
           }}
           animate={{
-            x: isDark ? 46 : 0,
+            x: isDark ? dims.travel : 0,
           }}
           transition={{
             type: 'spring',
@@ -306,25 +316,13 @@ export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) 
           {/* Icon */}
           <div className="relative z-10">
             {isDark ? (
-              <Moon size={20} className="text-yellow-200" />
+              <Moon size={dims.icon} className="text-yellow-200" />
             ) : (
-              <Sun size={20} className="text-amber-500" />
+              <Sun size={dims.icon} className="text-amber-500" />
             )}
           </div>
         </motion.div>
       </motion.button>
-    </div>
-  );
-
-  if (size === "md") return core;
-
-  // Header slot: fixed 62x38 layout box, visuals uniformly scaled so the
-  // switch sits centered on the header row instead of overflowing it.
-  return (
-    <div style={{ width: 62, height: 38, display: "grid", placeItems: "center", flex: "none" }}>
-      <div style={{ width: 104, height: 64, transform: "scale(0.58)", transformOrigin: "center" }}>
-        {core}
-      </div>
     </div>
   );
 }
