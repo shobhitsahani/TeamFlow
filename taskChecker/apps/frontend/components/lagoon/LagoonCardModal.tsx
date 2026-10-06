@@ -84,6 +84,14 @@ export function LagoonCardModal({
   const [commentSending, setCommentSending] = useState(false);
   const [visible, setVisible] = useState(true);
   const [closeFired, setCloseFired] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Disarm the delete confirm when a different card opens (render-adjustment
+  // pattern: no effect, no cascading render).
+  const [confirmingTaskId, setConfirmingTaskId] = useState(task.id);
+  if (task.id !== confirmingTaskId) {
+    setConfirmingTaskId(task.id);
+    setConfirmingDelete(false);
+  }
 
   /** Start motion exit; parent unmounts once the exit animation completes. */
   const requestClose = () => setVisible(false);
@@ -532,9 +540,35 @@ export function LagoonCardModal({
 
           <DialogFooter className="flex-row items-center justify-between border-0 bg-transparent p-0 pt-4 sm:justify-between">
             {canWrite ? (
-              <Button variant="destructive" onClick={() => onDelete(task)} className="active:scale-[0.97]">
-                <IconTrash size={14} /> Delete card
-              </Button>
+              confirmingDelete ? (
+                <div
+                  role="group"
+                  aria-label="Confirm card deletion"
+                  className="flex items-center gap-2"
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setConfirmingDelete(false);
+                  }}
+                >
+                  <span className="text-[12px] font-medium text-muted-foreground">Delete this card?</span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)}>
+                    Keep
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    autoFocus
+                    onClick={() => onDelete(task)}
+                    className="active:scale-[0.97]"
+                  >
+                    <IconTrash size={14} /> Yes, delete
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="destructive" onClick={() => setConfirmingDelete(true)} className="active:scale-[0.97]">
+                  <IconTrash size={14} /> Delete card
+                </Button>
+              )
             ) : (
               <span />
             )}

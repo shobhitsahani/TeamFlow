@@ -76,7 +76,7 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: "In progress",
   done: "Done",
 };
-/* Joyful column dots — Lagoon backlog teal / progress ocean / review coral. */
+/* Board column dots — gold backlog / purple todo / green progress / success done. */
 const STATUS_DOT: Record<string, string> = {
   backlog: "var(--lagoon-gold)",
   todo: "var(--lagoon-purple)",
@@ -848,7 +848,7 @@ function LagoonBoard() {
         setSelectedTaskId(null);
         restoreOpenerFocus();
         await tasksQ.mutate();
-        toast({ title: "Card deleted", msg: "Task moved to trash." });
+        toast({ title: "Card deleted", msg: "Soft-deleted and hidden from boards." });
       } catch (err) {
         toast({ title: "Delete failed", msg: err instanceof Error ? err.message : "Try again." });
       }
@@ -856,7 +856,8 @@ function LagoonBoard() {
     [tasksQ, toast, restoreOpenerFocus],
   );
 
-  /** Calendar view: tasks with due dates become draggable events. */
+  /** Calendar view: tasks with due dates become draggable events. Colors mirror
+   *  toneForPriority (gold has no calendar swatch; orange is its stand-in). */
   const calendarEvents = useMemo<CalendarEvent[]>(
     () =>
       flatTasks
@@ -864,15 +865,13 @@ function LagoonBoard() {
         .map((t) => {
           const start = new Date(t.dueAt as string);
           const color =
-            t.priority === "critical"
-              ? "red"
-              : t.priority === "high"
-                ? "orange"
-                : t.priority === "medium"
-                  ? "blue"
-                  : t.priority === "low"
-                    ? "green"
-                    : "purple";
+            t.priority === "critical" || t.priority === "high"
+              ? "green"
+              : t.priority === "medium"
+                ? "purple"
+                : t.priority === "low"
+                  ? "orange"
+                  : "blue";
           return {
             id: t.id,
             title: t.title,
@@ -1313,7 +1312,7 @@ function LagoonBoard() {
 
       {tasksQ.error && selectedProjectId ? (
         <div style={{ padding: "12px 20px 0" }} role="alert">
-          <p style={{ fontSize: 12, color: "var(--lagoon-green)" }}>
+          <p style={{ fontSize: 12, color: "var(--destructive)" }}>
             Couldn&apos;t load cards: {tasksQ.error instanceof Error ? tasksQ.error.message : "Something went wrong."}{" "}
             <Button
               type="button"

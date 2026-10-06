@@ -1,6 +1,6 @@
 /* ================================================================
-   Lagoon board theme — Trello-blue unified (was treloo-joyful purple).
-   Inter UI + Hanken Grotesk display, Trello blue primary with gold/green
+   Lagoon board theme — Harbor Purple (Quiet Harbor world, DESIGN.md).
+   DM Sans body + Space Grotesk display, purple primary with gold/green
    label/status accents on a soft surface. Scoped under `.lagoon` so the
    rest of the app is untouched. Loaded after trello.css so Lagoon rules
    win inside its own tree.
@@ -13,7 +13,7 @@
   --lagoon-muted: oklch(0.953 0.013 239);
   --lagoon-muted-fg: oklch(0.53 0.038 238);
   --lagoon-border: oklch(0.902 0.017 242);
-  --lagoon-purple: #0c66e4;
+  --lagoon-purple: oklch(0.55 0.22 300);
   --lagoon-gold: oklch(0.72 0.15 80);
   --lagoon-green: oklch(0.6 0.15 160);
   --lagoon-surface: oklch(0.978 0.008 247);
@@ -28,14 +28,14 @@
   color-scheme: light;
 }
 
-/* Dark treatments — Trello-blue scale; errors stay red elsewhere. */
+/* Dark treatments — Harbor Purple scale; errors stay red elsewhere. */
 .dark .lagoon {
   --lagoon-background: oklch(0.16 0.014 255);
   --lagoon-card: oklch(0.205 0.017 255);
   --lagoon-muted: oklch(0.23 0.016 255);
   --lagoon-muted-fg: oklch(0.67 0.018 250);
   --lagoon-border: oklch(0.285 0.02 255);
-  --lagoon-purple: #579dff;
+  --lagoon-purple: oklch(0.65 0.24 300);
   --lagoon-gold: oklch(0.79 0.17 76);
   --lagoon-green: oklch(0.72 0.17 160);
   --lagoon-surface: oklch(0.16 0.014 255);
@@ -50,13 +50,13 @@
 /* Sidebar + solid-tint buttons keep deep fills in dark mode so their
    white labels keep contrast; light-tint buttons take dark text. */
 .dark .lagoon .lagoon-side {
-  background: oklch(0.3 0.07 252);
+  background: oklch(0.32 0.1 300);
 }
 .dark .lagoon .lagoon-create-btn,
 .dark .lagoon .lagoon-btn,
 .dark .lagoon .lagoon-side-mark,
 .dark .lagoon .lagoon-new-board-btn {
-  color: oklch(0.23 0.03 252);
+  color: oklch(0.23 0.03 300);
 }
 
 .lagoon {
