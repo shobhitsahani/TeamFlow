@@ -29,6 +29,3 @@ Thumbs.db
 .claude/*.local.json
 litellm_config.yaml
 
-# Markdown docs - ignored
-*.md
-

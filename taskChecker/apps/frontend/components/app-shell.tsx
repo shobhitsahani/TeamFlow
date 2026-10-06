@@ -10,7 +10,7 @@ import { useAuth } from "../lib/auth";
 import { ContextBar, Rail, ScopeStrip } from "./shell-parts";
 import { ChatRail } from "./chat-rail";
 import { IconFlowMark } from "./icons";
-import { AnimatePresence, DUR, EASE_OUT, motion } from "@/components/motion";
+import { AnimatePresence, motion } from "@/components/motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -116,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: DUR.fast, ease: [...EASE_OUT] }}
+              transition={{ duration: 0.25 }}
             >
               {children}
             </motion.div>

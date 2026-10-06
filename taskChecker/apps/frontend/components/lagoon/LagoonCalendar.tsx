@@ -48,7 +48,7 @@ function toneDotVar(task: Task, metaTick: number): string {
   void metaTick;
   const meta = loadLagoonMeta(task.id);
   const label = effectiveLabel(task.priority, meta);
-  const tone = label?.tone ?? toneForPriority(task.priority) ?? "purple";
+  const tone = label?.tone ?? toneForPriority(task.priority) ?? "ocean";
   return `var(--lagoon-${tone})`;
 }
 

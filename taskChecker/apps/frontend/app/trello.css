@@ -589,9 +589,7 @@ button.trello-due.is-empty:hover {
 .progress-fill {
   height: 100%;
   border-radius: 2px;
-  transition: transform 200ms ease-out, opacity 150ms ease-out;
-  transform-origin: left center;
-  will-change: transform;
+  transition: width 200ms ease-out;
 }
 .progress-text {
   font-size: 11px;

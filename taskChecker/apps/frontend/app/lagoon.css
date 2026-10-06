@@ -1,9 +1,8 @@
 /* ================================================================
-   Lagoon board theme — Harbor Purple (Quiet Harbor world, DESIGN.md).
-   DM Sans body + Space Grotesk display, purple primary with gold/green
-   label/status accents on a soft surface. Scoped under `.lagoon` so the
-   rest of the app is untouched. Loaded after trello.css so Lagoon rules
-   win inside its own tree.
+   Lagoon joyful theme — ported from treloo-joyful-design.
+   Sora display + Manrope body, ocean/teal/coral palette on a soft
+   surface. Scoped under `.lagoon` so the rest of the app is untouched.
+   Loaded after trello.css so Lagoon rules win inside its own tree.
    ================================================================ */
 
 .lagoon {
@@ -13,14 +12,13 @@
   --lagoon-muted: oklch(0.953 0.013 239);
   --lagoon-muted-fg: oklch(0.53 0.038 238);
   --lagoon-border: oklch(0.902 0.017 242);
-  --lagoon-purple: oklch(0.55 0.22 300);
-  --lagoon-gold: oklch(0.72 0.15 80);
-  --lagoon-green: oklch(0.6 0.15 160);
-  --lagoon-danger: oklch(0.55 0.2 25);
+  --lagoon-ocean: oklch(0.461 0.127 242);
+  --lagoon-teal: oklch(0.659 0.105 190);
+  --lagoon-coral: oklch(0.687 0.177 29);
   --lagoon-surface: oklch(0.978 0.008 247);
   --lagoon-ink: oklch(0.245 0.047 239);
   --lagoon-success: oklch(0.61 0.13 156);
-  --lagoon-on-purple: oklch(0.99 0 0);
+  --lagoon-on-ocean: oklch(0.99 0 0);
   /* Depth scale — sm: resting cards, md: hover/menus, lg: modals.
      Hairline borders stay 1px var(--lagoon-border); shadow does the work. */
   --lagoon-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
@@ -29,20 +27,20 @@
   color-scheme: light;
 }
 
-/* Dark treatments — Harbor Purple scale; errors stay red elsewhere. */
+/* Dark treatments — same roles, lifted surfaces, lightened tones so
+   label pills, due badges and counts keep contrast on dark cards. */
 .dark .lagoon {
-  --lagoon-background: oklch(0.16 0.014 255);
-  --lagoon-card: oklch(0.205 0.017 255);
-  --lagoon-muted: oklch(0.23 0.016 255);
-  --lagoon-muted-fg: oklch(0.67 0.018 250);
-  --lagoon-border: oklch(0.285 0.02 255);
-  --lagoon-purple: oklch(0.65 0.24 300);
-  --lagoon-gold: oklch(0.79 0.17 76);
-  --lagoon-green: oklch(0.72 0.17 160);
-  --lagoon-danger: oklch(0.66 0.22 20);
-  --lagoon-surface: oklch(0.16 0.014 255);
-  --lagoon-ink: oklch(0.95 0.008 250);
-  --lagoon-success: oklch(0.72 0.16 153);
+  --lagoon-background: oklch(0.235 0.018 250);
+  --lagoon-card: oklch(0.29 0.022 252);
+  --lagoon-muted: oklch(0.345 0.025 252);
+  --lagoon-muted-fg: oklch(0.74 0.035 245);
+  --lagoon-border: oklch(0.42 0.035 250);
+  --lagoon-ocean: oklch(0.72 0.115 245);
+  --lagoon-teal: oklch(0.78 0.1 190);
+  --lagoon-coral: oklch(0.74 0.14 25);
+  --lagoon-surface: oklch(0.235 0.018 250);
+  --lagoon-ink: oklch(0.93 0.012 250);
+  --lagoon-success: oklch(0.72 0.12 160);
   --lagoon-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --lagoon-shadow-md: 0 12px 28px -12px rgb(0 0 0 / 0.6);
   --lagoon-shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 0.65);
@@ -52,19 +50,19 @@
 /* Sidebar + solid-tint buttons keep deep fills in dark mode so their
    white labels keep contrast; light-tint buttons take dark text. */
 .dark .lagoon .lagoon-side {
-  background: oklch(0.32 0.1 300);
+  background: oklch(0.3 0.07 252);
 }
 .dark .lagoon .lagoon-create-btn,
 .dark .lagoon .lagoon-btn,
 .dark .lagoon .lagoon-side-mark,
 .dark .lagoon .lagoon-new-board-btn {
-  color: oklch(0.23 0.03 300);
+  color: oklch(0.23 0.03 252);
 }
 
 .lagoon {
   background: var(--lagoon-surface);
   color: var(--lagoon-ink);
-  font-family: var(--font-lagoon-body), "Inter", system-ui, sans-serif;
+  font-family: var(--font-lagoon-body), "Manrope", system-ui, sans-serif;
   letter-spacing: 0;
 }
 
@@ -72,18 +70,18 @@
 .lagoon h2,
 .lagoon h3,
 .lagoon .lagoon-display {
-  font-family: var(--font-lagoon-display), "Hanken Grotesk", system-ui, sans-serif;
+  font-family: var(--font-lagoon-display), "Sora", system-ui, sans-serif;
 }
 
 /* ---------- tone dots / pills ---------- */
-.lagoon .lg-dot-gold { background: var(--lagoon-gold); }
-.lagoon .lg-dot-green { background: var(--lagoon-green); }
-.lagoon .lg-dot-purple { background: var(--lagoon-purple); }
+.lagoon .lg-dot-teal { background: var(--lagoon-teal); }
+.lagoon .lg-dot-coral { background: var(--lagoon-coral); }
+.lagoon .lg-dot-ocean { background: var(--lagoon-ocean); }
 .lagoon .lg-dot-success { background: var(--lagoon-success); }
 
-.lagoon .lg-pill-gold { background: color-mix(in oklab, var(--lagoon-gold) 12%, transparent); color: var(--lagoon-gold); }
-.lagoon .lg-pill-green { background: color-mix(in oklab, var(--lagoon-green) 12%, transparent); color: var(--lagoon-green); }
-.lagoon .lg-pill-purple { background: color-mix(in oklab, var(--lagoon-purple) 12%, transparent); color: var(--lagoon-purple); }
+.lagoon .lg-pill-teal { background: color-mix(in oklab, var(--lagoon-teal) 12%, transparent); color: var(--lagoon-teal); }
+.lagoon .lg-pill-coral { background: color-mix(in oklab, var(--lagoon-coral) 12%, transparent); color: var(--lagoon-coral); }
+.lagoon .lg-pill-ocean { background: color-mix(in oklab, var(--lagoon-ocean) 12%, transparent); color: var(--lagoon-ocean); }
 
 .lagoon-only-mobile {
   display: grid;
@@ -129,16 +127,15 @@
   }
 }
 
-/* Done + Move buttons on cards: rest visible so touch/keyboard users can
-   find them without hovering; full opacity on hover or keyboard focus. */
+/* hover-reveal done button on cards (always visible on touch) */
 .lagoon .lagoon-done-btn {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 6px;
   color: var(--lagoon-muted-fg);
-  opacity: 0.65;
+  opacity: 0;
   transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
 }
 
@@ -150,12 +147,6 @@
 .lagoon .lagoon-done-btn:hover {
   background: var(--lagoon-muted);
   color: var(--lagoon-ink);
-}
-
-.lagoon .lagoon-done-btn:focus-visible {
-  outline: 2px solid var(--lagoon-purple);
-  outline-offset: 2px;
-  opacity: 1;
 }
 
 @media (hover: none) {
@@ -179,7 +170,7 @@
 }
 
 .lagoon .lagoon-star.is-on {
-  color: var(--lagoon-gold);
+  color: #e2b203;
 }
 
 /* ---------- shell ---------- */
@@ -196,8 +187,8 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  background: oklch(0.42 0.16 300);
-  color: var(--lagoon-on-purple);
+  background: var(--lagoon-ocean);
+  color: var(--lagoon-on-ocean);
 }
 
 @media (max-width: 1023px) {
@@ -226,11 +217,11 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--lagoon-gold);
-  font-family: var(--font-lagoon-display), "Hanken Grotesk", sans-serif;
+  background: var(--lagoon-teal);
+  font-family: var(--font-lagoon-display), "Sora", sans-serif;
   font-size: 14px;
   font-weight: 700;
-  color: oklch(0.25 0.05 80);
+  color: var(--lagoon-on-ocean);
   flex: none;
 }
 
@@ -254,10 +245,10 @@
 
 .lagoon-nav-label {
   padding: 0 8px 4px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: rgb(255 255 255 / 0.65);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(255 255 255 / 0.4);
 }
 
 .lagoon-nav-link {
@@ -268,7 +259,7 @@
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 13px;
-  color: rgb(255 255 255 / 0.82);
+  color: rgb(255 255 255 / 0.7);
 }
 
 .lagoon-nav-link:hover {
@@ -290,7 +281,7 @@
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 12px;
-  color: rgb(255 255 255 / 0.75);
+  color: rgb(255 255 255 / 0.6);
   text-align: left;
 }
 
@@ -313,16 +304,11 @@
   justify-content: center;
   gap: 8px;
   border-radius: 8px;
-  background: var(--lagoon-purple);
+  background: var(--lagoon-coral);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
   padding: 8px 12px;
-}
-
-.lagoon-new-board-btn:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
 }
 
 .lagoon-new-board-btn:hover {
@@ -390,8 +376,8 @@
 }
 
 .lagoon-search:focus-within {
-  border-color: var(--lagoon-purple);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--lagoon-purple) 15%, transparent);
+  border-color: var(--lagoon-ocean);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--lagoon-ocean) 15%, transparent);
 }
 
 .lagoon-icon-btn {
@@ -414,7 +400,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 8px;
-  background: var(--lagoon-purple);
+  background: var(--lagoon-ocean);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -460,8 +446,7 @@
   gap: 8px;
   border-radius: 8px;
   padding: 8px 12px;
-  min-height: 32px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--lagoon-muted-fg);
   border: 1px solid transparent;
@@ -469,12 +454,6 @@
 
 .lagoon-view-btn:hover {
   background: var(--lagoon-muted);
-  color: var(--lagoon-ink);
-}
-
-.lagoon-view-btn:focus-visible {
-  outline: 2px solid var(--lagoon-purple);
-  outline-offset: 2px;
 }
 
 .lagoon-view-btn.is-on {
@@ -488,31 +467,16 @@
 .lagoon-tone-btn {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 9999px;
   border: 1px solid var(--lagoon-border);
   background: var(--lagoon-card);
 }
 
-.lagoon-tone-btn:hover {
-  border-color: var(--lagoon-muted-fg);
-}
-
-.lagoon-tone-btn:focus-visible {
-  outline: 2px solid var(--lagoon-purple);
-  outline-offset: 2px;
-}
-
 .lagoon-tone-btn.is-on {
-  border-color: var(--lagoon-purple);
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--lagoon-purple) 55%, transparent);
-}
-
-.lagoon-tone-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--lagoon-muted-fg);
+  border-color: var(--lagoon-ink);
+  box-shadow: 0 0 0 1px var(--lagoon-ink);
 }
 
 .lagoon-toggle-btn {
@@ -540,7 +504,7 @@
   overscroll-behavior-x: contain;
   scroll-behavior: smooth;
   padding: 0 12px 20px;
-  scrollbar-color: color-mix(in oklab, var(--lagoon-purple) 28%, transparent) transparent;
+  scrollbar-color: color-mix(in oklab, var(--lagoon-ocean) 28%, transparent) transparent;
   scrollbar-width: thin;
   /* Horizontal scroll-shadow: edge fades ride with the content
      (attachment: local) so they only appear when more can scroll. */
@@ -612,13 +576,13 @@
 }
 
 .lagoon-col-body.is-dragging {
-  background: color-mix(in oklab, var(--lagoon-gold) 12%, transparent);
+  background: color-mix(in oklab, var(--lagoon-teal) 12%, transparent);
 }
 
 /* Drop-target column: stronger tint + inset ring (no layout shift). */
 .lagoon-col-body.is-dragover {
-  background: color-mix(in oklab, var(--lagoon-gold) 22%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--lagoon-gold) 60%, transparent);
+  background: color-mix(in oklab, var(--lagoon-teal) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--lagoon-teal) 60%, transparent);
 }
 
 .lagoon-card {
@@ -654,7 +618,7 @@
 /* Cards are keyboard-operable (Enter/Space opens) — visible focus on the
    focusable wrapper (data-slot="lagoon-card" carries the tabIndex). */
 [data-slot="lagoon-card"]:focus-visible {
-  outline: 2px solid var(--lagoon-purple);
+  outline: 2px solid var(--lagoon-ocean);
   outline-offset: 2px;
   border-radius: 8px;
 }
@@ -720,12 +684,12 @@
 
 .lagoon-due.is-overdue {
   font-weight: 600;
-  color: var(--lagoon-danger);
+  color: var(--lagoon-coral);
 }
 
 .lagoon-due.is-today {
   font-weight: 600;
-  color: var(--lagoon-purple);
+  color: var(--lagoon-ocean);
 }
 
 .lagoon-card-stats {
@@ -758,7 +722,7 @@
 
 .lagoon-add-card:hover {
   color: var(--lagoon-ink);
-  border-color: var(--lagoon-purple);
+  border-color: var(--lagoon-ocean);
 }
 
 .lagoon-composer {
@@ -771,8 +735,8 @@
 
 /* Borderless composer input: show focus on the card instead. */
 .lagoon-composer:focus-within {
-  border-color: var(--lagoon-purple);
-  box-shadow: var(--lagoon-shadow-sm), 0 0 0 3px color-mix(in oklab, var(--lagoon-purple) 15%, transparent);
+  border-color: var(--lagoon-ocean);
+  box-shadow: var(--lagoon-shadow-sm), 0 0 0 3px color-mix(in oklab, var(--lagoon-ocean) 15%, transparent);
 }
 
 .lagoon-composer textarea {
@@ -800,7 +764,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 8px;
-  background: var(--lagoon-purple);
+  background: var(--lagoon-ocean);
   color: #fff;
   font-size: 12px;
   font-weight: 600;
@@ -854,19 +818,14 @@
   gap: 8px;
   border-radius: 8px;
   background: transparent;
-  color: var(--lagoon-danger);
+  color: var(--lagoon-coral);
   font-size: 12px;
   font-weight: 500;
   padding: 8px 12px;
 }
 
 .lagoon-btn-danger:hover {
-  background: color-mix(in oklab, var(--lagoon-danger) 10%, transparent);
-}
-
-.lagoon-btn-danger:focus-visible {
-  outline: 2px solid var(--lagoon-danger);
-  outline-offset: 2px;
+  background: color-mix(in oklab, var(--lagoon-coral) 10%, transparent);
 }
 
 /* ---------- timeline / calendar ---------- */
@@ -959,9 +918,10 @@
 
 .lagoon-field-label {
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--lagoon-muted-fg);
 }
 
@@ -981,8 +941,8 @@
 }
 
 .lagoon-input:focus {
-  border-color: var(--lagoon-purple);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--lagoon-purple) 15%, transparent);
+  border-color: var(--lagoon-ocean);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--lagoon-ocean) 15%, transparent);
 }
 
 .lagoon-title-input {
@@ -990,7 +950,7 @@
   flex: 1;
   border-radius: 8px;
   background: transparent;
-  font-family: var(--font-lagoon-display), "Hanken Grotesk", sans-serif;
+  font-family: var(--font-lagoon-display), "Sora", sans-serif;
   font-size: 16px;
   font-weight: 600;
   outline: none;
@@ -1036,7 +996,7 @@
 .lagoon-check-row input[type="checkbox"] {
   width: 14px;
   height: 14px;
-  accent-color: var(--lagoon-gold);
+  accent-color: var(--lagoon-teal);
 }
 
 .lagoon-check-row.is-done span {
@@ -1188,7 +1148,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--lagoon-gold);
+  color: var(--lagoon-teal);
 }
 
 .lagoon-cal-title {
@@ -1341,7 +1301,7 @@
 }
 
 .lagoon-cal-daynum.is-today {
-  background: var(--lagoon-purple);
+  background: var(--lagoon-ocean);
   color: #fff;
   font-weight: 600;
 }
@@ -1366,7 +1326,7 @@
 .lagoon-cal-chip:hover {
   transform: translateY(-1px);
   box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, var(--lagoon-purple) 50%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--lagoon-ocean) 50%, transparent),
     0 9px 24px -16px color-mix(in oklab, var(--lagoon-ink) 40%, transparent);
 }
 
@@ -1409,14 +1369,14 @@
 .lagoon-cal-more {
   font-size: 10px;
   font-weight: 600;
-  color: var(--lagoon-purple);
+  color: var(--lagoon-ocean);
   text-align: left;
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .lagoon-cal-more:hover {
-  background: color-mix(in oklab, var(--lagoon-purple) 10%, transparent);
+  background: color-mix(in oklab, var(--lagoon-ocean) 10%, transparent);
 }
 
 .lagoon-cal-undated {

@@ -15,8 +15,8 @@ import { cx } from "@/lib/utils";
  *     <Label htmlFor="airplane-mode">Airplane Mode</Label>
  *   </div>
  *
- * Checked = dark mode. Persists via ThemeProvider (localStorage);
- * fresh visitors default to dark.
+ * Checked = dark mode. Persists via ThemeProvider (localStorage) and
+ * follows the OS preference until the user picks explicitly.
  */
 export function ThemeToggle({
   id = "theme-mode",
