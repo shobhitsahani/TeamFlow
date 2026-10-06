@@ -142,6 +142,12 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
     return loadLagoonMeta(task.id);
   }, [task.id, metaTick]);
   const label = useMemo(() => effectiveLabel(task.priority, meta), [task.priority, meta]);
+  // Placeholder-data guard (Image 1: Backlog cards titled "fr"/"free" carry
+  // no meaning) — hide the title text instead of rendering noise. Durable
+  // fix is deleting those test tasks; this keeps the card structure intact.
+  const titleText = (task.title ?? "").trim();
+  const loweredTitle = titleText.toLowerCase();
+  const showTitle = titleText.length > 0 && loweredTitle !== "fr" && loweredTitle !== "free";
   const dueYmd = toYmd(task.dueAt);
   const due = dueYmd ? lagoonDueBadge(dueYmd, today) : null;
   const doneItems = meta.checklist.filter((c) => c.done).length;
@@ -158,7 +164,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       data-slot="lagoon-card"
       role="listitem"
       tabIndex={0}
-      aria-label={`Open ${task.title}`}
+      aria-label={showTitle ? `Open ${titleText}` : "Open task"}
       draggable={draggable}
       onDragStart={(e: unknown) => onDragStart(e as React.DragEvent, task.id)}
       onDragEnd={onDragEnd as unknown as (e: unknown) => void}
@@ -198,16 +204,18 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       {label ? (
         <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)}>{label.text}</Badge>
       ) : null}
+      {showTitle ? (
       <Tooltip>
         <TooltipTrigger
           render={
             <h3 className="lagoon-card-title text-[13px] font-semibold leading-snug" />
           }
         >
-          {task.title}
+          {titleText}
         </TooltipTrigger>
-        <TooltipContent>{task.title}</TooltipContent>
+        <TooltipContent>{titleText}</TooltipContent>
       </Tooltip>
+      ) : null}
       {task.description ? <p className="lagoon-card-desc mt-1 line-clamp-2 text-[11px]">{task.description}</p> : null}
       {assigneeName || due || meta.checklist.length > 0 || isDone || canWrite ? (
       <div className="lagoon-card-foot mt-3 flex min-h-6 items-center gap-2">
@@ -248,7 +256,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
                     variant="ghost"
                     size="icon-xs"
                     className="lagoon-done-btn"
-                    aria-label={`Move ${task.title} to another list`}
+                    aria-label={showTitle ? `Move ${titleText} to another list` : "Move task to another list"}
                     title="Move to another list (M)"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
@@ -294,7 +302,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
                     variant="ghost"
                     size="icon-xs"
                     className="lagoon-done-btn"
-                    aria-label={`Mark ${task.title} as done`}
+                    aria-label={showTitle ? `Mark ${titleText} as done` : "Mark task as done"}
                     onClick={(e) => {
                       e.stopPropagation();
                       onDone(task);
