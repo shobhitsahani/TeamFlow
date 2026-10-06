@@ -9,7 +9,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTenant } from "./store";
 import { useToast, Dropdown, MenuItem, Modal } from "./overlay";
-import { CinematicThemeSwitcher } from "./ui/cinematic-theme-switcher";
+import { ThemeToggle } from "./theme-toggle";
 import { PaletteSearchTrigger } from "./search-trigger";
 import { Button, buttonVariants } from "./ui/button";
 import { Input } from "./ui/input";
@@ -786,7 +786,7 @@ export function ScopeStrip({
       <PaletteSearchTrigger onOpen={onOpenPalette} />
 
       <div className="topbar-right">
-        <CinematicThemeSwitcher size="sm" />
+        <ThemeToggle id="topbar-theme-mode" showLabel={false} className="topbar-theme" />
         <Link href="/app/board" className={buttonVariants({ variant: "default", size: "sm" }) + " trello-create-btn"}>
           <IconPlus size={14} /><span className="trello-create-label">Create</span>
         </Link>
