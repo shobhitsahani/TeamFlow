@@ -278,9 +278,6 @@ export function LagoonShell({
                   <span style={{ display: "block", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {org?.name ?? "Workspace"}
                   </span>
-                  <span style={{ display: "block", fontSize: 10, color: "rgb(255 255 255 / 0.55)" }}>
-                    {org?.plan ? `${org.plan} plan` : "Free plan"}
-                  </span>
                 </span>
                 <IconChevronDown size={12} />
               </DropdownMenuTrigger>
