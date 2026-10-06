@@ -411,6 +411,7 @@ export function LagoonShell({
                     style={{ color: "rgb(255 255 255 / 0.6)" }}
                   >
                     <span
+                      aria-hidden="true"
                       style={{
                         width: 8,
                         height: 8,

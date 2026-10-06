@@ -6,7 +6,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import { AnimatePresence, listItem, motion, popIn, staggerChild, staggerParent } from "@/components/motion";
+import { AnimatePresence, focalPop, listItem, motion, staggerChild, staggerParent } from "@/components/motion";
 import { api, type Comment, type Member, type PaginatedResponse, type Project, type Task } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { useToast } from "@/components/overlay";
@@ -253,7 +253,7 @@ export function LagoonCardModal({
             className="lagoon lagoon-scroll-fade max-w-lg gap-0 overflow-y-auto p-5 duration-0 data-open:animate-none sm:max-w-lg"
             style={{ maxHeight: "85dvh" }}
           >
-            <motion.div variants={popIn} initial="hidden" animate="show" exit="exit">
+            <motion.div variants={focalPop} initial="hidden" animate="show" exit="exit">
               <DialogHeader className="flex-row items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <DialogTitle className="sr-only">Card details</DialogTitle>
