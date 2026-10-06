@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { PageEnter } from "@/components/motion";
 import { timeAgo, hueFrom } from "@/lib/utils";
 
@@ -32,24 +33,28 @@ const ACTION_LABELS: Record<string, string> = {
   deleted: "deleted",
 };
 
-/** Action -> row icon. Single local icon set; entity type refines it. */
+/** Action -> row icon. Single local icon set; entity type refines it.
+ * Returns ready-to-render JSX (not a component) so TimelineRow never
+ * creates a component during render. */
 function iconFor(event: ActivityEvent) {
   switch (event.action) {
     case "created":
-      return IconPlus;
+      return <IconPlus size={10} aria-hidden />;
     case "deleted":
-      return IconTrash;
+      return <IconTrash size={10} aria-hidden />;
     case "commented":
-      return IconMessageSquare;
+      return <IconMessageSquare size={10} aria-hidden />;
     case "status_changed":
-      return event.entityType === "task" ? IconColumns : IconCheck;
+      return event.entityType === "task"
+        ? <IconColumns size={10} aria-hidden />
+        : <IconCheck size={10} aria-hidden />;
     case "updated":
-      return IconEdit;
+      return <IconEdit size={10} aria-hidden />;
     default:
-      if (event.entityType === "team") return IconUsers;
-      if (event.entityType === "project") return IconLayers;
-      if (event.entityType === "comment") return IconMessageSquare;
-      return IconPulse;
+      if (event.entityType === "team") return <IconUsers size={10} aria-hidden />;
+      if (event.entityType === "project") return <IconLayers size={10} aria-hidden />;
+      if (event.entityType === "comment") return <IconMessageSquare size={10} aria-hidden />;
+      return <IconPulse size={10} aria-hidden />;
   }
 }
 
@@ -81,7 +86,7 @@ const TimelineRow = memo(function TimelineRow({
 }) {
   const action = ACTION_LABELS[event.action] ?? event.action;
   const tint = event.actorId ? hueFrom(event.actorId) : 0;
-  const Icon = iconFor(event);
+  const actionIcon = iconFor(event);
   const display = actorName ?? "Someone";
   const initials = actorName
     ? actorName
@@ -93,30 +98,58 @@ const TimelineRow = memo(function TimelineRow({
     : "?";
 
   return (
-    <li className="relative flex items-center gap-3">
-      <span className="relative shrink-0">
+    <li
+      className="lagoon-tl-row"
+      style={{
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 16px",
+        borderRadius: 12,
+        border: "1px solid var(--lagoon-border)",
+        background: "var(--lagoon-card)",
+      }}
+    >
+      <span className="relative shrink-0" style={{ position: "relative", flex: "none" }}>
         {actorLoading ? (
           <Skeleton aria-hidden className="size-9 shrink-0 rounded-full" />
         ) : (
-          <Avatar className="size-9 border border-border">
+          <Avatar className="size-9" style={{ border: "1px solid var(--lagoon-border)" }}>
             <AvatarFallback style={{ background: `hsl(${tint} 60% 45%)`, color: "#fff" }}>
               {initials}
             </AvatarFallback>
           </Avatar>
         )}
-        <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border border-border bg-card text-muted-foreground">
-          <Icon size={10} aria-hidden />
+        <span
+          className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full"
+          style={{
+            position: "absolute",
+            right: -4,
+            bottom: -4,
+            width: 16,
+            height: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 9999,
+            border: "1px solid var(--lagoon-border)",
+            background: "var(--lagoon-muted)",
+            color: "var(--lagoon-muted-fg)",
+          }}
+        >
+          {actionIcon}
         </span>
       </span>
 
-      <p className="flex-1 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">{display}</span> {action}{" "}
-        <span className="font-medium text-foreground">
+      <p className="flex-1 text-sm" style={{ flex: 1, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>
+        <span style={{ fontWeight: 600, color: "var(--lagoon-ink)" }}>{display}</span> {action}{" "}
+        <span style={{ fontWeight: 600, color: "var(--lagoon-ink)" }}>
           {event.entityType} {event.entityId.slice(0, 8)}
         </span>
       </p>
 
-      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+      <span className="shrink-0 text-xs tabular-nums" style={{ flex: "none", fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
         {timeAgo(event.createdAt)}
       </span>
     </li>
@@ -125,12 +158,24 @@ const TimelineRow = memo(function TimelineRow({
 
 function DaySeparator({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3" role="separator" aria-label={label}>
-      <span className="h-px flex-1 bg-border" aria-hidden />
-      <span className="shrink-0 rounded-full border border-border bg-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+    <div className="flex items-center gap-3" role="separator" aria-label={label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <span aria-hidden style={{ height: 1, flex: 1, background: "var(--lagoon-border)" }} />
+      <span
+        className="shrink-0 tabular-nums"
+        style={{
+          flex: "none",
+          borderRadius: 9999,
+          border: "1px solid var(--lagoon-border)",
+          background: "var(--lagoon-card)",
+          padding: "2px 10px",
+          fontSize: 11,
+          fontWeight: 600,
+          color: "var(--lagoon-muted-fg)",
+        }}
+      >
         {label}
       </span>
-      <span className="h-px flex-1 bg-border" aria-hidden />
+      <span aria-hidden style={{ height: 1, flex: 1, background: "var(--lagoon-border)" }} />
     </div>
   );
 }
@@ -278,59 +323,88 @@ export default function ActivityPage() {
       <div className="lagoon-dash" style={{ overflowY: "auto" }}>
         <div className="lagoon-dash-inner">
           <div className="mx-auto w-full max-w-xl">
-          <div className="mb-8 flex items-center justify-between gap-4">
-            <div>
-              <h1 className="page-title text-xl font-bold tracking-tight">Activity</h1>
-              <p className="page-subtitle mt-1">
-                What {org?.name ?? "your team"} has been working on lately.
-              </p>
-            </div>
-            <Badge variant="secondary" className="shrink-0 tabular-nums">
-              {updateCount} Update{updateCount === 1 ? "" : "s"}
-            </Badge>
-          </div>
-
-          <div className="activity-toolbar">
-            <div className="search-box">
-              <IconSearch size={16} />
-              <input
-                type="text"
-                value={search}
-                onChange={handleSearchChange}
-                placeholder="Search activity…"
-              />
-            </div>
-            <div className="filter-dropdown">
-              <Dropdown
-                align="right"
-                trigger={() => (
-                  <Button variant="ghost" size="sm" aria-haspopup="listbox" type="button">
-                    <IconFilter size={14} />
-                    <span>{ACTIVITY_TYPES.find((t) => t.value === filter)?.label ?? "All"}</span>
-                    <IconChevronRight size={12} />
-                  </Button>
-                )}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 24,
+              borderBottom: "1px solid var(--lagoon-border)",
+              paddingBottom: 32,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "var(--lagoon-gold)" }}>
+                  <IconPulse size={14} /> {org?.name ?? "Workspace"}
+                </div>
+                <h1 className="lagoon-display" style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.01em" }}>
+                  Activity
+                </h1>
+                <p style={{ marginTop: 8, maxWidth: 560, fontSize: 14, color: "var(--lagoon-muted-fg)" }}>
+                  What {org?.name ?? "your team"} has been working on lately.
+                </p>
+              </div>
+              <Badge
+                variant="secondary"
+                className="shrink-0 tabular-nums"
+                style={{ border: "1px solid var(--lagoon-border)", background: "var(--lagoon-card)", color: "var(--lagoon-muted-fg)" }}
               >
-                {(close) => (
-                  <>
-                    {ACTIVITY_TYPES.map((t) => (
-                      <MenuItem
-                        key={t.value}
-                        checked={filter === t.value}
-                        onSelect={() => {
-                          handleFilterChange(t.value);
-                          close();
-                        }}
-                      >
-                        <t.icon size={14} /> {t.label}
-                      </MenuItem>
-                    ))}
-                  </>
-                )}
-              </Dropdown>
+                {updateCount} Update{updateCount === 1 ? "" : "s"}
+              </Badge>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <InputGroup variant="search" className="lagoon-search" style={{ width: 280 }}>
+                <InputGroupAddon align="inline-start">
+                  <IconSearch size={14} />
+                </InputGroupAddon>
+                <InputGroupInput
+                  type="search"
+                  aria-label="Search activity"
+                  value={search}
+                  onChange={handleSearchChange}
+                  placeholder="Search activity…"
+                />
+              </InputGroup>
+              <div style={{ marginLeft: "auto" }}>
+                <Dropdown
+                  align="right"
+                  trigger={() => (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-haspopup="listbox"
+                      type="button"
+                      className="lagoon-toggle-btn"
+                      style={{ borderColor: "var(--lagoon-border)" }}
+                    >
+                      <IconFilter size={14} />
+                      <span>{ACTIVITY_TYPES.find((t) => t.value === filter)?.label ?? "All"}</span>
+                      <IconChevronRight size={12} />
+                    </Button>
+                  )}
+                >
+                  {(close) => (
+                    <>
+                      {ACTIVITY_TYPES.map((t) => (
+                        <MenuItem
+                          key={t.value}
+                          checked={filter === t.value}
+                          onSelect={() => {
+                            handleFilterChange(t.value);
+                            close();
+                          }}
+                        >
+                          <t.icon size={14} /> {t.label}
+                        </MenuItem>
+                      ))}
+                    </>
+                  )}
+                </Dropdown>
+              </div>
             </div>
           </div>
 
+          <div style={{ paddingTop: 32 }}>
           {loading && activities.length === 0 ? (
             <div className="flex flex-col gap-5" role="status" aria-label="Loading activity">
               {[0, 1, 2].map((i) => (
@@ -344,27 +418,25 @@ export default function ActivityPage() {
               ))}
             </div>
           ) : loadError && activities.length === 0 ? (
-            <PageEnter className="empty-state">
-              <IconPulse size={48} className="dim" />
-              <h3>Couldn&apos;t load activity</h3>
-              <p>{loadError}</p>
-              <Button size="sm" onClick={() => void fetchActivities(true)}>
+            <PageEnter className="lagoon-empty" style={{ marginTop: 0 }}>
+              <h3 className="lagoon-display" style={{ fontSize: 16, fontWeight: 600 }}>Couldn&apos;t load activity</h3>
+              <p style={{ marginTop: 8, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>{loadError}</p>
+              <Button size="sm" className="lagoon-create-btn border-0" style={{ marginTop: 16 }} onClick={() => void fetchActivities(true)}>
                 Retry
               </Button>
             </PageEnter>
           ) : filteredActivities.length === 0 ? (
-            <PageEnter className="empty-state">
-              <IconPulse size={48} className="dim" />
-              <h3>No activity</h3>
-              <p>{search ? "No matching activity found" : "Activity will appear here as your team works"}</p>
+            <PageEnter className="lagoon-empty" style={{ marginTop: 0 }}>
+              <IconPulse size={32} style={{ color: "var(--lagoon-muted-fg)" }} />
+              <h3 className="lagoon-display" style={{ marginTop: 12, fontSize: 16, fontWeight: 600 }}>No activity</h3>
+              <p style={{ marginTop: 8, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>{search ? "No matching activity found" : "Activity will appear here as your team works"}</p>
             </PageEnter>
           ) : (
             <div className="flex flex-col gap-6">
               {groups.map((group) => (
                 <div key={group.label} className="flex flex-col gap-4">
                   <DaySeparator label={group.label} />
-                  <ol className="relative flex flex-col gap-5">
-                    <span className="absolute top-3 bottom-3 left-4 w-px bg-border" aria-hidden />
+                  <ol className="relative flex flex-col gap-3" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {group.events.map((event) => (
                       <TimelineRow
                         key={event.id}
@@ -379,9 +451,9 @@ export default function ActivityPage() {
                 </div>
               ))}
               {hasMore && !loading ? (
-                <button className="load-more" onClick={handleLoadMore}>
+                <Button variant="outline" size="sm" onClick={handleLoadMore} style={{ alignSelf: "center", borderColor: "var(--lagoon-border)" }}>
                   Load more
-                </button>
+                </Button>
               ) : null}
               {loading ? (
                 <div className="flex flex-col gap-3" role="status" aria-label="Loading more activity">
@@ -391,6 +463,7 @@ export default function ActivityPage() {
               ) : null}
             </div>
           )}
+          </div>
           </div>
         </div>
       </div>
