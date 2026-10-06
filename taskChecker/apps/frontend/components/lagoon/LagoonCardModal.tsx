@@ -309,13 +309,13 @@ export function LagoonCardModal({
                         <button
                           key={t}
                           type="button"
-                          aria-label={`Set ${t} label color`}
+                          aria-label={tone === t ? `Clear ${t} personal tag color, only you see this` : `Set ${t} personal tag color, only you see this`}
                           aria-pressed={tone === t}
-                          title={t}
+                          title={`${t} — personal, only you see this`}
                           onClick={() => persistLabel(label, tone === t ? undefined : t)}
                           disabled={!canWrite}
                           data-active={tone === t}
-                          className="size-7 rounded-full transition-transform hover:scale-105 active:scale-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-ring data-[active=true]:ring-offset-2"
+                          className="size-8 rounded-full transition-transform hover:scale-105 active:scale-90 focus-visible:ring-2 focus-visible:ring-[var(--lagoon-purple)] focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-[var(--lagoon-purple)] data-[active=true]:ring-offset-2"
                           style={{ background: `var(--lagoon-${t})` }}
                         />
                       ))}

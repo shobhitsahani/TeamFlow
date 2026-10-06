@@ -1231,7 +1231,7 @@ function LagoonBoard() {
               if (!isMe) return <span key={m.userId} className="contents">{avatar}</span>;
               return (
                 <DropdownMenu key={m.userId} modal={false}>
-                  <DropdownMenuTrigger render={avatar} aria-label="Account settings" />
+                  <DropdownMenuTrigger render={avatar} aria-label="Account menu, signed in as yourself" />
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
                       {user ? (
@@ -1326,7 +1326,7 @@ function LagoonBoard() {
                 ) : null}
               </DropdownMenuItem>
               <DropdownMenuItem closeOnClick onClick={toggleStarred}>
-                <IconStar size={16} style={starred ? { color: "#e2b203" } : undefined} />
+                <IconStar size={16} style={starred ? { color: "var(--lagoon-gold)" } : undefined} />
                 {starred ? "Unstar board" : "Star board"}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1374,7 +1374,10 @@ function LagoonBoard() {
           </Button>
         </div>
         <Separator orientation="vertical" className="mx-1 h-5" aria-hidden />
-        <div role="group" aria-label="Filter by my tags" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div role="group" aria-label="Filter by your personal tags, only visible to you" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="lagoon-tone-label" aria-hidden>
+            Your tags
+          </span>
           {LAGOON_TONES.map((tone) => (
             <Tooltip key={tone}>
               <TooltipTrigger
@@ -1382,8 +1385,8 @@ function LagoonBoard() {
                   <Button
                     type="button"
                     variant="ghost"
-                    size="icon-xs"
-                    aria-label={`Filter ${tone} tags, ${toneCounts[tone]} cards`}
+                    size="icon"
+                    aria-label={toneFilter === tone ? `Clear ${tone} personal tag filter, ${toneCounts[tone]} cards` : `Filter by your ${tone} personal tags, ${toneCounts[tone]} cards, only you see these`}
                     aria-pressed={toneFilter === tone}
                     onClick={() => setToneFilter((v) => (v === tone ? null : tone))}
                     className={cx("lagoon-tone-btn rounded-full", toneFilter === tone && "is-on")}
@@ -1415,7 +1418,7 @@ function LagoonBoard() {
                   {toneCounts[tone]}
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{tone} · {toneCounts[tone]} card{toneCounts[tone] === 1 ? "" : "s"} (your tags)</TooltipContent>
+              <TooltipContent>{tone} personal tags · {toneCounts[tone]} card{toneCounts[tone] === 1 ? "" : "s"} — only you see these{toneFilter === tone ? " · click again to clear" : ""}</TooltipContent>
             </Tooltip>
           ))}
         </div>

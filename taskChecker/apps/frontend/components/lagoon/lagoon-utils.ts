@@ -171,7 +171,7 @@ export function lagoonInitials(name: string): string {
   return `${(parts[0] ?? "?")[0] ?? ""}${(parts[parts.length - 1] ?? "?")[0] ?? ""}`.toUpperCase();
 }
 
-const LAGOON_AVATAR_TONES = ["#0c66e4", "#0d9488", "#e56910", "#7c3aed", "#db2777", "#059669"];
+const LAGOON_AVATAR_TONES = ["#7c3aed", "#a86a0b", "#1f7a4d", "#5d6676", "#6d28d9", "#0f766e"];
 
 /** Stable avatar background hue from any seed string. */
 export function lagoonAvatarTone(seed: string): string {
@@ -179,5 +179,5 @@ export function lagoonAvatarTone(seed: string): string {
   for (let i = 0; i < seed.length; i++) {
     h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   }
-  return LAGOON_AVATAR_TONES[h % LAGOON_AVATAR_TONES.length] ?? "#0c66e4";
+  return LAGOON_AVATAR_TONES[h % LAGOON_AVATAR_TONES.length] ?? "#7c3aed";
 }

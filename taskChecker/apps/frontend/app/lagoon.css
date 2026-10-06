@@ -16,6 +16,7 @@
   --lagoon-purple: oklch(0.55 0.22 300);
   --lagoon-gold: oklch(0.72 0.15 80);
   --lagoon-green: oklch(0.6 0.15 160);
+  --lagoon-danger: oklch(0.55 0.2 25);
   --lagoon-surface: oklch(0.978 0.008 247);
   --lagoon-ink: oklch(0.245 0.047 239);
   --lagoon-success: oklch(0.61 0.13 156);
@@ -38,6 +39,7 @@
   --lagoon-purple: oklch(0.65 0.24 300);
   --lagoon-gold: oklch(0.79 0.17 76);
   --lagoon-green: oklch(0.72 0.17 160);
+  --lagoon-danger: oklch(0.66 0.22 20);
   --lagoon-surface: oklch(0.16 0.014 255);
   --lagoon-ink: oklch(0.95 0.008 250);
   --lagoon-success: oklch(0.72 0.16 153);
@@ -127,16 +129,16 @@
   }
 }
 
-/* Done + Move buttons on cards: rest at 45% so touch/keyboard users can
+/* Done + Move buttons on cards: rest visible so touch/keyboard users can
    find them without hovering; full opacity on hover or keyboard focus. */
 .lagoon .lagoon-done-btn {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
   color: var(--lagoon-muted-fg);
-  opacity: 0.45;
+  opacity: 0.65;
   transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
 }
 
@@ -148,6 +150,12 @@
 .lagoon .lagoon-done-btn:hover {
   background: var(--lagoon-muted);
   color: var(--lagoon-ink);
+}
+
+.lagoon .lagoon-done-btn:focus-visible {
+  outline: 2px solid var(--lagoon-purple);
+  outline-offset: 2px;
+  opacity: 1;
 }
 
 @media (hover: none) {
@@ -171,7 +179,7 @@
 }
 
 .lagoon .lagoon-star.is-on {
-  color: #e2b203;
+  color: var(--lagoon-gold);
 }
 
 /* ---------- shell ---------- */
@@ -188,7 +196,7 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  background: #09326c;
+  background: oklch(0.42 0.16 300);
   color: var(--lagoon-on-purple);
 }
 
@@ -222,7 +230,7 @@
   font-family: var(--font-lagoon-display), "Hanken Grotesk", sans-serif;
   font-size: 14px;
   font-weight: 700;
-  color: var(--lagoon-on-purple);
+  color: oklch(0.25 0.05 80);
   flex: none;
 }
 
@@ -246,10 +254,10 @@
 
 .lagoon-nav-label {
   padding: 0 8px 4px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgb(255 255 255 / 0.4);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgb(255 255 255 / 0.65);
 }
 
 .lagoon-nav-link {
@@ -260,7 +268,7 @@
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 13px;
-  color: rgb(255 255 255 / 0.7);
+  color: rgb(255 255 255 / 0.82);
 }
 
 .lagoon-nav-link:hover {
@@ -282,7 +290,7 @@
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 12px;
-  color: rgb(255 255 255 / 0.6);
+  color: rgb(255 255 255 / 0.75);
   text-align: left;
 }
 
@@ -305,11 +313,16 @@
   justify-content: center;
   gap: 8px;
   border-radius: 8px;
-  background: var(--lagoon-green);
+  background: var(--lagoon-purple);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
   padding: 8px 12px;
+}
+
+.lagoon-new-board-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 .lagoon-new-board-btn:hover {
@@ -447,7 +460,8 @@
   gap: 8px;
   border-radius: 8px;
   padding: 8px 12px;
-  font-size: 11px;
+  min-height: 32px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--lagoon-muted-fg);
   border: 1px solid transparent;
@@ -455,6 +469,12 @@
 
 .lagoon-view-btn:hover {
   background: var(--lagoon-muted);
+  color: var(--lagoon-ink);
+}
+
+.lagoon-view-btn:focus-visible {
+  outline: 2px solid var(--lagoon-purple);
+  outline-offset: 2px;
 }
 
 .lagoon-view-btn.is-on {
@@ -468,16 +488,31 @@
 .lagoon-tone-btn {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 9999px;
   border: 1px solid var(--lagoon-border);
   background: var(--lagoon-card);
 }
 
+.lagoon-tone-btn:hover {
+  border-color: var(--lagoon-muted-fg);
+}
+
+.lagoon-tone-btn:focus-visible {
+  outline: 2px solid var(--lagoon-purple);
+  outline-offset: 2px;
+}
+
 .lagoon-tone-btn.is-on {
   border-color: var(--lagoon-purple);
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--lagoon-purple) 55%, transparent);
+}
+
+.lagoon-tone-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lagoon-muted-fg);
 }
 
 .lagoon-toggle-btn {
@@ -685,7 +720,7 @@
 
 .lagoon-due.is-overdue {
   font-weight: 600;
-  color: #c9372c;
+  color: var(--lagoon-danger);
 }
 
 .lagoon-due.is-today {
@@ -819,14 +854,19 @@
   gap: 8px;
   border-radius: 8px;
   background: transparent;
-  color: #c9372c;
+  color: var(--lagoon-danger);
   font-size: 12px;
   font-weight: 500;
   padding: 8px 12px;
 }
 
 .lagoon-btn-danger:hover {
-  background: rgb(201 55 44 / 0.1);
+  background: color-mix(in oklab, var(--lagoon-danger) 10%, transparent);
+}
+
+.lagoon-btn-danger:focus-visible {
+  outline: 2px solid var(--lagoon-danger);
+  outline-offset: 2px;
 }
 
 /* ---------- timeline / calendar ---------- */
@@ -919,10 +959,9 @@
 
 .lagoon-field-label {
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
   color: var(--lagoon-muted-fg);
 }
 
