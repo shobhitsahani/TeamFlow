@@ -100,6 +100,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   canWrite,
   isDone,
   today,
+  moveTargets,
   onDragStart,
   onDragEnd,
   onTouchDragStart,
@@ -108,6 +109,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   onTouchDragCancel,
   onOpen,
   onDone,
+  onMove,
 }: {
   task: Task;
   metaTick: number;
@@ -121,6 +123,8 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   canWrite: boolean;
   isDone: boolean;
   today: string | null;
+  /** All board lists (status + display label) for the keyboard Move menu. */
+  moveTargets: { status: Task["status"]; label: string }[];
   onDragStart: (e: React.DragEvent, taskId: string) => void;
   onDragEnd: () => void;
   onTouchDragStart: (e: React.PointerEvent, taskId: string) => void;
@@ -129,6 +133,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   onTouchDragCancel: () => void;
   onOpen: (task: Task) => void;
   onDone: (task: Task) => void;
+  onMove: (task: Task, status: Task["status"]) => void;
 }) {
   // Label + checklist live in per-task local meta (no backend fields for
   // them); metaTick re-reads after the modal saves.
@@ -140,6 +145,9 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   const dueYmd = toYmd(task.dueAt);
   const due = dueYmd ? lagoonDueBadge(dueYmd, today) : null;
   const doneItems = meta.checklist.filter((c) => c.done).length;
+  // Keyboard Move menu (M shortcut) — controlled open so the key and the
+  // button share one menu. Hidden entirely for read-only viewers.
+  const [moveOpen, setMoveOpen] = useState(false);
 
   return (
     <motion.div
@@ -170,6 +178,11 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onOpen(task);
+        } else if ((e.key === "m" || e.key === "M") && canWrite && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          // M opens the Move menu — the keyboard path to change lists
+          // without drag-and-drop or opening the modal.
+          e.preventDefault();
+          setMoveOpen(true);
         }
       }}
       initial={{ opacity: 0, y: 8 }}
@@ -183,7 +196,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       className={cx("lagoon-card cursor-grab transition-[box-shadow,border-color] hover:-translate-y-0.5", dragging && "is-dragging opacity-45", isDone && "is-done opacity-70")}
     >
       {label ? (
-        <Badge variant="secondary" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)}>{label.text}</Badge>
+        <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)}>{label.text}</Badge>
       ) : null}
       <Tooltip>
         <TooltipTrigger
@@ -225,6 +238,52 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
             </span>
           ) : null}
           {isDone ? <IconCheck size={12} style={{ color: "var(--lagoon-success)" }} /> : null}
+          {canWrite ? (
+            <DropdownMenu modal={false} open={moveOpen} onOpenChange={setMoveOpen}>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="lagoon-done-btn"
+                    aria-label={`Move ${task.title} to another list`}
+                    title="Move to another list (M)"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  />
+                }
+              >
+                <IconColumns size={12} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Move to</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  {moveTargets.map((t) => (
+                    <DropdownMenuItem
+                      key={t.status}
+                      closeOnClick
+                      disabled={t.status === task.status}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMove(task, t.status);
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[t.status] ?? "var(--lagoon-muted-fg)", flex: "none" }}
+                      />
+                      {t.label}
+                      {t.status === task.status ? (
+                        <IconCheck size={14} style={{ marginLeft: "auto" }} />
+                      ) : null}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
           {!isDone && canWrite ? (
             <Tooltip>
               <TooltipTrigger
@@ -388,7 +447,7 @@ const LagoonTimelineRow = memo(function LagoonTimelineRow({
           {project ? `${project.key} · ` : ""}{STATUS_LABELS[task.status] ?? task.status}
         </ItemDescription>
       </ItemContent>
-      {label ? <Badge variant="secondary" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)} style={{ marginBottom: 0 }}>{label.text}</Badge> : null}
+      {label ? <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)} style={{ marginBottom: 0 }}>{label.text}</Badge> : null}
       {due ? (
         <Badge variant="secondary" className={cx("lagoon-due gap-1 font-normal", due.status === "overdue" && "is-overdue bg-destructive/10 text-destructive font-semibold", due.status === "today" && "is-today font-semibold")}>
           <IconCalendar size={12} />{due.text}
@@ -561,7 +620,10 @@ function LagoonBoard() {
     }
   }, []);
   const TOUCH_HOLD_MS = 280;
-  const TOUCH_MOVE_TOLERANCE = 12;
+  // 20px budget before the hold cancels; a mostly-vertical swipe is a page
+  // scroll, not a drag — release the hold so scrolling never gets stuck.
+  const TOUCH_MOVE_TOLERANCE = 20;
+  const TOUCH_SCROLL_RATIO = 2;
 
   useEffect(() => {
     return () => {
@@ -646,6 +708,21 @@ function LagoonBoard() {
 
   const flatTasks = useMemo(() => filteredColumns.flatMap((c) => c.tasks), [filteredColumns]);
 
+  // Personal-tag counts per tone for the filter dots. Personal tags live on
+  // this device only (see lagoon-utils), so counts are labeled as yours.
+  // Honors the Active scope but not the tone filter itself (a selected tone
+  // must still show its own total).
+  const toneCounts = useMemo(() => {
+    void metaTick;
+    const counts: Record<LagoonTone, number> = { gold: 0, green: 0, purple: 0 };
+    for (const t of projectTasks) {
+      if (activeOnly && t.status === "done") continue;
+      const tone = effectiveLabel(t.priority, loadLagoonMeta(t.id))?.tone;
+      if (tone) counts[tone] += 1;
+    }
+    return counts;
+  }, [projectTasks, metaTick, activeOnly]);
+
   const timelineTasks = useMemo(
     () =>
       [...flatTasks].sort((a, b) => {
@@ -682,6 +759,10 @@ function LagoonBoard() {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverCol(null);
   }, []);
 
+  // Screen-reader announcements for list moves (drag, menu, or Done) —
+  // the toast is visual-only, this is the non-visual equivalent.
+  const [announce, setAnnounce] = useState("");
+
   const performDrop = useCallback(
     async (taskId: string, newStatus: string) => {
       const target = projectTasks.find((t) => t.id === taskId);
@@ -698,10 +779,12 @@ function LagoonBoard() {
       try {
         await updateTask(taskId, { status: newStatus as Task["status"] }, selectedProjectId);
         toast({ title: "Task moved", msg: `Moved to ${labelFor(newStatus)}` });
+        setAnnounce(`Moved ${target.title} to ${labelFor(newStatus)}.`);
         await tasksQ.mutate();
       } catch (err) {
         await tasksQ.mutate();
         toast({ title: "Move failed", msg: err instanceof Error ? err.message : "Try again." });
+        setAnnounce(`Could not move ${target.title}. Try again.`);
       }
     },
     [projectTasks, updateTask, selectedProjectId, toast, tasksQ, labelFor],
@@ -766,14 +849,30 @@ function LagoonBoard() {
       if (e.pointerType === "mouse" || !touchDrag) return;
       if (!touchDrag.active) {
         const origin = touchOrigin.current;
-        if (origin && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > TOUCH_MOVE_TOLERANCE) {
-          if (touchTimer.current !== null) {
-            window.clearTimeout(touchTimer.current);
-            touchTimer.current = null;
+        if (origin) {
+          const dx = Math.abs(e.clientX - origin.x);
+          const dy = Math.abs(e.clientY - origin.y);
+          // Vertical swipe = page scroll intent: release the hold so the
+          // page scrolls instead of arming a drag. Horizontal drift inside
+          // the tolerance keeps the hold alive.
+          if (dy > TOUCH_SCROLL_RATIO * Math.max(dx, 1) && dy > TOUCH_MOVE_TOLERANCE / 2) {
+            if (touchTimer.current !== null) {
+              window.clearTimeout(touchTimer.current);
+              touchTimer.current = null;
+            }
+            touchOrigin.current = null;
+            setTouchDrag(null);
+            return;
           }
-          touchOrigin.current = null;
-          setTouchDrag(null);
-          return;
+          if (Math.hypot(dx, dy) > TOUCH_MOVE_TOLERANCE) {
+            if (touchTimer.current !== null) {
+              window.clearTimeout(touchTimer.current);
+              touchTimer.current = null;
+            }
+            touchOrigin.current = null;
+            setTouchDrag(null);
+            return;
+          }
         }
         setTouchDrag({ ...touchDrag, x: e.clientX, y: e.clientY });
         return;
@@ -1061,6 +1160,11 @@ function LagoonBoard() {
       onSelectProject={handleSelectProject}
       onProjectsChanged={() => projectsQ.mutate()}
     >
+      {/* Polite live region: announces list moves for screen readers.
+          Toasts are visual-only; this mirrors performDrop outcomes. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {announce}
+      </div>
       <header className="lagoon-header">
         <Tooltip>
           <TooltipTrigger
@@ -1096,7 +1200,7 @@ function LagoonBoard() {
               aria-label="Search tasks"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tasks, people…"
+              placeholder="Search tasks…"
             />
           </InputGroup>
           <AvatarGroup className="items-center" data-lagoon-avatar-cluster>
@@ -1270,7 +1374,7 @@ function LagoonBoard() {
           </Button>
         </div>
         <Separator orientation="vertical" className="mx-1 h-5" aria-hidden />
-        <div role="group" aria-label="Filter by label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div role="group" aria-label="Filter by my tags" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {LAGOON_TONES.map((tone) => (
             <Tooltip key={tone}>
               <TooltipTrigger
@@ -1279,16 +1383,39 @@ function LagoonBoard() {
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={`Filter ${tone} labels`}
+                    aria-label={`Filter ${tone} tags, ${toneCounts[tone]} cards`}
+                    aria-pressed={toneFilter === tone}
                     onClick={() => setToneFilter((v) => (v === tone ? null : tone))}
                     className={cx("lagoon-tone-btn rounded-full", toneFilter === tone && "is-on")}
-                    style={{ background: "var(--lagoon-card)" }}
+                    style={{ background: "var(--lagoon-card)", position: "relative" }}
                   />
                 }
               >
                 <span style={{ width: 12, height: 12, borderRadius: 9999, background: `var(--lagoon-${tone})` }} />
+                <span
+                  aria-hidden
+                  className="tabular-nums"
+                  style={{
+                    position: "absolute",
+                    right: -6,
+                    bottom: -6,
+                    minWidth: 16,
+                    height: 16,
+                    padding: "0 4px",
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: 9999,
+                    background: "var(--lagoon-ink)",
+                    color: "var(--lagoon-surface)",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                  }}
+                >
+                  {toneCounts[tone]}
+                </span>
               </TooltipTrigger>
-              <TooltipContent>{tone}</TooltipContent>
+              <TooltipContent>{tone} · {toneCounts[tone]} card{toneCounts[tone] === 1 ? "" : "s"} (your tags)</TooltipContent>
             </Tooltip>
           ))}
         </div>
@@ -1370,6 +1497,7 @@ function LagoonBoard() {
                         canWrite={canWrite}
                         isDone={col.status === "done"}
                         today={today}
+                        moveTargets={STATUS_ORDER.map((s) => ({ status: s, label: labelFor(s) }))}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                         onTouchDragStart={handleTouchDragStart}
@@ -1378,6 +1506,7 @@ function LagoonBoard() {
                         onTouchDragCancel={cancelTouchDrag}
                         onOpen={openCard}
                         onDone={handleDone}
+                        onMove={(t, s) => void performDrop(t.id, s)}
                       />
                     ))}
                   </AnimatePresence>

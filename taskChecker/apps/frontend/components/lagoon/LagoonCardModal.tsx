@@ -292,14 +292,17 @@ export function LagoonCardModal({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="grid gap-3">
                     <Field>
-                      <FieldLabel>Label</FieldLabel>
+                      <FieldLabel>My tag</FieldLabel>
                       <Input
-                        aria-label="Label"
+                        aria-label="My tag (personal, only visible to you)"
                         value={label}
                         onChange={(e) => persistLabel(e.target.value, tone)}
-                        placeholder="Label name"
+                        placeholder="e.g. Urgent"
                         disabled={!canWrite}
                       />
+                      <p style={{ fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
+                        Only you see this — saved on this device, not shared with the team.
+                      </p>
                     </Field>
                     <div className="flex items-center gap-2.5">
                       {LAGOON_TONES.map((t) => (

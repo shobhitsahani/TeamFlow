@@ -127,7 +127,8 @@
   }
 }
 
-/* hover-reveal done button on cards (always visible on touch) */
+/* Done + Move buttons on cards: rest at 45% so touch/keyboard users can
+   find them without hovering; full opacity on hover or keyboard focus. */
 .lagoon .lagoon-done-btn {
   display: grid;
   place-items: center;
@@ -135,7 +136,7 @@
   height: 22px;
   border-radius: 6px;
   color: var(--lagoon-muted-fg);
-  opacity: 0;
+  opacity: 0.45;
   transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
 }
 
@@ -475,8 +476,8 @@
 }
 
 .lagoon-tone-btn.is-on {
-  border-color: var(--lagoon-ink);
-  box-shadow: 0 0 0 1px var(--lagoon-ink);
+  border-color: var(--lagoon-purple);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--lagoon-purple) 55%, transparent);
 }
 
 .lagoon-toggle-btn {
