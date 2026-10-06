@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, memo, useState, startTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LagoonShell } from "@/components/lagoon/LagoonShell";
 import { useTenant } from "@/components/store";
 import { Dropdown, MenuItem } from "@/components/overlay";
 import { IconSearch, IconFilter, IconPulse, IconFile, IconMessageSquare, IconUsers, IconLayers, IconChevronRight, IconPlus, IconTrash, IconEdit, IconColumns, IconCheck } from "@/components/icons";
-import { api, getCurrentTenantId, type ActivityEvent, type Project } from "@/lib/api";
+import { api, getCurrentTenantId, type ActivityEvent, type Project, type Task } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +32,13 @@ const ACTION_LABELS: Record<string, string> = {
   status_changed: "changed status of",
   commented: "commented on",
   deleted: "deleted",
+};
+
+const TASK_STATUS_LABELS: Record<string, string> = {
+  backlog: "Backlog",
+  todo: "To do",
+  in_progress: "In progress",
+  done: "Done",
 };
 
 /** Action -> row icon. Single local icon set; entity type refines it.
@@ -298,6 +306,64 @@ export default function ActivityPage() {
     return out;
   }, [filteredActivities]);
 
+  // Task-ID lookup: rows render "task <first-8-of-id>", so a search like
+  // "task 01aO8I3a" is really an ID prefix. Strip the literal prefix and
+  // match it against full task entity IDs from the loaded feed.
+  const taskIdQuery = useMemo(() => {
+    const token = search.trim().toLowerCase().replace(/^task\s+/, "");
+    return token.length >= 4 ? token : null;
+  }, [search]);
+
+  const matchedTaskIds = useMemo(() => {
+    if (!taskIdQuery) return [];
+    const out: string[] = [];
+    for (const a of activities) {
+      if (a.entityType !== "task") continue;
+      if (!a.entityId.toLowerCase().startsWith(taskIdQuery)) continue;
+      if (!out.includes(a.entityId)) out.push(a.entityId);
+      if (out.length >= 3) break;
+    }
+    return out;
+  }, [activities, taskIdQuery]);
+
+  // Resolve matched IDs to real tasks (tenant-scoped GET; 404s resolve to
+  // null and simply hide the card). Subscription-callback pattern: no
+  // synchronous setState in the effect body.
+  const [matchedTasks, setMatchedTasks] = useState<Task[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (matchedTaskIds.length === 0) {
+      void Promise.resolve().then(() => {
+        if (cancelled) return;
+        setMatchedTasks([]);
+        setTasksLoading(false);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    void Promise.resolve().then(() => {
+      if (!cancelled) setTasksLoading(true);
+    });
+    void Promise.all(matchedTaskIds.map((id) => api.tasks.get(id).then((r) => r.task).catch(() => null))).then(
+      (rows) => {
+        if (cancelled) return;
+        setMatchedTasks(rows.filter((t): t is Task => t !== null));
+        setTasksLoading(false);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [matchedTaskIds]);
+
+  const projectNames = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of sidebarProjects) map.set(p.id, p.name ?? p.key ?? "Board");
+    return map;
+  }, [sidebarProjects]);
+
   // Use startTransition for non-urgent search updates (rerender-transitions)
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     startTransition(() => {
@@ -359,10 +425,10 @@ export default function ActivityPage() {
                 </InputGroupAddon>
                 <InputGroupInput
                   type="search"
-                  aria-label="Search activity"
+                  aria-label="Search activity or task ID"
                   value={search}
                   onChange={handleSearchChange}
-                  placeholder="Search activity…"
+                  placeholder="Search activity or task ID…"
                 />
               </InputGroup>
               <div style={{ marginLeft: "auto" }}>
@@ -433,6 +499,72 @@ export default function ActivityPage() {
             </PageEnter>
           ) : (
             <div className="flex flex-col gap-6">
+              {matchedTaskIds.length > 0 && (tasksLoading || matchedTasks.length > 0) ? (
+                <div className="flex flex-col gap-3" aria-label="Matching tasks">
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--lagoon-muted-fg)" }}>
+                    Matching tasks
+                  </p>
+                  {tasksLoading && matchedTasks.length === 0 ? (
+                    <div className="flex flex-col gap-3" role="status" aria-label="Loading matching tasks">
+                      <Skeleton className="h-14 w-full rounded-lg" />
+                    </div>
+                  ) : null}
+                  {matchedTasks.map((task) => (
+                    <Link
+                      key={task.id}
+                      href={`/app/tasks/${task.id}`}
+                      className="lagoon-tl-row"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "12px 16px",
+                        borderRadius: 12,
+                        border: "1px solid var(--lagoon-border)",
+                        background: "var(--lagoon-card)",
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 9999,
+                          flex: "none",
+                          background:
+                            task.status === "done"
+                              ? "var(--lagoon-success)"
+                              : task.status === "in_progress"
+                                ? "var(--lagoon-green)"
+                                : "var(--lagoon-purple)",
+                        }}
+                      />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span
+                          style={{
+                            display: "block",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--lagoon-ink)",
+                          }}
+                        >
+                          {task.title}
+                        </span>
+                        <span
+                          className="tabular-nums"
+                          style={{ fontSize: 11, color: "var(--lagoon-muted-fg)", fontFamily: "var(--stack-mono)" }}
+                        >
+                          {projectNames.get(task.projectId) ?? "Board"} · {TASK_STATUS_LABELS[task.status] ?? task.status} · {task.id.slice(0, 8)}
+                        </span>
+                      </span>
+                      <IconChevronRight size={14} style={{ flex: "none", color: "var(--lagoon-muted-fg)" }} />
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
               {groups.map((group) => (
                 <div key={group.label} className="flex flex-col gap-4">
                   <DaySeparator label={group.label} />
