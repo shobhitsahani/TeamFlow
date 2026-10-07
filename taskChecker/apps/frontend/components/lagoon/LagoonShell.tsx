@@ -21,9 +21,9 @@ import { useAuth } from "@/lib/auth";
 import { useTenant } from "@/components/store";
 import { useToast } from "@/components/overlay";
 import { api, type Project } from "@/lib/api";
-import { cx, hueFrom, initials } from "@/lib/utils";
+import { cx } from "@/lib/utils";
+import { UserAvatar } from "@/components/user/user-avatar";
 import { AnimatePresence, DUR, motion } from "@/components/motion";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -43,6 +43,7 @@ import {
   IconBoard,
   IconChevronDown,
   IconFlowMark,
+  IconFolder,
   IconLayers,
   IconListTodo,
   IconLogout,
@@ -53,6 +54,7 @@ import {
   IconX,
 } from "@/components/icons";
 import { suggestLagoonKey } from "./lagoon-utils";
+import { CreateOrgDialog } from "@/components/org/org-dialogs";
 
 /* ---------- chrome context (menu / palette / notifications) ---------- */
 
@@ -131,8 +133,10 @@ export function LagoonShell({
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
-  const { org } = useTenant();
+  const { org, orgs, setOrg } = useTenant();
   const { user, logout, isLoading: authLoading } = useAuth();
+  const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
+  const [showNewOrg, setShowNewOrg] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -197,10 +201,27 @@ export function LagoonShell({
 
   const orgInitial = (org?.name || "L").slice(0, 1).toUpperCase();
 
+  const handleSwitchOrg = useCallback(
+    async (id: string, name: string) => {
+      if (id === org?.id || switchingOrgId) return;
+      setSwitchingOrgId(id);
+      try {
+        await setOrg(id);
+        toast({ title: `Switched to ${name}`, msg: "Scoped to this tenant now." });
+      } catch (err) {
+        toast({ title: "Switch failed", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
+      } finally {
+        setSwitchingOrgId(null);
+      }
+    },
+    [org?.id, switchingOrgId, setOrg, toast],
+  );
+
   const nav = [
     { href: "/app/board", label: "Boards", icon: IconBoard, on: pathname.startsWith("/app/board") },
     { href: "/app/projects", label: "Projects", icon: IconLayers, on: pathname.startsWith("/app/projects") },
     { href: "/app/work", label: "Work", icon: IconListTodo, on: pathname.startsWith("/app/work") },
+    { href: "/app/library", label: "Library", icon: IconFolder, on: pathname.startsWith("/app/library") },
     { href: "/app/activity", label: "Activity", icon: IconPulse, on: pathname.startsWith("/app/activity") },
     { href: "/app/settings/members", label: "Members", icon: IconUsers, on: pathname.startsWith("/app/settings/members") },
   ];
@@ -246,34 +267,24 @@ export function LagoonShell({
                 <TooltipContent>Close menu</TooltipContent>
               </Tooltip>
             </div>
-            {/* Account menu — shadcn Avatar + DropdownMenu over the purple
-                trigger. Same destinations as the /app shell menu (settings,
-                notifications, sign out); no new behavior besides the menu. */}
+            {/* Workspace switcher + account menu — org list with switch,
+                New organization via shared CreateOrgDialog, then the /app
+                shell destinations (settings, notifications, sign out). */}
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger
                 render={
                   <button
                     className="lagoon-side-ws"
                     title={user?.email ?? "Workspace"}
-                    aria-label="Account menu"
+                    aria-label="Workspace and account menu"
                   />
                 }
               >
-                <span
-                  style={{
-                    display: "grid",
-                    placeItems: "center",
-                    width: 24,
-                    height: 24,
-                    borderRadius: 8,
-                    background: "var(--lagoon-purple)",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    flex: "none",
-                  }}
-                >
-                  {(user?.name || "T").slice(0, 1).toUpperCase()}
-                </span>
+                <UserAvatar
+                  name={org?.name ?? user?.name ?? "Workspace"}
+                  seed={org?.id ?? user?.id ?? "workspace"}
+                  size="sm"
+                />
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {org?.name ?? "Workspace"}
@@ -291,16 +302,11 @@ export function LagoonShell({
                   ) : (
                     <>
                       <span className="flex items-center gap-2">
-                        <Avatar className="size-6">
-                          <AvatarFallback
-                            style={{
-                              background: `hsl(${hueFrom(user.id)} 45% 20%)`,
-                              color: `hsl(${hueFrom(user.id)} 80% 78%)`,
-                            }}
-                          >
-                            {initials(user.name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          name={user.name}
+                          seed={user.id}
+                          size="sm"
+                        />
                         <span className="block max-w-full truncate text-sm font-semibold text-foreground">
                           {user.name}
                         </span>
@@ -313,6 +319,33 @@ export function LagoonShell({
                     </>
                   )}
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Organizations</DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  {orgs.map((o) => (
+                    <DropdownMenuItem
+                      key={o.id}
+                      closeOnClick
+                      disabled={switchingOrgId !== null}
+                      onClick={() => void handleSwitchOrg(o.id, o.name)}
+                    >
+                      <UserAvatar name={o.name} seed={o.id} size="sm" />
+                      <span className="grow truncate">{o.name}</span>
+                      {o.id === org?.id ? (
+                        <span className="cmdk-hint">current</span>
+                      ) : switchingOrgId === o.id ? (
+                        <span className="cmdk-hint">switching…</span>
+                      ) : null}
+                    </DropdownMenuItem>
+                  ))}
+                  {orgs.length === 0 ? (
+                    <p className="px-2 py-1.5 text-xs text-muted-foreground">No memberships</p>
+                  ) : null}
+                  <DropdownMenuItem closeOnClick onClick={() => setShowNewOrg(true)}>
+                    <IconPlus size={16} />
+                    <span className="grow font-semibold">New organization</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
@@ -408,7 +441,6 @@ export function LagoonShell({
                       "lagoon-board-link w-full justify-start font-normal hover:bg-white/10 hover:text-white",
                       p.id === activeProjectId && "is-on"
                     )}
-                    style={{ color: "rgb(255 255 255 / 0.6)" }}
                   >
                     <span
                       aria-hidden="true"
@@ -496,7 +528,6 @@ export function LagoonShell({
                       size="sm"
                       onClick={openNewBoard}
                       className="lagoon-new-board-btn w-[calc(100%-24px)] justify-center"
-                      style={{ background: "var(--lagoon-purple)", color: "#fff" }}
                     />
                   }
                 >
@@ -522,6 +553,7 @@ export function LagoonShell({
 
         {paletteOpen ? <DynamicCommandPalette onClose={() => setPaletteOpen(false)} /> : null}
         <DynamicNotifSheet open={notifOpen} onClose={() => setNotifOpen(false)} />
+        <CreateOrgDialog open={showNewOrg} onClose={() => setShowNewOrg(false)} />
       </LagoonChromeCtx.Provider>
     </LagoonAuthGate>
   );
