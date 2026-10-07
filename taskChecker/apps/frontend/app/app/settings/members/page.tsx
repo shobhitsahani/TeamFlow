@@ -28,7 +28,6 @@ import { useSWR } from "@/lib/swr";
 import { hueFrom } from "@/lib/utils";
 import { MemberContextMenu } from "@/components/member-context-menu";
 import { DmChatDialog, type DmPeer } from "@/components/dm-chat-dialog";
-import { ChatRail } from "@/components/chat-rail";
 import { PlusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Item24 } from "@/components/ui/item-24";
@@ -286,9 +285,6 @@ export default function MembersPage() {
   const [dmPeer, setDmPeer] = useState<DmPeer | null>(null);
   const [dmOpen, setDmOpen] = useState(false);
   const [profile, setProfile] = useState<Member | null>(null);
-  // Team channel rail (restored): docked right, collapsible, same ChatRail
-  // used by AppShell so @mentions/images/reactions/typing stay consistent.
-  const [chatOpen, setChatOpen] = useState(true);
 
   const membersQ = useSWR<{ members: Member[] }>(
     orgId ? `members-${orgId}` : null,
@@ -508,9 +504,8 @@ export default function MembersPage() {
       onSelectProject={(id) => router.push(`/app/board?project=${id}`)}
       onProjectsChanged={() => projectsQ.mutate()}
     >
-      <div style={{ display: "flex", flex: 1, minHeight: 0, minWidth: 0 }}>
-        <div className="lagoon-dash" style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
-          <div className="lagoon-dash-inner">
+      <div className="lagoon-dash" style={{ overflowY: "auto" }}>
+        <div className="lagoon-dash-inner">
         <div
           style={{
             display: "flex",
@@ -841,9 +836,7 @@ export default function MembersPage() {
             </div>
           </Modal>
         )}
-          </div>
         </div>
-        <ChatRail open={chatOpen} onToggle={() => setChatOpen((v) => !v)} />
       </div>
     </LagoonShell>
   );
