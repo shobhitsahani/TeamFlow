@@ -14,34 +14,26 @@ import { PaletteSearchTrigger } from "./search-trigger";
 import { Button, buttonVariants } from "./ui/button";
 import { Input } from "./ui/input";
 import { Field, FieldDescription, FieldLabel } from "./ui/field";
-import { Avatar as ShadcnAvatar, AvatarFallback } from "./ui/avatar";
 import { Skeleton } from "./ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import {
-  BadgeCheckIcon,
-  BellIcon,
-  LogOutIcon,
-} from "lucide-react";
+import { UserAvatar } from "./user/user-avatar";
+import { UserMenu } from "./user/user-menu";
+import { CreateOrgDialog, JoinOrgDialog, OrgGlyph } from "./org/org-dialogs";
 import { useAuth } from "../lib/auth";
 import { api, getCurrentTenantId } from "../lib/api";
 import { useSWR } from "../lib/swr";
-import { cx, hueFrom, initials } from "../lib/utils";
+import { cx } from "../lib/utils";
 import { motion } from "@/components/motion";
 import {
   IconBell,
   IconBoard,
+  IconBuilding,
+  IconCheck,
   IconChevronDown,
   IconChevronRight,
   IconEdit,
   IconFlowMark,
+  IconFolder,
+  IconKey,
   IconLogout,
   IconPlus,
   IconSearch,
@@ -50,49 +42,6 @@ import {
   IconUsers,
   IconZap,
 } from "./icons";
-
-/* shadcn avatar helper — uses base-ui Avatar with hue-based fallback.
-   Pass `loading` while the person is still resolving (signed out, offline,
-   slow network) to render a pulsing skeleton of the same size instead. */
-function UserAvatar({
-  name,
-  size = "sm",
-  tint = 220,
-  loading,
-}: {
-  name: string;
-  size?: "sm" | "default" | "lg";
-  tint?: number;
-  loading?: boolean;
-}) {
-  if (loading) {
-    return (
-      <Skeleton
-        aria-hidden
-        className={
-          size === "sm"
-            ? "size-6 shrink-0 rounded-full"
-            : size === "lg"
-              ? "size-10 shrink-0 rounded-full"
-              : "size-8 shrink-0 rounded-full"
-        }
-      />
-    );
-  }
-  return (
-    <ShadcnAvatar size={size}>
-      <AvatarFallback
-        style={{
-          background: `hsl(${tint} 45% 20%)`,
-          color: `hsl(${tint} 80% 78%)`,
-          borderColor: `hsl(${tint} 40% 30%)`,
-        }}
-      >
-        {initials(name)}
-      </AvatarFallback>
-    </ShadcnAvatar>
-  );
-}
 
 /* ---------- utility rail (far left, w-14) ---------- */
 
@@ -111,57 +60,43 @@ export function Rail() {
         <Link href="/app/work" className="st-logo" title="TeamFlow home">
           <IconFlowMark size={16} />
         </Link>
-        <motion.button
+        <button
           className={cx("st-rail-btn", pathname.startsWith("/app/board") && "is-on")}
           onClick={() => go("/app/board")}
           aria-label="Boards"
           title="Boards"
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
         >
           <IconBoard size={20} />
-        </motion.button>
-        <motion.button
+        </button>
+        <button
           className={cx("st-rail-btn", pathname.startsWith("/app/activity") && "is-on")}
           onClick={() => go("/app/activity")}
           aria-label={unread > 0 ? `Activity, ${unread} unread` : "Activity"}
           title="Activity"
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
         >
           <IconBell size={20} />
           {unread > 0 ? (
-            <motion.span
-              className="st-rail-badge"
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              key={unread}
-              aria-hidden
-            >
+            <span className="st-rail-badge" aria-hidden>
               <span className="sr-only">{unread} unread</span>
-            </motion.span>
+            </span>
           ) : null}
-        </motion.button>
-        <motion.button
+        </button>
+        <button
           className={cx("st-rail-btn", pathname.startsWith("/app/settings/members") && "is-on")}
           onClick={() => go("/app/settings/members")}
           aria-label="Members"
           title="Members"
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
         >
           <IconUsers size={20} />
-        </motion.button>
-        <motion.button
+        </button>
+        <button
           className={cx("st-rail-btn", pathname.startsWith("/app/search") && "is-on")}
           onClick={() => go("/app/search")}
           aria-label="Search"
           title="Search (⌘K)"
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
         >
           <IconSearch size={20} />
-        </motion.button>
+        </button>
       </div>
       <div className="st-rail-bottom">
         <button
@@ -173,7 +108,7 @@ export function Rail() {
           <UserAvatar
             name={user?.name ?? "You"}
             size="sm"
-            tint={hueFrom(user?.id ?? "you")}
+            seed={user?.id ?? user?.name ?? "you"}
             loading={authLoading || !user}
           />
         </button>
@@ -205,28 +140,10 @@ function suggestKey(name: string): string {
   return letters.slice(0, 4);
 }
 
-function OrgGlyph({ name, hue, size = 28 }: { name: string; hue: number; size?: number }) {
-  return (
-    <span
-      aria-hidden
-      className="st-ws-logo"
-      style={{
-        width: size,
-        height: size,
-        background: `linear-gradient(150deg, hsl(${hue} 85% 60%), hsl(${hue} 75% 45%))`,
-        color: "#fff",
-        fontSize: size * 0.4,
-      }}
-    >
-      {(name || "?").slice(0, 1).toUpperCase()}
-    </span>
-  );
-}
-
 export function ContextBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { org, orgs, setOrg, createOrg, creatingOrg } = useTenant();
+  const { org, orgs, setOrg } = useTenant();
   const { user, isLoading: authLoading } = useAuth();
   const toast = useToast();
   const orgId = getCurrentTenantId();
@@ -237,7 +154,9 @@ export function ContextBar() {
     router.push("/app/board");
   };
   const [showNewOrg, setShowNewOrg] = useState(false);
-  const [newOrgName, setNewOrgName] = useState("");
+  const [showJoinOrg, setShowJoinOrg] = useState(false);
+  const [orgFilter, setOrgFilter] = useState("");
+  const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectKey, setNewProjectKey] = useState("");
@@ -361,18 +280,23 @@ export function ContextBar() {
     };
   }, [projMenu]);
 
-  const handleCreateOrg = async () => {
-    const name = newOrgName.trim();
-    if (!name || creatingOrg) return;
+  const handleSwitchOrg = async (id: string, name: string, close: () => void) => {
+    if (id === org?.id || switchingOrgId) return;
+    close();
+    setSwitchingOrgId(id);
     try {
-      const created = await createOrg(name);
-      setShowNewOrg(false);
-      setNewOrgName("");
-      toast({ title: "Organization created", msg: `${created?.name ?? name} is ready — switched to the new workspace.` });
+      await setOrg(id);
+      toast({ title: `Switched to ${name}`, msg: "Scoped to this tenant now." });
     } catch (err) {
-      toast({ title: "Create failed", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
+      toast({ title: "Switch failed", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
+    } finally {
+      setSwitchingOrgId(null);
     }
   };
+
+  const visibleOrgs = orgFilter.trim()
+    ? orgs.filter((o) => `${o.name} ${o.slug} ${o.role}`.toLowerCase().includes(orgFilter.trim().toLowerCase()))
+    : orgs;
 
   return (
     <aside className="st-side" aria-label="Workspace navigation">
@@ -393,81 +317,94 @@ export function ContextBar() {
             </button>
             <Dropdown
               align="left"
-              width={240}
+              width={280}
               trigger={() => (
-                <button type="button" className="st-col-add" style={{ margin: 0 }} title="Switch organization" aria-label="Switch organization">
+                <button
+                  type="button"
+                  className="st-col-add"
+                  style={{ margin: 0 }}
+                  title={switchingOrgId ? "Switching organization…" : "Switch organization"}
+                  aria-label={switchingOrgId ? "Switching organization" : "Switch organization"}
+                >
                   <IconChevronDown size={16} className="dim" />
                 </button>
               )}
             >
               {(close) => (
                 <>
-                  <div className="menu-label">Organizations</div>
-                  {orgs.map((o) => (
-                    <MenuItem
-                      key={o.id}
-                      onSelect={() => {
-                        close();
-                        if (o.id !== org?.id) void setOrg(o.id);
-                      }}
-                    >
-                      <OrgGlyph name={o.name} hue={o.hue} size={22} />
-                      <span className="grow">{o.name}</span>
-                      {o.id === org?.id ? <span className="cmdk-hint">current</span> : null}
-                    </MenuItem>
-                  ))}
-                  {orgs.length === 0 ? <div className="menu-label">No memberships</div> : null}
+                  <div className="menu-label">Organizations · {orgs.length}</div>
+                  {orgs.length > 6 ? (
+                    <div style={{ padding: "4px 8px" }} onClick={(e) => e.stopPropagation()}>
+                      <Input
+                        type="search"
+                        value={orgFilter}
+                        onChange={(e) => setOrgFilter(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        placeholder="Filter organizations"
+                        aria-label="Filter organizations"
+                      />
+                    </div>
+                  ) : null}
+                  <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                    {visibleOrgs.map((o) => {
+                      const isCurrent = o.id === org?.id;
+                      return (
+                        <MenuItem
+                          key={o.id}
+                          onSelect={() => void handleSwitchOrg(o.id, o.name, close)}
+                        >
+                          <OrgGlyph name={o.name} hue={o.hue} size={22} />
+                          <span className="grow" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {o.name}
+                          </span>
+                          <span className="cmdk-hint capitalize">{o.role}</span>
+                          {isCurrent ? <IconCheck size={14} aria-label="Current organization" /> : null}
+                        </MenuItem>
+                      );
+                    })}
+                    {visibleOrgs.length === 0 ? (
+                      <div className="menu-label">{orgs.length === 0 ? "No memberships" : "No matches"}</div>
+                    ) : null}
+                  </div>
                   <div style={{ borderTop: "1px solid var(--slate-200)", marginTop: 4, paddingTop: 4 }}>
                     <MenuItem
                       onSelect={() => {
                         close();
-                        setNewOrgName("");
+                        setOrgFilter("");
                         setShowNewOrg(true);
                       }}
                     >
                       <IconPlus size={14} />
                       <span className="grow" style={{ fontWeight: 600 }}>New organization</span>
                     </MenuItem>
+                    <MenuItem
+                      onSelect={() => {
+                        close();
+                        setOrgFilter("");
+                        setShowJoinOrg(true);
+                      }}
+                    >
+                      <IconKey size={14} />
+                      <span className="grow" style={{ fontWeight: 600 }}>Join via invite</span>
+                    </MenuItem>
+                    <MenuItem
+                      onSelect={() => {
+                        close();
+                        setOrgFilter("");
+                        router.push("/app/settings#organizations");
+                      }}
+                    >
+                      <IconBuilding size={14} />
+                      <span className="grow" style={{ fontWeight: 600 }}>Manage organizations</span>
+                    </MenuItem>
                   </div>
                 </>
               )}
             </Dropdown>
           </div>
-          <Modal
-            open={showNewOrg}
-            onClose={() => setShowNewOrg(false)}
-            title="New organization"
-            sub="Create a new workspace. You'll become its owner and switch to it immediately."
-            footer={
-              <>
-                <Button variant="ghost" onClick={() => setShowNewOrg(false)}>Cancel</Button>
-                <Button
-                  onClick={() => void handleCreateOrg()}
-                  disabled={!newOrgName.trim() || creatingOrg}
-                  loading={creatingOrg}
-                >
-                  <IconPlus size={14} /> Create organization
-                </Button>
-              </>
-            }
-          >
-            <Field>
-              <FieldLabel htmlFor="new-org-name">Organization name</FieldLabel>
-              <Input
-                id="new-org-name"
-                type="text"
-                value={newOrgName}
-                onChange={(e) => setNewOrgName(e.target.value)}
-                placeholder="Acme Inc"
-                autoFocus
-                maxLength={80}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void handleCreateOrg();
-                }}
-              />
-              <FieldDescription>2–80 characters. You can invite teammates after.</FieldDescription>
-            </Field>
-          </Modal>
+          <CreateOrgDialog open={showNewOrg} onClose={() => setShowNewOrg(false)} />
+          <JoinOrgDialog open={showJoinOrg} onClose={() => setShowJoinOrg(false)} />
         </div>
 
         <div>
@@ -490,7 +427,7 @@ export function ContextBar() {
                 members
                   .slice(0, 3)
                   .map((m, i) => (
-                    <UserAvatar key={m.userId} name={m.name ?? `M${i + 1}`} size="sm" tint={hueFrom(m.userId)} />
+                    <UserAvatar key={m.userId} name={m.name ?? `M${i + 1}`} size="sm" seed={m.userId} />
                   ))
               )}
             </span>
@@ -582,22 +519,20 @@ export function ContextBar() {
             </Field>
           </Modal>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {projects.slice(0, 8).map((p, i) => {
+            {projects.slice(0, 8).map((p) => {
               const href = `/app/board?project=${p.id}`;
-              const active = pathname.startsWith("/app/board") && i === 0;
               return (
                 <Link
                   key={p.id}
                   href={href}
-                  className={cx("st-nav-item", active && "is-active")}
+                  className="st-nav-item"
                   onContextMenu={(e) => openProjMenu(e, p)}
                   title={`${p.name} — right-click for options`}
                 >
                   <span className="ctx-key">{p.key}</span>
-                  <span className="grow" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: active ? 600 : 500 }}>
+                  <span className="grow" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {p.name}
                   </span>
-                  {i === 0 ? <span className="ctx-count">1</span> : null}
                 </Link>
               );
             })}
@@ -629,7 +564,7 @@ export function ContextBar() {
               <button
                 className="menu-item"
                 role="menuitem"
-                style={{ color: "#be123c", fontWeight: 600 }}
+                style={{ color: "var(--destructive)", fontWeight: 600 }}
                 onClick={() => {
                   setDeletingProj(projMenu.project);
                   setProjMenu(null);
@@ -706,7 +641,11 @@ export function ContextBar() {
               <IconZap size={16} className="dim" />
               <span className="grow">Usage</span>
             </Link> */}
-            <Link href="/app/activity" className="st-nav-item">
+            <Link href="/app/library" className={cx("st-nav-item", pathname.startsWith("/app/library") && "is-active")} aria-current={pathname.startsWith("/app/library") ? "page" : undefined}>
+              <IconFolder size={16} className="dim" />
+              <span className="grow">Library</span>
+            </Link>
+            <Link href="/app/activity" className={cx("st-nav-item", pathname.startsWith("/app/activity") && "is-active")} aria-current={pathname.startsWith("/app/activity") ? "page" : undefined}>
               <IconZap size={16} className="dim" />
               <span className="grow">Activity</span>
               <span className="st-live-pill">
@@ -738,7 +677,7 @@ export function ContextBar() {
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <UserAvatar name={me.name} tint={hueFrom(me.name)} size="sm" />
+            <UserAvatar name={me.name} seed={user?.id ?? me.name} size="sm" />
             <span className="grow" style={{ minWidth: 0 }}>
               <span style={{ display: "block", fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {me.name}
@@ -764,9 +703,6 @@ export function ScopeStrip({
   onOpenNotifs: () => void;
 }) {
   const { unread } = useTenant();
-  const { user, logout, isLoading: authLoading } = useAuth();
-  const router = useRouter();
-  const toast = useToast();
 
   return (
     <motion.header
@@ -793,7 +729,7 @@ export function ScopeStrip({
         <motion.button
           className="topbar-bell"
           onClick={onOpenNotifs}
-          aria-label="Notifications"
+          aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
           whileTap={{ scale: 0.9 }}
         >
           <IconBell size={16} />
@@ -807,65 +743,7 @@ export function ScopeStrip({
           ) : null}
         </motion.button>
         <span className="topbar-me">
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
-                  <UserAvatar
-                    name={user?.name ?? "You"}
-                    size="sm"
-                    tint={hueFrom(user?.id ?? "you")}
-                    loading={authLoading || !user}
-                  />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                {authLoading || !user ? (
-                  <span className="flex flex-col gap-1.5 py-0.5" aria-hidden>
-                    <Skeleton className="h-3.5 w-28 rounded" />
-                    <Skeleton className="h-3 w-36 rounded" />
-                  </span>
-                ) : (
-                  <>
-                    <span className="block max-w-full truncate text-sm font-semibold text-foreground">
-                      {user.name}
-                    </span>
-                    {user.email ? (
-                      <span className="block max-w-full truncate text-xs font-normal text-muted-foreground">
-                        {user.email}
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
-                  <BadgeCheckIcon />
-                  Account
-                </DropdownMenuItem>
-                <DropdownMenuItem closeOnClick onClick={onOpenNotifs}>
-                  <BellIcon />
-                  Notifications
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                closeOnClick
-                variant="destructive"
-                onClick={async () => {
-                  await logout();
-                  toast({ title: "Signed out", msg: "Session ended — see you soon." });
-                  router.push("/auth/sign-in");
-                }}
-              >
-                <LogOutIcon />
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <UserMenu onOpenPalette={onOpenPalette} onOpenNotifs={onOpenNotifs} />
         </span>
       </div>
     </motion.header>

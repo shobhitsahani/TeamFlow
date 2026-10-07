@@ -9,9 +9,11 @@ import { Modal, useToast } from "@/components/overlay";
 import { AppShell } from "@/components/app-shell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight, IconTrash, IconAlert, IconMail, IconKey, IconLogout } from "@/components/icons";
+import { CreateOrgDialog, JoinOrgDialog, OrgGlyph } from "@/components/org/org-dialogs";
+import { IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight, IconTrash, IconAlert, IconMail, IconKey, IconLogout, IconBuilding, IconCheck, IconPlus } from "@/components/icons";
 import { api, getCurrentTenantId } from "@/lib/api";
 
 // Hoist static JSX outside component (rendering-hoist-jsx)
@@ -251,6 +253,103 @@ function DangerZone() {
   );
 }
 
+/** Organizations — switch the active workspace, create a new one, or join
+ *  via an invite link/code. One findable surface for every org entry point
+ *  (sidebar switcher, avatar menu, ⌘K all land here for management). */
+function OrganizationsSection() {
+  const { org, orgs, setOrg } = useTenant();
+  const toast = useToast();
+  const [showNewOrg, setShowNewOrg] = useState(false);
+  const [showJoinOrg, setShowJoinOrg] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+
+  const handleSwitch = async (id: string, name: string) => {
+    if (id === org?.id || switchingId) return;
+    setSwitchingId(id);
+    try {
+      await setOrg(id);
+      toast({ title: `Switched to ${name}`, msg: "Scoped to this tenant now." });
+    } catch (err) {
+      toast({ title: "Switch failed", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
+    } finally {
+      setSwitchingId(null);
+    }
+  };
+
+  return (
+    <section id="organizations" aria-label="Organizations" className="settings-card scroll-mt-24">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="settings-card-icon">
+          <IconBuilding size={20} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3>Organizations</h3>
+          <p>
+            {orgs.length === 0
+              ? "No workspaces yet — create or join one."
+              : `${orgs.length} workspace${orgs.length === 1 ? "" : "s"} · currently in ${org?.name ?? "none"}`}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setShowJoinOrg(true)}>
+            <IconKey size={14} /> Join via invite
+          </Button>
+          <Button size="sm" onClick={() => setShowNewOrg(true)}>
+            <IconPlus size={14} /> New organization
+          </Button>
+        </div>
+      </div>
+
+      <ul className="mt-3 flex flex-col gap-2">
+        {orgs.map((o) => {
+          const isCurrent = o.id === org?.id;
+          const switching = switchingId === o.id;
+          return (
+            <li
+              key={o.id}
+              className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-3 py-2"
+            >
+              <OrgGlyph name={o.name} hue={o.hue} size={28} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{o.name}</span>
+                <span className="block truncate text-xs text-muted-foreground tabular-nums">
+                  {o.slug} · {o.plan}
+                </span>
+              </span>
+              <Badge variant="secondary" className="hidden capitalize sm:inline-flex">
+                {o.role}
+              </Badge>
+              {isCurrent ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                  <IconCheck size={14} /> Current
+                </span>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={switching || switchingId !== null}
+                  loading={switching}
+                  onClick={() => void handleSwitch(o.id, o.name)}
+                >
+                  Switch
+                </Button>
+              )}
+            </li>
+          );
+        })}
+        {orgs.length === 0 ? (
+          <li className="rounded-lg border border-dashed px-3 py-4 text-center text-[13px] text-muted-foreground">
+            You&apos;re not a member of any organization yet. Create one, or join with an invite link.
+          </li>
+        ) : null}
+      </ul>
+
+      <CreateOrgDialog open={showNewOrg} onClose={() => setShowNewOrg(false)} />
+      <JoinOrgDialog open={showJoinOrg} onClose={() => setShowJoinOrg(false)} />
+    </section>
+  );
+}
+
 /** Session — sign out of TeamFlow on this device. Mirrors the sidebar
  * rail's sign-out (same auth context + redirect), surfaced here so users
  * can find it in Settings too. */
@@ -316,6 +415,7 @@ export default function SettingsPage() {
           </nav>
 
           <div className="settings-content">
+            <OrganizationsSection />
             <div className="settings-card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div className="settings-card-icon">
                 <IconSettings size={20} />
