@@ -1,16 +1,9 @@
 import type { Metadata } from "next";
-// Self-hosted variable fonts (Fontsource): the same five Google typefaces
-// next/font/google used to fetch at build time. next/font's Turbopack
-// pipeline shells out to fonts.googleapis.com during `next build`, which
-// fails in offline/sandboxed builders with
-// "Can't resolve '@vercel/turbopack-next/internal/font/google/font'".
+// Self-hosted variable fonts (Fontsource): Quiet Harbor voice only —
+// Space Grotesk display + DM Sans body + JetBrains Mono data.
 // Local woff2 files remove the network step entirely — the build is
 // deterministic and the CSS vars below keep every consumer unchanged.
-import "@fontsource-variable/inter/index.css";
-import "@fontsource-variable/hanken-grotesk/index.css";
 import "@fontsource-variable/jetbrains-mono/index.css";
-import "@fontsource-variable/sora/index.css";
-import "@fontsource-variable/manrope/index.css";
 import "@fontsource-variable/space-grotesk/index.css";
 import "@fontsource-variable/dm-sans/index.css";
 import "./globals.css";

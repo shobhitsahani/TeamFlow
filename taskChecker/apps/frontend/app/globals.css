@@ -23,32 +23,32 @@
   --card-foreground: #172b4d;
   --popover: oklch(1 0 0);
   --popover-foreground: #172b4d;
-  --primary: #0c66e4;
+  --primary: oklch(0.55 0.22 300);
   --primary-foreground: #ffffff;
-  --secondary: #e9f2ff;
-  --secondary-foreground: #0055cc;
+  --secondary: oklch(0.93 0.035 300);
+  --secondary-foreground: oklch(0.45 0.2 300);
   --muted: #f1f2f4;
   --muted-foreground: #44546f;
-  --accent: #e9f2ff;
-  --accent-foreground: #0055cc;
+  --accent: oklch(0.93 0.035 300);
+  --accent-foreground: oklch(0.45 0.2 300);
   --destructive: #c9372c;
   --destructive-foreground: #ffffff;
   --border: #dfe1e6;
   --input: #dfe1e6;
-  --ring: #0c66e4;
-  --chart-1: #0c66e4;
+  --ring: oklch(0.55 0.22 300);
+  --chart-1: oklch(0.55 0.22 300);
   --chart-2: #2563eb;
   --chart-3: #059669;
   --chart-4: #d97706;
   --chart-5: #e11d48;
   --sidebar: #ffffff;
   --sidebar-foreground: #172b4d;
-  --sidebar-primary: #0c66e4;
+  --sidebar-primary: oklch(0.55 0.22 300);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e9f2ff;
-  --sidebar-accent-foreground: #0055cc;
+  --sidebar-accent: oklch(0.93 0.035 300);
+  --sidebar-accent-foreground: oklch(0.45 0.2 300);
   --sidebar-border: #dfe1e6;
-  --sidebar-ring: #0c66e4;
+  --sidebar-ring: oklch(0.55 0.22 300);
 }
 
 .dark {
@@ -306,10 +306,10 @@
     cursor: pointer;
   }
   ::selection {
-    background: var(--brand-200);
+    background: oklch(0.55 0.22 300 / 0.18);
   }
   :focus-visible {
-    outline: 2px solid var(--brand-500);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
     border-radius: var(--r-sm);
   }
@@ -1213,12 +1213,19 @@ body:has(.st-chat-resize.is-dragging) * { cursor: grabbing !important; }
 .st-chat-expand svg { color: var(--brand-600); }
 
 /* ---------- generic pages ---------- */
-.page { padding: 24px 28px 40px; max-width: 1200px; width: 100%; margin: 0 auto; overflow-y: auto; flex: 1; min-height: 0; }
-.page-header, .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+/* Single centered rhythm shared with .lagoon-dash-inner: 72rem max,
+   32/20/48 padding (48/32 on sm+) so every route shares one left edge. */
+.page { padding: 32px 20px 48px; max-width: 72rem; width: 100%; margin: 0 auto; overflow-y: auto; flex: 1; min-height: 0; }
+@media (min-width: 640px) {
+  .page { padding: 48px 32px; }
+}
+.page-header, .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .page-subtitle, .page-desc { font-size: 13px; color: var(--slate-500); margin-top: 4px; }
 .page-actions { display: flex; gap: 8px; align-items: center; }
 .task-grid, .teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-.task-detail-page, .settings-page { padding: 24px 28px; overflow-y: auto; flex: 1; }
+/* .task-detail-page / .settings-page ride on .page for gutter + scroll;
+   no extra padding here so settings + task routes share one left edge. */
+.task-detail-page, .settings-page { min-width: 0; }
 .task-detail-grid { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 20px; }
 .task-main { background: #fff; border: 1px solid var(--slate-200); border-radius: 12px; padding: 20px; box-shadow: var(--shadow-xs); }
 .task-sidebar { display: flex; flex-direction: column; gap: 12px; }
@@ -1303,8 +1310,11 @@ body:has(.st-chat-resize.is-dragging) * { cursor: grabbing !important; }
 .comment-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* tenant / settings */
-.tenant, .settings-layout { height: 100%; overflow-y: auto; padding: 24px 32px 48px; flex: 1; }
-.tenant-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.tenant { height: 100%; overflow-y: auto; padding: 24px 32px 48px; flex: 1; }
+/* settings-layout lives inside .page (which owns gutter + scroll): same
+   240px-nav grid as .settings-grid, no nested padding or scroller. */
+.settings-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; align-items: start; min-width: 0; }
+.tenant-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .tenant-title { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; margin-top: 6px; color: var(--slate-900); }
 .tenant-sub { font-size: 13px; color: var(--slate-500); margin-top: 4px; }
 
@@ -1881,7 +1891,7 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
   .st-topbar, .topbar, .scope { padding: 0 12px; gap: 10px; }
   .st-search { display: none; }
   .search { display: none; }
-  .page { padding: 16px; }
+  .settings-layout, .settings-grid { grid-template-columns: minmax(0, 1fr); }
   .meters, .usage-grid, .plan-comparison { grid-template-columns: minmax(0, 1fr); }
   .tier { grid-template-columns: minmax(0, 1fr); }
   .st-chat { display: none; }

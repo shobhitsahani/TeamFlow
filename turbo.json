@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "ui": "tui",
+  "ui": "stream",
   "globalEnv": [
     "NODE_ENV",
     "PORT",
@@ -30,6 +30,8 @@
     "SUPABASE_SERVICE_ROLE_KEY",
     "SUPABASE_ANON_KEY",
     "SUPABASE_PUBLISHABLE_KEY",
+    "GOOGLE_CLIENT_ID",
+    "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
     "TEAMFLOW_IT"
   ],
   "tasks": {

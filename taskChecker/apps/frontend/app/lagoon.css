@@ -426,6 +426,20 @@
   filter: brightness(1.08);
 }
 
+/* Icon-only Create on mobile aligns with 32px icon-btns. */
+@media (max-width: 639px) {
+  .lagoon-create-btn {
+    padding: 8px;
+    min-width: 32px;
+    min-height: 32px;
+    justify-content: center;
+  }
+  /* Scope group stacks left when the filterbar wraps. */
+  .lagoon-filterbar [data-lagoon-scope] {
+    margin-left: 0;
+  }
+}
+
 .lagoon-create-btn:disabled {
   opacity: 0.5;
 }
@@ -571,6 +585,14 @@
   width: 280px;
   flex: none;
   flex-direction: column;
+  /* Trough surface — distinct from cards so lifted cards read.
+     Overrides Card base (bg-card white / rounded-xl / ring-1). */
+  background: var(--lagoon-muted);
+  border: 1px solid var(--lagoon-border);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 #0000;
 }
 
 @media (min-width: 640px) {
@@ -583,12 +605,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 4px 8px;
+  /* Align dot left-edge + count right-edge with card edges.
+     Column already provides 8px; no extra horizontal inset. */
+  padding: 4px 0 8px;
+  min-height: 28px;
 }
 
 .lagoon-col-head h2 {
   font-size: 13px;
   font-weight: 600;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lagoon-col-count {
@@ -598,6 +628,13 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--lagoon-muted-fg);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+  line-height: 1.6;
 }
 
 .lagoon-col-body {
@@ -913,6 +950,7 @@
   display: flex;
   width: 100%;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 12px;
   border-radius: 8px;
   border: 1px solid var(--lagoon-border);

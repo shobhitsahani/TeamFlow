@@ -218,7 +218,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       <Tooltip>
         <TooltipTrigger
           render={
-            <h3 className="lagoon-card-title text-[13px] font-semibold leading-snug" />
+            <h3 className="lagoon-card-title line-clamp-2 text-[13px] font-semibold leading-snug" />
           }
         >
           {displayTitle}
@@ -360,6 +360,7 @@ function LagoonListTitle({
   if (!editing) {
     return (
       <h2
+        className="min-w-0 flex-1 truncate"
         title={canWrite ? "Rename list" : title}
         onClick={() => {
           if (canWrite) {
@@ -399,7 +400,7 @@ function LagoonListTitle({
       value={draft}
       maxLength={50}
       aria-label="List name"
-      className="h-7 px-2 py-1 text-[13px] font-semibold"
+      className="h-6 px-2 py-0.5 text-[13px] font-semibold"
       onChange={(e) => setDraft(e.target.value)}
       onFocus={(e) => e.target.select()}
       onBlur={commit}
@@ -455,7 +456,7 @@ const LagoonTimelineRow = memo(function LagoonTimelineRow({
           onOpen(task);
         }
       }}
-      className="lagoon-tl-row cursor-pointer bg-card text-left"
+      className="lagoon-tl-row cursor-pointer flex-nowrap bg-card text-left"
     >
       <ItemMedia>
         <span style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[task.status] ?? "var(--lagoon-muted-fg)", flex: "none" }} />
@@ -1292,8 +1293,6 @@ function LagoonBoard() {
                     width: 28,
                     height: 28,
                     background: lagoonAvatarTone(m.userId),
-                    border: "2px solid var(--lagoon-card)",
-                    marginLeft: -8,
                     cursor: isMe ? "pointer" : undefined,
                   }}
                 >
@@ -1422,8 +1421,7 @@ function LagoonBoard() {
           {view !== "calendar" ? (
             <Button
               type="button"
-              size="sm"
-              className="lagoon-create-btn border-0"
+              className="lagoon-create-btn h-8 border-0"
               onClick={() => {
                 setComposerText("");
                 setComposerFor(columns[0]?.status ?? "backlog");
@@ -1458,7 +1456,7 @@ function LagoonBoard() {
             <IconCalendar size={14} /> Calendar
           </Button>
         </div>
-        <Separator orientation="vertical" className="mx-1 h-5" aria-hidden />
+        <Separator orientation="vertical" className="mx-1 h-5 hidden sm:block" aria-hidden />
         <div role="group" aria-label="Filter by your personal tags, only visible to you" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span className="lagoon-tone-label" aria-hidden>
             Your tags
@@ -1495,7 +1493,7 @@ function LagoonBoard() {
                     borderRadius: 9999,
                     background: "var(--lagoon-ink)",
                     color: "var(--lagoon-surface)",
-                    fontSize: 9,
+                    fontSize: 10,
                     fontWeight: 700,
                     lineHeight: 1,
                   }}
@@ -1507,7 +1505,7 @@ function LagoonBoard() {
             </Tooltip>
           ))}
         </div>
-        <div role="group" aria-label="Task scope" style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+        <div role="group" aria-label="Task scope" data-lagoon-scope style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
           <Button type="button" variant={activeOnly ? "secondary" : "outline"} size="sm" className={cx("lagoon-toggle-btn", activeOnly && "is-on")} aria-pressed={activeOnly} onClick={() => setActiveOnly((v) => !v)}>
             <IconSliders size={14} /> {activeOnly ? "Active only" : "All tasks"}
           </Button>
@@ -1563,13 +1561,13 @@ function LagoonBoard() {
                 key={col.status}
                 data-status={col.status}
                 data-slot="lagoon-col"
-                className="lagoon-col w-70 flex-none [--card-spacing:--spacing(2)] gap-2 px-2 sm:w-75"
+                className="lagoon-col w-70 flex-none p-2 shadow-none ring-0 [--card-spacing:--spacing(2)] gap-2 sm:w-75"
                 aria-label={`${labelFor(col.status)}, ${col.tasks.length} tasks`}
                 onDragOver={(e) => handleDragOver(e, col.status)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => void handleDrop(e, col.status)}
               >
-                <div className="lagoon-col-head px-1 pt-1 pb-2">
+                <div className="lagoon-col-head px-0 pt-1 pb-2">
                   <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[col.status], flex: "none" }} />
                   <LagoonListTitle
                     status={col.status as Task["status"]}
@@ -1577,7 +1575,7 @@ function LagoonBoard() {
                     canWrite={canWrite}
                     onRename={handleRenameList}
                   />
-                  <Badge variant="secondary" className="lagoon-col-count border-0 text-[11px] tabular-nums">{col.tasks.length}</Badge>
+                  <Badge variant="secondary" className="lagoon-col-count flex-none border-0 text-[11px] tabular-nums">{col.tasks.length}</Badge>
                 </div>
                 <div className={cx("lagoon-col-body", draggedTaskId && "is-dragging", dragOverCol === col.status && "is-dragover")} role="list">
                   <AnimatePresence initial={false} mode="popLayout">
@@ -1637,8 +1635,8 @@ function LagoonBoard() {
                           }
                         }}
                       />
-                      <div className="lagoon-composer-actions mt-2 flex gap-1">
-                        <Button type="submit" size="sm" className="lagoon-btn border-0" disabled={!composerText.trim()}>
+                      <div className="lagoon-composer-actions mt-2 flex items-center gap-1">
+                        <Button type="submit" className="lagoon-btn h-8 border-0" disabled={!composerText.trim()}>
                           Add card
                         </Button>
                         <Tooltip>
@@ -1668,7 +1666,6 @@ function LagoonBoard() {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
                       className="lagoon-add-card h-9 justify-start border-dashed text-xs font-normal"
                       onClick={() => {
                         setComposerText("");

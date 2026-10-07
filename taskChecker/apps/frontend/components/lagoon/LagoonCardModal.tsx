@@ -93,6 +93,12 @@ export function LagoonCardModal({
     setConfirmingDelete(false);
   }
 
+  // Delete runs immediately on confirm — Quiet Harbor settle only
+  // (180ms fade/scale on exit via AnimatePresence). No decorative filters.
+  const handleConfirmDelete = () => {
+    onDelete(task);
+  };
+
   /** Start motion exit; parent unmounts once the exit animation completes. */
   const requestClose = () => setVisible(false);
   const finishClose = () => {
@@ -250,7 +256,7 @@ export function LagoonCardModal({
           <DialogContent
             aria-label="Card details"
             showCloseButton
-            className="lagoon lagoon-scroll-fade max-w-lg gap-0 overflow-y-auto p-5 duration-0 data-open:animate-none sm:max-w-lg"
+            className="lagoon lagoon-scroll-fade max-w-lg gap-0 overflow-y-auto p-5 sm:max-w-lg"
             style={{ maxHeight: "85dvh" }}
           >
             <motion.div variants={focalPop} initial="hidden" animate="show" exit="exit">
@@ -561,7 +567,7 @@ export function LagoonCardModal({
                     variant="destructive"
                     size="sm"
                     autoFocus
-                    onClick={() => onDelete(task)}
+                    onClick={handleConfirmDelete}
                     className="active:scale-[0.97]"
                   >
                     <IconTrash size={14} /> Yes, delete

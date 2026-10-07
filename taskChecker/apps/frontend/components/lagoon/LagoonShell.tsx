@@ -236,7 +236,7 @@ export function LagoonShell({
                 key="lagoon-scrim"
                 aria-label="Close menu"
                 onClick={() => setSidebarOpen(false)}
-                style={{ position: "fixed", inset: 0, zIndex: 30, background: "rgb(15 23 42 / 0.3)" }}
+                style={{ position: "fixed", inset: 0, zIndex: 30, background: "rgb(15 23 42 / 0.4)" }}
                 className="lagoon-only-mobile"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -403,7 +403,7 @@ export function LagoonShell({
                         type="button"
                         aria-label="Create new board"
                         onClick={openNewBoard}
-                        className="bg-transparent text-white/60 hover:bg-white/10 hover:text-white"
+                        className="bg-transparent text-white/70 hover:bg-white/10 hover:text-white"
                         style={{
                           display: "grid",
                           placeItems: "center",

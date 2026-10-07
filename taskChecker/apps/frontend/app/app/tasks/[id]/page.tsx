@@ -337,11 +337,8 @@ export default function TaskDetailPage() {
   return (
     <AppShell>
       <PageEnter className="page task-detail-page">
-        <motion.header
+        <header
           className="task-header-bar"
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
         >
           <Link href="/app/work" className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label="Back">
             <IconArrowLeft size={18} />
@@ -413,14 +410,11 @@ export default function TaskDetailPage() {
               </DropdownMenu>
             ) : null}
           </div>
-        </motion.header>
+        </header>
 
         <div className="task-detail-grid">
-          <motion.main
+          <main
             className="task-main"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
           >
             <section className="task-section">
               <h3 className="trello-section-head">Description</h3>
@@ -516,13 +510,10 @@ export default function TaskDetailPage() {
                 )}
               </div>
             </section>
-          </motion.main>
+          </main>
 
-          <motion.aside
+          <aside
             className="task-sidebar"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
           >
             <SidebarCard>
               <h3 className="trello-section-head" style={{ fontSize: 14 }}>Details</h3>
@@ -660,7 +651,7 @@ export default function TaskDetailPage() {
                 ) : null}
               </Field>
             </SidebarCard>
-          </motion.aside>
+          </aside>
         </div>
 
         <ConfirmDialog

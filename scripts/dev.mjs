@@ -68,10 +68,14 @@ if (busy.length > 0) {
 
 ensureDockerDeps();
 
-const child = spawn("pnpm", ["--dir", "taskChecker", "run", "dev"], {
+const child = spawn("pnpm --dir taskChecker run dev", {
   cwd: ROOT,
   stdio: "inherit",
-  shell: true, // required on Windows to resolve pnpm.cmd
+  shell: true, // required on Windows to resolve pnpm.cmd (single command string, so no DEP0190)
+  env: {
+    ...process.env,
+    TURBO_UI: "0",
+  },
 });
 child.on("error", (err) => {
   console.error(`[dev] Failed to start: ${err.message}`);
@@ -79,5 +83,16 @@ child.on("error", (err) => {
   process.exit(1);
 });
 child.on("exit", (code, signal) => {
-  process.exit(signal ? 1 : (code ?? 1));
+  if (signal) {
+    console.error(`[dev] Dev session ended by signal ${signal}.`);
+    process.exit(1);
+  }
+  // 0xC0000409: turbo died natively (Windows STACK_BUFFER_OVERRUN), not via
+  // exit(). Its children usually survive orphaned and keep the ports — the
+  // next `bun run dev` then reports "Already running" for a dead session.
+  if (code === 3221226505) {
+    console.error("[dev] turbo crashed natively (Windows exit 3221226505).");
+    console.error("[dev] Run `bun run dev:stop` to kill the orphans, then `bun run dev` again.");
+  }
+  process.exit(code ?? 1);
 });

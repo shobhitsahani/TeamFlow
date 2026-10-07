@@ -297,3 +297,193 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ================================================================
+   Polish pass — board view (Quiet Harbor, Operate mode).
+   Refinement only: no new visuals, no new tokens.
+   ================================================================ */
+/* Focus is always visible: 2px Harbor Purple, offset 2px. */
+.lagoon-icon-btn:focus-visible,
+.lagoon-add-card:focus-visible,
+.lagoon-toggle-btn:focus-visible,
+.lagoon-board-link:focus-visible,
+.lagoon-tl-row:focus-visible,
+.lagoon-star:focus-visible,
+.lagoon-view-btn:focus-visible,
+.lagoon-tone-btn:focus-visible,
+.lagoon-cal-chip:focus-visible,
+.lagoon-cal-more:focus-visible,
+.lagoon-cal-navbtn:focus-visible,
+.lagoon-cal-todaybtn:focus-visible {
+  outline: 2px solid var(--tf-accent);
+  outline-offset: 2px;
+}
+/* Empty card foot never reserves space. */
+.lagoon-card-foot:empty,
+.lagoon-card-stats:empty {
+  display: none;
+}
+/* Label pills: text stays readable on light tints (≥4.5:1).
+   Dark keeps the brighter world hues. */
+.lagoon .lg-pill-gold {
+  color: oklch(0.55 0.14 80);
+}
+.lagoon .lg-pill-green {
+  color: oklch(0.48 0.13 160);
+}
+.lagoon .lg-pill-purple {
+  color: oklch(0.5 0.2 300);
+}
+.dark .lagoon .lg-pill-gold {
+  color: var(--lagoon-gold);
+}
+.dark .lagoon .lg-pill-green {
+  color: var(--lagoon-green);
+}
+.dark .lagoon .lg-pill-purple {
+  color: var(--lagoon-purple);
+}
+/* Calendar eyebrow: same readable-gold treatment as pills on light.
+   Dark keeps the brighter world hue. */
+.lagoon .lagoon-cal-eyebrow {
+  color: oklch(0.55 0.14 80);
+}
+.dark .lagoon .lagoon-cal-eyebrow {
+  color: var(--lagoon-gold);
+}
+/* Board canvas keeps a single authored settle: transform + shadow only. */
+.lagoon-card {
+  transition:
+    transform var(--dur-settle) var(--ease-settle),
+    box-shadow var(--dur-settle) var(--ease-settle),
+    border-color var(--dur-instant) ease-out,
+    background-color var(--dur-instant) ease-out;
+}
+
+/* ================================================================
+   Animate pass — Quiet Harbor fluid layer (Operate mode).
+   One authored settle (var(--ease-settle), 220ms), continuity via
+   framer layoutId + position layout (see components/motion.tsx),
+   feedback is press/hover/drag only. Transform/opacity/shadow/blur
+   territory — never width/height/padding/margin. Reduced motion
+   keeps opacity/state, drops movement (see kill-switch above).
+   ================================================================ */
+
+/* Hover lift: the tactile -2px rise from DESIGN.md. Cards rest lifted,
+   hover raises to md; drag lifts further (rule above). */
+.lagoon-card:hover,
+.st-card:hover,
+.board-card:hover,
+.task-card:hover,
+.ticket:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 9px 24px -16px color-mix(in oklab, currentColor 22%, transparent),
+    var(--shadow-1, 0 2px 4px -1px rgb(15 23 42 / 0.06));
+  border-color: color-mix(in oklab, var(--tf-accent) 32%, var(--tf-line));
+}
+
+/* Press: smallest unmistakable acknowledgment (100-150ms feedback). */
+.trello-create-btn:active,
+.topbar-create:active,
+.lagoon-create-btn:active,
+.btn-primary:active,
+.st-ws-card:active {
+  transform: scale(0.98);
+  transition-duration: 100ms;
+}
+.st-nav-item:active,
+.ctx-row:active,
+.menu-item:active {
+  transform: scale(0.985);
+  transition-duration: 100ms;
+}
+
+/* Overlays ride the same settle curve — Base UI data-attribute
+   animations stay, easing unifies so dialogs/menus/toasts dock alike. */
+[data-slot="dialog-content"],
+[data-slot="dropdown-menu-content"],
+[data-slot="popover-content"],
+[data-slot="sheet-content"],
+[data-slot="toast"] {
+  transition-timing-function: var(--ease-settle);
+}
+[data-slot="dialog-overlay"] {
+  transition:
+    opacity var(--dur-instant) ease-out,
+    backdrop-filter var(--dur-settle) var(--ease-settle);
+}
+
+/* Skeleton shimmer: transform-only sweep over the pulse base.
+   Loading reads as flowing water, not blinking blocks. */
+[data-slot="skeleton"] {
+  position: relative;
+  overflow: hidden;
+}
+[data-slot="skeleton"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(255 255 255 / 0.45) 50%,
+    transparent 80%
+  );
+  animation: tf-shimmer 1.6s var(--ease-settle) infinite;
+  pointer-events: none;
+}
+.dark [data-slot="skeleton"]::after {
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(255 255 255 / 0.08) 50%,
+    transparent 80%
+  );
+}
+@keyframes tf-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Drop targets + meters stay fluid without layout shift. */
+.lagoon-col-body.is-dragover,
+.st-drop.drag-over,
+.column-dropzone.drag-over {
+  transition:
+    background-color var(--dur-instant) ease-out,
+    box-shadow var(--dur-settle) var(--ease-settle);
+}
+.meter > i,
+.meter-fill {
+  transition:
+    transform var(--dur-settle) var(--ease-settle),
+    opacity var(--dur-instant) ease-out;
+}
+
+/* Reduced motion: keep state/opacity, drop lift/sweep/press. */
+@media (prefers-reduced-motion: reduce) {
+  .lagoon-card:hover,
+  .st-card:hover,
+  .board-card:hover,
+  .task-card:hover,
+  .ticket:hover {
+    transform: none;
+  }
+  .trello-create-btn:active,
+  .topbar-create:active,
+  .lagoon-create-btn:active,
+  .btn-primary:active,
+  .st-ws-card:active,
+  .st-nav-item:active,
+  .ctx-row:active,
+  .menu-item:active {
+    transform: none;
+  }
+  [data-slot="skeleton"]::after {
+    animation: none;
+    display: none;
+  }
+}

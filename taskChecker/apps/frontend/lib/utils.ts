@@ -157,6 +157,39 @@ export function formatNumber(n: number): string {
   return new Intl.NumberFormat("en-US").format(n);
 }
 
+/** Cleaned backend reason for error copy — secondary clause only.
+ * Returns null when the raw message is generic/empty so callers fall back
+ * to actionable recovery text instead of exposing internals. */
+export function errorDetail(err: unknown): string | null {
+  if (!(err instanceof Error)) return null;
+  const msg = err.message.trim();
+  if (!msg) return null;
+  const lower = msg.toLowerCase();
+  if (lower === "unknown" || lower === "something went wrong" || lower === "try again") return null;
+  if (lower.includes("cannot reach the api") || lower.includes("failed to fetch")) {
+    return "Check your connection and confirm the backend is running.";
+  }
+  if (lower.includes("session expired")) return "Your session expired — sign in again to continue.";
+  if (lower.includes("rate_limited") || lower.includes("too many")) return "Wait a moment, then try again.";
+  // Backend validation/permission/not-found strings are already plain
+  // language ("Task not found.", "Invalid email or password.") — keep them
+  // as the reason clause when short, drop stacks/dumps.
+  if (msg.length <= 160 && !lower.includes(" at ") && !lower.includes("\n")) return msg;
+  return null;
+}
+
+/** Actionable sign-in failure — what failed + what to do, never raw stack. */
+export function signInErrorMessage(err: unknown): string {
+  const detail = errorDetail(err);
+  if (detail && detail.toLowerCase().includes("invalid email or password")) {
+    return "Couldn't sign you in. Check your email and password, then try again.";
+  }
+  if (detail && detail.toLowerCase().includes("check your connection")) return `Couldn't sign you in. ${detail}`;
+  if (detail && detail.toLowerCase().includes("session expired")) return `Couldn't sign you in. ${detail}`;
+  if (detail) return `Couldn't sign you in. ${detail}`;
+  return "Couldn't sign you in. Check your email and password, then try again.";
+}
+
 /** highlight a query within a string for search results */
 export function splitOnQuery(text: string, query: string): string[] {
   const q = query.trim().toLowerCase();

@@ -7,19 +7,23 @@ import { useTenant } from "@/components/store";
 import { LagoonShell } from "@/components/lagoon/LagoonShell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { IconFile, IconClock, IconSearch, IconPlus } from "@/components/icons";
+import { Badge } from "@/components/ui/badge";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { IconClock, IconPlus, IconSearch } from "@/components/icons";
 import { api, getCurrentTenantId, type Task, type Project } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSWR } from "@/lib/swr";
-import { cx, hueFrom, isOverdue } from "@/lib/utils";
+import { cx, isOverdue } from "@/lib/utils";
+import { lagoonAvatarTone, lagoonInitials, toneForPriority } from "@/components/lagoon/lagoon-utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AnimatePresence, listItem, motion, PageEnter } from "@/components/motion";
 
-const PRIORITY_COLORS: Record<string, string> = {
-  critical: "hsl(0 75% 55%)",
-  high: "hsl(35 90% 50%)",
-  medium: "hsl(210 80% 50%)",
-  low: "var(--muted)",
-  none: "var(--muted)",
+const STATUS_DOT: Record<string, string> = {
+  backlog: "var(--lagoon-gold)",
+  todo: "var(--lagoon-purple)",
+  in_progress: "var(--lagoon-green)",
+  done: "var(--lagoon-success)",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -32,12 +36,14 @@ const STATUS_LABEL: Record<string, string> = {
 type TaskWithProject = { task: Task; project: Project | null };
 
 /**
- * TeamFlow-style task card for Work page
+ * TeamFlow task card for the Work page — Quiet Harbor voice: status dot +
+ * label pill + text carry meaning (never a side stripe), tabular due dates.
  */
 const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
   const { task, project } = item;
-  const hue = project ? hueFrom(project.key || project.id) : 0;
   const overdue = isOverdue(task.dueAt, task.status);
+  const tone = toneForPriority(task.priority);
+  const assigneeSeed = task.assigneeId ?? task.id;
 
   return (
     <motion.div
@@ -52,21 +58,27 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
     >
       <Link
         href={`/app/tasks/${task.id}`}
-        className="task-card trello-card"
-        style={{ display: "block", border: "1px solid var(--border-subtle)", boxShadow: `inset 3px 0 0 0 ${PRIORITY_COLORS[task.priority] ?? "var(--muted)"}` }}
-        title={task.priority !== "none" ? `Priority: ${task.priority}` : undefined}
+        className="lagoon-board-card"
+        style={{ display: "block", minHeight: "auto", padding: 16 }}
+        title={task.priority !== "none" ? `Priority: ${task.priority}` : task.title}
       >
-        <h3 className="trello-card-title">{task.title}</h3>
-        <div className="trello-card-badges">
-          <span style={{ fontSize: 11, color: "var(--slate-500)" }}>{STATUS_LABEL[task.status] ?? task.status}</span>
-          {task.priority !== "none" ? (
-            <span className="trello-prio tabular-nums" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--slate-600)" }}>
+        <span className="flex items-center gap-2">
+          <span aria-hidden style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[task.status] ?? "var(--lagoon-muted-fg)", flex: "none" }} />
+          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-snug">{task.title}</span>
+        </span>
+        {task.description ? (
+          <span className="lagoon-card-desc mt-1 line-clamp-2 block">{task.description}</span>
+        ) : null}
+        <span className="mt-3 flex min-h-6 flex-wrap items-center gap-2">
+          <span className="text-[11px] text-muted-foreground">{STATUS_LABEL[task.status] ?? task.status}</span>
+          {tone ? (
+            <Badge variant="secondary" className={cx("border-0 capitalize", `lg-pill-${tone}`)}>
               {task.priority}
-            </span>
+            </Badge>
           ) : null}
           {task.dueAt ? (
             <span
-              className={cx("trello-due tabular-nums", overdue && "is-overdue", task.status === "done" && "is-done")}
+              className={cx("lagoon-due tabular-nums", overdue && "is-overdue")}
               title={overdue ? "Overdue" : undefined}
             >
               <IconClock size={12} />
@@ -75,11 +87,14 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
             </span>
           ) : null}
           {project && (
-            <span className="trello-key" style={{ borderColor: `hsl(${hue} 80% 70%)` }}>
-              {project.key}
-            </span>
+            <span className="ctx-key ml-auto">{project.key}</span>
           )}
-        </div>
+          <Avatar size="sm" title="Assignee" className="lagoon-avatar" style={{ width: 20, height: 20, background: lagoonAvatarTone(assigneeSeed) }}>
+            <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 8 }}>
+              {lagoonInitials(project?.key ?? "?")}
+            </AvatarFallback>
+          </Avatar>
+        </span>
       </Link>
     </motion.div>
   );
@@ -123,12 +138,26 @@ export default function WorkPage() {
   }, [tasksQ.data, filter, user]);
 
   const filteredTasks = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = search.trim().toLowerCase();
     if (!q) return myTasks;
     return myTasks.filter(({ task }) =>
-      task.title.toLowerCase().includes(q) || task.id.toLowerCase().includes(q),
+      task.title.toLowerCase().includes(q) ||
+      (task.description ?? "").toLowerCase().includes(q) ||
+      task.id.toLowerCase().includes(q),
     );
   }, [myTasks, search]);
+
+  const attention = useMemo(() => {
+    const open = myTasks.filter(({ task }) => task.status !== "done");
+    return {
+      overdue: open.filter(({ task }) => isOverdue(task.dueAt, task.status)).length,
+      dueToday: open.filter(({ task }) => {
+        if (!task.dueAt || isOverdue(task.dueAt, task.status)) return false;
+        return (task.dueAt ?? "").slice(0, 10) === new Date().toISOString().slice(0, 10);
+      }).length,
+      open: open.length,
+    };
+  }, [myTasks]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     startTransition(() => {
@@ -169,17 +198,20 @@ export default function WorkPage() {
           </div>
         </motion.header>
 
-        <div className="work-toolbar">
-          <div className="search-box">
-            <IconSearch size={16} />
-            <input
-              type="text"
+        <div className="lagoon-filterbar" style={{ paddingLeft: 0, paddingRight: 0 }}>
+          <InputGroup variant="search" className="lagoon-search" style={{ width: 320, maxWidth: "100%" }}>
+            <InputGroupAddon align="inline-start">
+              <IconSearch size={14} />
+            </InputGroupAddon>
+            <InputGroupInput
+              type="search"
+              aria-label="Search your tasks"
               value={search}
               onChange={handleSearchChange}
               placeholder="Search your tasks…"
             />
-          </div>
-          <div className="filter-tabs" role="tablist">
+          </InputGroup>
+          <div className="filter-tabs" role="tablist" aria-label="Task scope">
             {(["all", "assigned", "reported"] as const).map((f) => (
               <button
                 key={f}
@@ -194,23 +226,57 @@ export default function WorkPage() {
           </div>
         </div>
 
-        <div className="task-grid">
+        {!isLoading && myTasks.length > 0 ? (
+          <p className="tnum" style={{ fontSize: 12, color: "var(--lagoon-muted-fg)", marginBottom: 12 }} role="status">
+            {attention.open} open
+            {attention.overdue > 0 ? ` · ${attention.overdue} overdue` : ""}
+            {attention.dueToday > 0 ? ` · ${attention.dueToday} due today` : ""}
+          </p>
+        ) : null}
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
-            <div className="flex flex-col gap-3" role="status" aria-label="Loading tasks">
-              <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-16 w-full rounded-lg" />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" style={{ gridColumn: "1 / -1" }} role="status" aria-label="Loading tasks">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="lagoon-board-card" style={{ minHeight: "auto", padding: 16 }} aria-hidden>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-2 rounded-full" />
+                    <Skeleton className="h-4 flex-1 rounded" />
+                  </div>
+                  <Skeleton className="mt-3 h-3 w-3/4 rounded" />
+                  <div className="mt-3 flex gap-2">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredTasks.length === 0 ? (
-            <motion.div
-              className="empty-state"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <IconFile size={48} className="dim" />
-              <h3>No tasks found</h3>
-              <p>{search ? "Try a different search term" : "You're all caught up!"}</p>
-            </motion.div>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <IconSearch size={16} />
+                </EmptyMedia>
+                <EmptyTitle>{search ? `No tasks match "${search.trim()}"` : "You're all caught up"}</EmptyTitle>
+                <EmptyDescription>
+                  {search
+                    ? "Try a different search term, or clear the search to see everything in scope."
+                    : "Tasks assigned to you or reported by you will land here. Create the first one to get moving."}
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <div className="flex items-center gap-2">
+                  {search ? (
+                    <Button variant="secondary" size="sm" onClick={() => handleSearchChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)}>
+                      Clear search
+                    </Button>
+                  ) : null}
+                  <Button size="sm" onClick={() => router.push("/app/board")}>
+                    <IconPlus size={14} /> New task
+                  </Button>
+                </div>
+              </EmptyContent>
+            </Empty>
           ) : (
             <AnimatePresence initial={false} mode="popLayout">
               {filteredTasks.map((item) => (
