@@ -108,7 +108,7 @@ export function SignupPage({
           ) : null}
 
           {/* Social Buttons */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-3">
             {renderGoogle ? (
               renderGoogle(formData.orgName)
             ) : (
