@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/overlay";
 import { SignupPage, type SignupFormData } from "@/components/ui/sign-up-page";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 export default function SignUpPage() {
   const router = useRouter();
   const { signup } = useAuth();
+  const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -32,8 +34,22 @@ export default function SignUpPage() {
       submitting={submitting}
       error={error}
       renderGoogle={(orgName) => (
-        <GoogleSignInButton text="signup_with" orgName={orgName} onError={setError} />
+        <GoogleSignInButton
+          text="signup_with"
+          variant="custom"
+          orgName={orgName}
+          onError={setError}
+        />
       )}
+      onSocial={(provider) =>
+        toast({
+          title: provider === "github" ? "GitHub sign-up isn't supported" : "Google sign-up isn't enabled",
+          msg:
+            provider === "github"
+              ? "This workspace only supports Google — use it or continue with email."
+              : "Ask your workspace admin to configure OAuth, or continue with email.",
+        })
+      }
     />
   );
 }
