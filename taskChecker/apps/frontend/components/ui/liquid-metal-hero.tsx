@@ -95,7 +95,7 @@ export default function LiquidMetalHero({
             </motion.h1>
 
             <motion.p
-              className="mx-auto max-w-3xl text-xl leading-relaxed text-foreground/90 sm:text-2xl"
+              className="mx-auto max-w-3xl text-xl leading-relaxed text-purple-300 sm:text-2xl"
               variants={itemVariants}
             >
               {subtitle}
