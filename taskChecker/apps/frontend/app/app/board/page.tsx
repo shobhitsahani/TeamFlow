@@ -1260,7 +1260,6 @@ function LagoonBoard() {
           </TooltipTrigger>
           <TooltipContent>Menu</TooltipContent>
         </Tooltip>
-        <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-gold)", flex: "none" }} />
         <div style={{ minWidth: 0 }}>
           <h1 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {selectedProject?.name ?? "Board"}
@@ -1437,19 +1436,19 @@ function LagoonBoard() {
 
       <div className="lagoon-filterbar" role="toolbar" aria-label="Board view and filters">
         <div role="group" aria-label="View" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
-          <Button type="button" variant={view === "board" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "board" && "is-on")} aria-pressed={view === "board"} onClick={() => setView("board")}>
+          <Button type="button" variant="ghost" size="sm" className={cx("lagoon-view-btn border relative", view === "board" && "is-on")} aria-pressed={view === "board"} onClick={() => setView("board")}>
             {view === "board" ? (
               <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
             ) : null}
             <IconColumns size={14} /> Board
           </Button>
-          <Button type="button" variant={view === "timeline" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "timeline" && "is-on")} aria-pressed={view === "timeline"} onClick={() => setView("timeline")}>
+          <Button type="button" variant="ghost" size="sm" className={cx("lagoon-view-btn border relative", view === "timeline" && "is-on")} aria-pressed={view === "timeline"} onClick={() => setView("timeline")}>
             {view === "timeline" ? (
               <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
             ) : null}
             <IconList size={14} /> Timeline
           </Button>
-          <Button type="button" variant={view === "calendar" ? "secondary" : "ghost"} size="sm" className={cx("lagoon-view-btn border relative", view === "calendar" && "is-on")} aria-pressed={view === "calendar"} onClick={() => setView("calendar")}>
+          <Button type="button" variant="ghost" size="sm" className={cx("lagoon-view-btn border relative", view === "calendar" && "is-on")} aria-pressed={view === "calendar"} onClick={() => setView("calendar")}>
             {view === "calendar" ? (
               <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
             ) : null}

@@ -23,7 +23,7 @@ import { Toaster } from "@/components/ui/toast";
 export const metadata: Metadata = {
   title: "TeamFlow",
   description:
-    "TeamFlow board — projects, kanban, members and live team chat.",
+    "TeamFlow board — projects, kanban, and members, isolated per organization.",
 };
 
 export default function RootLayout({

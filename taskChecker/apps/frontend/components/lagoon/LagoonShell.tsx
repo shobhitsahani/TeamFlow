@@ -199,8 +199,6 @@ export function LagoonShell({
     void handleCreateBoard();
   };
 
-  const orgInitial = (org?.name || "L").slice(0, 1).toUpperCase();
-
   const handleSwitchOrg = useCallback(
     async (id: string, name: string) => {
       if (id === org?.id || switchingOrgId) return;
@@ -247,7 +245,14 @@ export function LagoonShell({
           </AnimatePresence>
           <aside className={cx("lagoon-side", !sidebarOpen && "is-closed")} aria-label="Workspace navigation">
             <div className="lagoon-side-brand">
-              <span className="lagoon-side-mark">{orgInitial}</span>
+              <img
+                src="/logo_mark.png"
+                alt=""
+                aria-hidden="true"
+                width={32}
+                height={32}
+                className="lagoon-side-mark"
+              />
               <span className="lagoon-display" style={{ fontSize: 15, fontWeight: 600 }}>
                 {org?.name ?? "Lagoon"}
               </span>

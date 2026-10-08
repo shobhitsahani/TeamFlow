@@ -226,11 +226,10 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--lagoon-gold);
-  font-family: var(--font-lagoon-display), "Hanken Grotesk", sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: oklch(0.25 0.05 80);
+  background: rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  object-fit: contain;
+  padding: 3px;
   flex: none;
 }
 
