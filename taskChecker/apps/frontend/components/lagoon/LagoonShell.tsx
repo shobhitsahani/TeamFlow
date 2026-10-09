@@ -278,21 +278,31 @@ export function LagoonShell({
                 Split control: the org button opens the switch menu, the
                 chevron opens the New organization dialog directly. */}
             <div className="lagoon-side-ws-wrap">
+            {/* Your avatar opens Profile settings (change your info);
+                the workspace name opens the org switch menu. */}
+            <button
+              type="button"
+              className="lagoon-side-ws-avatar"
+              title={user?.name ?? user?.email ?? "Profile settings"}
+              aria-label="Profile settings — change your info"
+              onClick={() => router.push("/app/settings#profile")}
+            >
+              <UserAvatar
+                name={user?.name ?? org?.name ?? "Workspace"}
+                seed={user?.id ?? org?.id ?? "workspace"}
+                size="sm"
+              />
+            </button>
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger
                 render={
                   <button
                     className="lagoon-side-ws"
                     title={user?.email ?? "Workspace"}
-                    aria-label="Workspace and account menu"
+                    aria-label="Switch organization"
                   />
                 }
               >
-                <UserAvatar
-                  name={org?.name ?? user?.name ?? "Workspace"}
-                  seed={org?.id ?? user?.id ?? "workspace"}
-                  size="sm"
-                />
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {org?.name ?? "Workspace"}
@@ -355,6 +365,10 @@ export function LagoonShell({
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
+                  <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings#profile")}>
+                    <IconUsers size={16} />
+                    Profile settings
+                  </DropdownMenuItem>
                   <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
                     <IconSettings size={16} />
                     Workspace settings

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, memo } from "react";
+import { useState, memo, useEffect } from "react";
 import { useTenant } from "@/components/store";
 import { useAuth } from "@/lib/auth";
+import { UserAvatar } from "@/components/user/user-avatar";
 import { Modal, useToast } from "@/components/overlay";
 import { AppShell } from "@/components/app-shell";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -253,6 +254,95 @@ function DangerZone() {
   );
 }
 
+/** Profile — the session user's own info. Display name is editable here
+ *  (PATCH /v1/me); email is identity and read-only. The sidebar avatar
+ *  lands here so users always find where to change their info. */
+function ProfileSection() {
+  const { user, updateProfile } = useAuth();
+  const toast = useToast();
+  const [name, setName] = useState("");
+  const [touched, setTouched] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!touched && user?.name) setName(user.name);
+  }, [user?.name, touched]);
+
+  const trimmed = name.trim();
+  const dirty = touched && trimmed !== (user?.name ?? "");
+  const valid = trimmed.length >= 2 && trimmed.length <= 80;
+
+  const handleSave = async () => {
+    if (!dirty || !valid || saving) return;
+    setSaving(true);
+    try {
+      await updateProfile(trimmed);
+      setTouched(false);
+      toast({ title: "Profile updated", msg: "Your display name was saved." });
+    } catch (err) {
+      toast({ title: "Save failed", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section id="profile" aria-label="Profile" className="settings-card scroll-mt-24">
+      <div className="flex flex-wrap items-center gap-3">
+        {user ? (
+          <UserAvatar name={user.name} seed={user.id} size="lg" />
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <h3>Profile</h3>
+          <p>{user?.email ?? "…"}</p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => void handleSave()}
+          disabled={!dirty || !valid || saving}
+          loading={saving}
+        >
+          <IconCheck size={14} /> Save changes
+        </Button>
+      </div>
+
+      <FieldGroup className="mt-3">
+        <Field>
+          <FieldLabel htmlFor="profile-name">Display name</FieldLabel>
+          <Input
+            id="profile-name"
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setTouched(true);
+            }}
+            placeholder="Your name"
+            autoComplete="name"
+            maxLength={80}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void handleSave();
+            }}
+          />
+          <FieldDescription>2–80 characters. Shown on cards, comments, and mentions.</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="profile-email">Email</FieldLabel>
+          <Input
+            id="profile-email"
+            type="email"
+            value={user?.email ?? ""}
+            readOnly
+            disabled
+            className="font-mono"
+          />
+          <FieldDescription>Email is your sign-in identity and can&apos;t be changed here.</FieldDescription>
+        </Field>
+      </FieldGroup>
+    </section>
+  );
+}
+
 /** Organizations — switch the active workspace, create a new one, or join
  *  via an invite link/code. One findable surface for every org entry point
  *  (sidebar switcher, avatar menu, ⌘K all land here for management). */
@@ -415,6 +505,7 @@ export default function SettingsPage() {
           </nav>
 
           <div className="settings-content">
+            <ProfileSection />
             <OrganizationsSection />
             <div className="settings-card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div className="settings-card-icon">

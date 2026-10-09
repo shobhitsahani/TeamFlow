@@ -474,6 +474,12 @@ export const api = {
     me: () =>
       request<{ user: User; memberships: ActiveTenant[]; activeTenantId: string }>("/me"),
 
+    updateMe: (data: { name: string }) =>
+      request<{ user: User }>("/me", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
     switchOrg: (orgId: string) =>
       request<{ tenant: ActiveTenant; accessToken: string }>("/auth/switch-org", {
         method: "POST",

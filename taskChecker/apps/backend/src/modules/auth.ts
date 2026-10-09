@@ -231,6 +231,17 @@ authRoutes.get("/me", async (c) => {
   return c.json({ user: publicUser(user[0]), memberships: ms, activeTenantId: p.tenantId });
 });
 
+// PATCH /v1/me — update the session user's profile (display name).
+// Email is identity and never changes here. [authenticated]
+authRoutes.patch("/me", async (c) => {
+  const p = c.get("principal");
+  const parsed = z.object({ name: z.string().trim().min(2).max(80) }).safeParse(await json(c));
+  if (!parsed.success) throw badRequest("Name must be 2–80 characters.");
+  const updated = await db.update(users).set({ name: parsed.data.name }).where(eq(users.id, p.userId)).returning();
+  if (!updated[0]) throw unauthorized("Session user not found.");
+  return c.json({ user: publicUser(updated[0]) });
+});
+
 // POST /v1/auth/switch-org { orgId } — re-issue access token bound to another org.
 authRoutes.post("/auth/switch-org", async (c) => {
   const p = c.get("principal");

@@ -272,6 +272,20 @@
   min-width: 0;
 }
 
+/* Your avatar — plain profile button (opens Profile settings). Avatar
+   sizing comes from UserAvatar; this only resets the native button. */
+.lagoon-side-ws-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  align-self: center;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: none;
+  cursor: pointer;
+}
+
 .lagoon-side-ws-new {
   display: grid;
   place-items: center;
@@ -292,7 +306,8 @@
 }
 
 .lagoon-side-ws-new:focus-visible,
-.lagoon-side-ws:focus-visible {
+.lagoon-side-ws:focus-visible,
+.lagoon-side-ws-avatar:focus-visible {
   outline: 2px solid var(--lagoon-purple);
   outline-offset: 2px;
 }

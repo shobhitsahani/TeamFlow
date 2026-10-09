@@ -24,6 +24,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   switchOrg: (orgId: string) => Promise<void>;
   createOrg: (name: string) => Promise<ActiveTenant>;
+  updateProfile: (name: string) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -143,6 +144,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.tenant;
   };
 
+  const updateProfile = async (name: string) => {
+    const data = await api.auth.updateMe({ name });
+    setUser(data.user);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -157,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         switchOrg,
         createOrg,
+        updateProfile,
         refreshUser,
       }}
     >
