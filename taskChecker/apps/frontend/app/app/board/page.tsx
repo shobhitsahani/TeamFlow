@@ -96,6 +96,31 @@ const STATUS_DOT: Record<string, string> = {
   done: "var(--lagoon-success)",
 };
 
+/* Priority pill — dot + text travel together (Meaning-With-Text rule),
+   never color alone. Mirrors .lagoon-card-prio tones in lagoon.css. */
+const PRIORITY_LABEL: Record<string, string> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+  none: "No priority",
+};
+
+function priorityTone(priority: Task["priority"]): string {
+  switch (priority) {
+    case "critical":
+      return "is-critical";
+    case "high":
+      return "is-high";
+    case "medium":
+      return "is-medium";
+    case "low":
+      return "is-low";
+    default:
+      return "is-none";
+  }
+}
+
 type BoardView = "board" | "timeline" | "calendar";
 
 /** Joyful task card — label pill, title, description, assignee, due badge,
@@ -212,25 +237,38 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       data-slot="lagoon-card-inner"
       className={cx("lagoon-card cursor-grab", dragging && "is-dragging opacity-45", isDone && "is-done opacity-70")}
     >
-      {label ? (
-        <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)}>{label.text}</Badge>
-      ) : null}
+      {(label || (task.priority && task.priority !== "none")) && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          {task.priority && task.priority !== "none" ? (
+            <span
+              className={cx("lagoon-card-prio", priorityTone(task.priority))}
+              title={`Priority: ${PRIORITY_LABEL[task.priority] ?? task.priority}`}
+            >
+              <span aria-hidden className="lagoon-card-prio-dot" />
+              {PRIORITY_LABEL[task.priority] ?? task.priority}
+            </span>
+          ) : null}
+          {label ? (
+            <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)} style={{ marginBottom: 0 }}>{label.text}</Badge>
+          ) : null}
+        </div>
+      )}
       <Tooltip>
         <TooltipTrigger
           render={
-            <h3 className="lagoon-card-title line-clamp-2 text-[13px] font-semibold leading-snug" />
+            <h3 className="lagoon-card-title line-clamp-3" />
           }
         >
           {displayTitle}
         </TooltipTrigger>
         <TooltipContent>{displayTitle}</TooltipContent>
       </Tooltip>
-      {task.description ? <p className="lagoon-card-desc mt-1 line-clamp-2 text-[11px]">{task.description}</p> : null}
+      {task.description ? <p className="lagoon-card-desc mt-1.5 line-clamp-3">{task.description}</p> : null}
       {assigneeName || due || meta.checklist.length > 0 || isDone || canWrite ? (
-      <div className="lagoon-card-foot mt-3 flex min-h-6 items-center gap-2">
+      <div className="lagoon-card-foot">
         {assigneeName ? (
           <Avatar size="sm" title={assigneeName} style={{ background: lagoonAvatarTone(task.assigneeId ?? "?") }}>
-            <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9 }}>
+            <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 10 }}>
               {lagoonInitials(assigneeName)}
             </AvatarFallback>
           </Avatar>
@@ -239,23 +277,23 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
           <Badge
             variant="secondary"
             className={cx(
-              "lagoon-due gap-1 text-[10px] font-normal tabular-nums",
+              "lagoon-due gap-1 font-medium tabular-nums",
               due.status === "overdue" && !isDone && "is-overdue bg-destructive/10 text-destructive font-semibold",
               due.status === "today" && "is-today font-semibold",
             )}
           >
-            <IconCalendar size={12} />
+            <IconCalendar size={13} />
             {due.status === "overdue" && !isDone ? `Overdue · ${due.text}` : due.text}
           </Badge>
         ) : null}
-        <span className="lagoon-card-stats ml-auto flex items-center gap-2 text-[10px] tabular-nums">
+        <span className="lagoon-card-stats ml-auto flex items-center gap-2 tabular-nums">
           {meta.checklist.length > 0 ? (
             <span className={cx(doneItems === meta.checklist.length && "is-complete")} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <IconListTodo size={12} />
+              <IconListTodo size={13} />
               {doneItems}/{meta.checklist.length}
             </span>
           ) : null}
-          {isDone ? <IconCheck size={12} style={{ color: "var(--lagoon-success)" }} /> : null}
+          {isDone ? <IconCheck size={13} style={{ color: "var(--lagoon-success)" }} /> : null}
           {canWrite ? (
             <DropdownMenu modal={false} open={moveOpen} onOpenChange={setMoveOpen}>
               <DropdownMenuTrigger
@@ -272,7 +310,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
                   />
                 }
               >
-                <IconColumns size={12} />
+                <IconColumns size={14} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>Move to</DropdownMenuLabel>
@@ -320,7 +358,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
                   />
                 }
               >
-                <IconCheck size={12} />
+                <IconCheck size={14} />
               </TooltipTrigger>
               <TooltipContent>Mark as done</TooltipContent>
             </Tooltip>
@@ -1455,7 +1493,7 @@ function LagoonBoard() {
             <IconCalendar size={14} /> Calendar
           </Button>
         </div>
-        <Separator orientation="vertical" className="mx-1 h-5 hidden sm:block" aria-hidden />
+        <Separator orientation="vertical" className="mx-1 h-6 hidden md:block" aria-hidden />
         <div role="group" aria-label="Filter by your personal tags, only visible to you" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span className="lagoon-tone-label" aria-hidden>
             Your tags
@@ -1484,15 +1522,15 @@ function LagoonBoard() {
                     position: "absolute",
                     right: -6,
                     bottom: -6,
-                    minWidth: 16,
-                    height: 16,
+                    minWidth: 18,
+                    height: 18,
                     padding: "0 4px",
                     display: "grid",
                     placeItems: "center",
                     borderRadius: 9999,
                     background: "var(--lagoon-ink)",
                     color: "var(--lagoon-surface)",
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 700,
                     lineHeight: 1,
                   }}
@@ -1503,6 +1541,21 @@ function LagoonBoard() {
               <TooltipContent>{tone} personal tags · {toneCounts[tone]} card{toneCounts[tone] === 1 ? "" : "s"} — only you see these{toneFilter === tone ? " · click again to clear" : ""}</TooltipContent>
             </Tooltip>
           ))}
+          {toneFilter || activeOnly || deferredSearch.trim() ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="ml-1 h-9 px-2.5 text-[13px] font-medium"
+              onClick={() => {
+                setToneFilter(null);
+                setActiveOnly(false);
+                setSearch("");
+              }}
+            >
+              <IconX size={14} /> Clear
+            </Button>
+          ) : null}
         </div>
         <div role="group" aria-label="Task scope" data-lagoon-scope style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
           <Button type="button" variant={activeOnly ? "secondary" : "outline"} size="sm" className={cx("lagoon-toggle-btn", activeOnly && "is-on")} aria-pressed={activeOnly} onClick={() => setActiveOnly((v) => !v)}>
@@ -1560,13 +1613,13 @@ function LagoonBoard() {
                 key={col.status}
                 data-status={col.status}
                 data-slot="lagoon-col"
-                className="lagoon-col w-70 flex-none p-2 shadow-none ring-0 [--card-spacing:--spacing(2)] gap-2 sm:w-75"
+                className="lagoon-col shadow-none ring-0 [--card-spacing:--spacing(3)] gap-2.5"
                 aria-label={`${labelFor(col.status)}, ${col.tasks.length} tasks`}
                 onDragOver={(e) => handleDragOver(e, col.status)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => void handleDrop(e, col.status)}
               >
-                <div className="lagoon-col-head px-0 pt-1 pb-2">
+                <div className="lagoon-col-head">
                   <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[col.status], flex: "none" }} />
                   <LagoonListTitle
                     status={col.status as Task["status"]}
@@ -1574,9 +1627,9 @@ function LagoonBoard() {
                     canWrite={canWrite}
                     onRename={handleRenameList}
                   />
-                  <Badge variant="secondary" className="lagoon-col-count flex-none border-0 text-[11px] tabular-nums">{col.tasks.length}</Badge>
+                  <Badge variant="secondary" className="lagoon-col-count flex-none border tabular-nums">{col.tasks.length}</Badge>
                 </div>
-                <div className={cx("lagoon-col-body", draggedTaskId && "is-dragging", dragOverCol === col.status && "is-dragover")} role="list">
+                <div className={cx("lagoon-col-body", draggedTaskId && "is-dragging", dragOverCol === col.status && "is-dragover")} role="list" aria-label={`${labelFor(col.status)} cards`}>
                   <AnimatePresence initial={false} mode="popLayout">
                     {col.tasks.map((task) => (
                       <LagoonTaskCard
@@ -1605,9 +1658,31 @@ function LagoonBoard() {
                     ))}
                   </AnimatePresence>
                   {col.tasks.length === 0 && composerFor !== col.status ? (
-                    <p className="st-empty-quiet" style={{ padding: "12px 8px" }}>
-                      {deferredSearch.trim() || toneFilter || activeOnly ? "No matching cards" : "No cards yet"}
-                    </p>
+                    <div className="st-empty-quiet">
+                      <p style={{ fontWeight: 600, color: "var(--lagoon-ink)" }}>
+                        {deferredSearch.trim() || toneFilter || activeOnly ? "No matching cards" : "No cards yet"}
+                      </p>
+                      <p style={{ marginTop: 4 }}>
+                        {deferredSearch.trim() || toneFilter || activeOnly
+                          ? "Try clearing filters to see more."
+                          : `Add the first card to ${labelFor(col.status)}.`}
+                      </p>
+                      {deferredSearch.trim() || toneFilter || activeOnly ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-8"
+                          onClick={() => {
+                            setToneFilter(null);
+                            setActiveOnly(false);
+                            setSearch("");
+                          }}
+                        >
+                          Clear filters
+                        </Button>
+                      ) : null}
+                    </div>
                   ) : null}
                   {composerFor === col.status && canWrite ? (
                     <Card data-slot="lagoon-composer" className="lagoon-composer gap-2 p-2 shadow-xs">

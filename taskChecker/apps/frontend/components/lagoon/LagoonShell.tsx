@@ -263,7 +263,7 @@ export function LagoonShell({
                       aria-label="Close menu"
                       onClick={() => setSidebarOpen(false)}
                       className="lagoon-icon-btn lagoon-only-mobile"
-                      style={{ marginLeft: "auto", color: "rgb(255 255 255 / 0.7)" }}
+                      style={{ marginLeft: "auto" }}
                     />
                   }
                 >
@@ -274,7 +274,10 @@ export function LagoonShell({
             </div>
             {/* Workspace switcher + account menu — org list with switch,
                 New organization via shared CreateOrgDialog, then the /app
-                shell destinations (settings, notifications, sign out). */}
+                shell destinations (settings, notifications, sign out).
+                Split control: the org button opens the switch menu, the
+                chevron opens the New organization dialog directly. */}
+            <div className="lagoon-side-ws-wrap">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger
                 render={
@@ -295,7 +298,6 @@ export function LagoonShell({
                     {org?.name ?? "Workspace"}
                   </span>
                 </span>
-                <IconChevronDown size={12} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuLabel>
@@ -377,6 +379,23 @@ export function LagoonShell({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label="Create new organization"
+                      title="New organization"
+                      onClick={() => setShowNewOrg(true)}
+                      className="lagoon-side-ws-new"
+                    />
+                  }
+                >
+                  <IconChevronDown size={12} />
+                </TooltipTrigger>
+                <TooltipContent>Create new organization</TooltipContent>
+              </Tooltip>
+            </div>
 
             <nav style={{ padding: "16px 12px 0" }} aria-label="Workspace sections">
               <p className="lagoon-nav-label">Workspace</p>
@@ -408,18 +427,10 @@ export function LagoonShell({
                         type="button"
                         aria-label="Create new board"
                         onClick={openNewBoard}
-                        className="bg-transparent text-white/70 hover:bg-white/10 hover:text-white"
+                        className="lagoon-side-ws-new"
                         style={{
-                          display: "grid",
-                          placeItems: "center",
-                          width: 22,
-                          height: 22,
-                          borderRadius: 6,
-                          border: "none",
-                          padding: 0,
-                          cursor: "pointer",
-                          flex: "none",
-                          transition: "background-color 150ms ease-out, color 150ms ease-out",
+                          width: 28,
+                          minHeight: 28,
                         }}
                       />
                     }
@@ -443,7 +454,7 @@ export function LagoonShell({
                       router.push(`/app/board?project=${p.id}`);
                     }}
                     className={cx(
-                      "lagoon-board-link w-full justify-start font-normal hover:bg-white/10 hover:text-white",
+                      "lagoon-board-link w-full justify-start font-normal",
                       p.id === activeProjectId && "is-on"
                     )}
                   >

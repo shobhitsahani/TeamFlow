@@ -11,8 +11,10 @@ import { api, type Comment, type Member, type PaginatedResponse, type Project, t
 import { useSWR } from "@/lib/swr";
 import { useToast } from "@/components/overlay";
 import { IconTrash } from "@/components/icons";
+import { XIcon } from "lucide-react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -32,7 +34,6 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -255,62 +256,173 @@ export function LagoonCardModal({
         >
           <DialogContent
             aria-label="Card details"
-            showCloseButton
-            className="lagoon lagoon-scroll-fade max-w-lg gap-0 overflow-y-auto p-5 sm:max-w-lg"
-            style={{ maxHeight: "85dvh" }}
+            showCloseButton={false}
+            className="lagoon tf-task-modal flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-xl border border-border p-0 shadow-2xl sm:max-w-[720px]"
+            style={{ maxHeight: "min(880px, calc(100dvh - 2rem))" }}
           >
-            <motion.div variants={focalPop} initial="hidden" animate="show" exit="exit">
-              <DialogHeader className="flex-row items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  <DialogTitle className="sr-only">Card details</DialogTitle>
-                  <Input
-                    aria-label="Card title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    disabled={!canWrite}
-                    className="border-0 bg-transparent px-0 pr-9 text-lg font-semibold shadow-none focus-visible:border-transparent focus-visible:ring-2"
-                  />
-                  {project ? (
-                    <DialogDescription className="mt-1.5 font-mono text-[11px] tabular-nums">
-                      {project.key} · {project.name}
-                    </DialogDescription>
-                  ) : null}
+            <motion.div variants={focalPop} initial="hidden" animate="show" exit="exit" className="flex min-h-0 flex-1 flex-col">
+              <DialogHeader className="shrink-0 gap-0 border-b border-border px-6 pt-5 pb-5 sm:px-7">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[12px] font-semibold text-muted-foreground">Task details</p>
+                  <DialogClose
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Close task details"
+                      />
+                    }
+                  >
+                    <XIcon />
+                    <span className="sr-only">Close</span>
+                  </DialogClose>
                 </div>
+                <DialogTitle className="sr-only">Card details</DialogTitle>
+                <Input
+                  aria-label="Card title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  disabled={!canWrite}
+                  placeholder="Untitled card"
+                  className="mt-3 min-h-9 border-0 bg-transparent px-2 -mx-2 text-[20px] leading-snug font-semibold tracking-[-0.01em] shadow-none hover:bg-muted/60 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/60 placeholder:text-muted-foreground/60"
+                  style={{ fontFamily: "var(--stack-display)" }}
+                />
+                {project ? (
+                  <DialogDescription className="mt-1.5 font-mono text-[12px] tabular-nums text-muted-foreground">
+                    {project.key} · {project.name}
+                  </DialogDescription>
+                ) : null}
               </DialogHeader>
 
+              {/* Scrollable content — header and footer stay pinned while
+                  long descriptions, checklists, and threads scroll. */}
+              <div className="lagoon-scroll-fade min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-7">
               {/* Body sections stagger in subtly on open (30ms stagger, mount
                   only — typing/editing never replays it). Header and footer
                   ride the panel pop; they are not stagger children. */}
-              <motion.div variants={staggerParent} initial="hidden" animate="show" exit="exit" className="flex flex-col gap-5">
-              <motion.div variants={staggerChild} className="mt-4 grid gap-4">
+              <motion.div variants={staggerParent} initial="hidden" animate="show" exit="exit" className="flex flex-col gap-7">
+              <motion.div variants={staggerChild} className="grid gap-5">
                 <Field>
-                  <FieldLabel>Description</FieldLabel>
+                  <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Description</FieldLabel>
                   <Textarea
                     aria-label="Description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-24 resize-y"
-                    placeholder="Add a more detailed description…"
+                    className="min-h-28 resize-y text-[14px] leading-relaxed placeholder:text-muted-foreground/70"
+                    placeholder="Add context, acceptance criteria, or links…"
                     disabled={!canWrite}
                   />
                 </Field>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="grid gap-3">
-                    <Field>
-                      <FieldLabel>My tag</FieldLabel>
-                      <Input
-                        aria-label="My tag (personal, only visible to you)"
-                        value={label}
-                        onChange={(e) => persistLabel(e.target.value, tone)}
-                        placeholder="e.g. Urgent"
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Assignee</FieldLabel>
+                    <AvatarGroup className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        aria-label="Unassigned"
+                        title="Unassigned"
+                        onClick={() => void handleMember(null)}
                         disabled={!canWrite}
-                      />
-                      <p style={{ fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
-                        Only you see this — saved on this device, not shared with the team.
-                      </p>
-                    </Field>
-                    <div className="flex items-center gap-2.5">
+                        data-active={task.assigneeId === null}
+                        className="grid size-8 place-items-center rounded-full text-[11px] font-semibold text-white transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-ring data-[active=true]:ring-offset-2"
+                        style={{ background: "var(--lagoon-muted-fg)", opacity: task.assigneeId === null ? 1 : 0.55 }}
+                      >
+                        –
+                      </button>
+                      {members.slice(0, 8).map((m) => {
+                        const display = m.name ?? m.email ?? m.userId.slice(0, 4);
+                        const active = task.assigneeId === m.userId;
+                        return (
+                          // Real button (not a clickable span): keyboard
+                          // reachable with a visible ring + pressed state.
+                          // ring-2 ring-background preserves the avatar
+                          // separator ring lost by nesting under the button.
+                          <button
+                            key={m.userId}
+                            type="button"
+                            title={display}
+                            aria-label={`Assign ${display}`}
+                            aria-pressed={active}
+                            disabled={!canWrite}
+                            data-active={active}
+                            onClick={() => void handleMember(m.userId)}
+                            className="cursor-pointer rounded-full ring-2 ring-background transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-none disabled:cursor-not-allowed data-[active=true]:ring-2 data-[active=true]:ring-ring data-[active=true]:ring-offset-2"
+                            style={{
+                              opacity: active || task.assigneeId === null ? 1 : 0.55,
+                            }}
+                          >
+                            <Avatar
+                              title={display}
+                              className="size-8"
+                              style={{
+                                background: lagoonAvatarTone(m.userId),
+                              }}
+                            >
+                              <AvatarFallback className="bg-transparent text-[10px] font-semibold text-white">
+                                {lagoonInitials(display)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </button>
+                        );
+                      })}
+                    </AvatarGroup>
+                    {assignee ? (
+                      <p className="text-[13px] font-medium">{assignee.name ?? assignee.email}</p>
+                    ) : (
+                      <p className="text-[12px] text-muted-foreground">Unassigned — pick a member above</p>
+                    )}
+                  </Field>
+                  <Field>
+                    <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Priority</FieldLabel>
+                    <Select
+                      value={task.priority}
+                      onValueChange={(v) => void handlePriority(v as Task["priority"])}
+                      disabled={!canWrite}
+                    >
+                      <SelectTrigger aria-label="Priority" className="h-9 w-full capitalize">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="critical">Critical</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[12px] text-muted-foreground">
+                      Shared with the team — drives board badges.
+                    </p>
+                  </Field>
+                  <Field>
+                    <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Due date</FieldLabel>
+                    <DatePicker
+                      value={dueDate}
+                      disabled={!canWrite}
+                      className="h-9 w-full"
+                      onSelect={(d) => {
+                        if (!d) {
+                          void handleDue("");
+                          return;
+                        }
+                        const m = String(d.getMonth() + 1).padStart(2, "0");
+                        const day = String(d.getDate()).padStart(2, "0");
+                        void handleDue(`${d.getFullYear()}-${m}-${day}`);
+                      }}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Personal tag</FieldLabel>
+                    <Input
+                      aria-label="Personal tag (only visible to you)"
+                      value={label}
+                      onChange={(e) => persistLabel(e.target.value, tone)}
+                      placeholder="e.g. Urgent"
+                      disabled={!canWrite}
+                      className="h-9"
+                    />
+                    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Personal tag color">
                       {LAGOON_TONES.map((t) => (
                         <button
                           key={t}
@@ -321,114 +433,46 @@ export function LagoonCardModal({
                           onClick={() => persistLabel(label, tone === t ? undefined : t)}
                           disabled={!canWrite}
                           data-active={tone === t}
-                          className="size-8 rounded-full transition-transform hover:scale-105 active:scale-90 focus-visible:ring-2 focus-visible:ring-[var(--lagoon-purple)] focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-[var(--lagoon-purple)] data-[active=true]:ring-offset-2"
-                          style={{ background: `var(--lagoon-${t})` }}
-                        />
-                      ))}
-                    </div>
-                    <Field>
-                      <FieldLabel>Priority</FieldLabel>
-                      <Select
-                        value={task.priority}
-                        onValueChange={(v) => void handlePriority(v as Task["priority"])}
-                        disabled={!canWrite}
-                      >
-                        <SelectTrigger aria-label="Priority" className="w-full capitalize">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="critical">Critical</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="none">None</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
-                  <div className="grid content-start gap-3">
-                    <Field>
-                      <FieldLabel>Member</FieldLabel>
-                      <AvatarGroup>
-                        <button
-                          type="button"
-                          aria-label="Unassigned"
-                          title="Unassigned"
-                          onClick={() => void handleMember(null)}
-                          disabled={!canWrite}
-                          data-active={task.assigneeId === null}
-                          className="grid size-8 place-items-center rounded-full text-[10px] font-semibold text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50"
-                          style={{ background: "var(--lagoon-muted-fg)", opacity: task.assigneeId === null ? 1 : 0.6 }}
+                          className="grid size-8 place-items-center rounded-full transition-transform hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-ring data-[active=true]:ring-offset-2"
                         >
-                          –
+                          <span
+                            aria-hidden
+                            className="size-5 rounded-full"
+                            style={{ background: `var(--lagoon-${t})` }}
+                          />
                         </button>
-                        {members.slice(0, 8).map((m) => {
-                          const display = m.name ?? m.email ?? m.userId.slice(0, 4);
-                          const active = task.assigneeId === m.userId;
-                          return (
-                            // Real button (not a clickable span): keyboard
-                            // reachable with a visible ring + pressed state.
-                            // ring-2 ring-background preserves the avatar
-                            // separator ring lost by nesting under the button.
-                            <button
-                              key={m.userId}
-                              type="button"
-                              title={display}
-                              aria-label={`Assign ${display}`}
-                              aria-pressed={active}
-                              disabled={!canWrite}
-                              data-active={active}
-                              onClick={() => void handleMember(m.userId)}
-                              className="cursor-pointer rounded-full ring-2 ring-background transition-opacity focus-visible:ring-[var(--tf-accent)] disabled:cursor-not-allowed"
-                              style={{
-                                opacity: active || task.assigneeId === null ? 1 : 0.6,
-                              }}
-                            >
-                              <Avatar
-                                title={display}
-                                style={{
-                                  background: lagoonAvatarTone(m.userId),
-                                }}
-                              >
-                                <AvatarFallback className="bg-transparent text-[10px] font-semibold text-white">
-                                  {lagoonInitials(display)}
-                                </AvatarFallback>
-                              </Avatar>
-                            </button>
-                          );
-                        })}
-                      </AvatarGroup>
-                      {assignee ? (
-                        <p className="text-xs font-medium">{assignee.name ?? assignee.email}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">Unassigned — pick a member above</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel>Due date</FieldLabel>
-                      <DatePicker
-                        value={dueDate}
-                        disabled={!canWrite}
-                        onSelect={(d) => {
-                          if (!d) {
-                            void handleDue("");
-                            return;
-                          }
-                          const m = String(d.getMonth() + 1).padStart(2, "0");
-                          const day = String(d.getDate()).padStart(2, "0");
-                          void handleDue(`${d.getFullYear()}-${m}-${day}`);
-                        }}
-                      />
-                    </Field>
-                  </div>
+                      ))}
+                      {label.trim() ? (
+                        <span className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[12px] font-semibold capitalize lg-pill-${tone ?? "purple"}`}>
+                          <span aria-hidden className="size-1.5 rounded-full bg-current" />
+                          {label.trim()}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-[12px] text-muted-foreground">
+                      Only you see this — saved on this device.
+                    </p>
+                  </Field>
                 </div>
               </motion.div>
 
           <motion.div variants={staggerChild}>
           <Field>
-            <FieldLabel className="tabular-nums">
-              Checklist{checklist.length > 0 ? ` · ${doneCount}/${checklist.length}` : ""}
-            </FieldLabel>
+            <div className="flex items-baseline justify-between gap-3">
+              <FieldLabel className="text-[12px] font-semibold text-muted-foreground tabular-nums">
+                Checklist{checklist.length > 0 ? ` · ${doneCount}/${checklist.length}` : ""}
+              </FieldLabel>
+              {checklist.length > 0 ? (
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  {Math.round((doneCount / checklist.length) * 100)}%
+                </span>
+              ) : null}
+            </div>
+            {checklist.length > 0 ? (
+              <div className="meter" role="progressbar" aria-valuenow={doneCount} aria-valuemin={0} aria-valuemax={checklist.length} aria-label="Checklist progress">
+                <i style={{ transform: `scaleX(${doneCount / checklist.length})` }} />
+              </div>
+            ) : null}
             <div className="flex flex-col gap-1">
               <AnimatePresence initial={false}>
                 {checklist.map((item) => (
@@ -440,7 +484,7 @@ export function LagoonCardModal({
                     animate="show"
                     exit="exit"
                     data-done={item.done}
-                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-[background-color,color,opacity] duration-150 hover:bg-muted data-[done=true]:text-muted-foreground data-[done=true]:[&>span]:line-through"
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[14px] transition-[background-color,color] duration-150 hover:bg-muted/60 data-[done=true]:text-muted-foreground data-[done=true]:[&>span]:line-through"
                   >
                     <Checkbox
                       checked={item.done}
@@ -451,15 +495,18 @@ export function LagoonCardModal({
                         )
                       }
                     />
-                    <span>{item.text}</span>
+                    <span className="min-w-0 flex-1 leading-snug">{item.text}</span>
                   </motion.label>
                 ))}
               </AnimatePresence>
             </div>
+            {checklist.length === 0 ? (
+              <p className="text-[12px] text-muted-foreground">Break the work into steps — check items off as you go.</p>
+            ) : null}
             {canWrite ? (
-              <form onSubmit={handleAddCheck} className="mt-2 flex gap-2">
-                <Input name="checkItem" aria-label="New checklist item" placeholder="Add an item" />
-                <Button type="submit" variant="secondary" className="font-medium active:scale-[0.97]">
+              <form onSubmit={handleAddCheck} className="mt-1 flex gap-2">
+                <Input name="checkItem" aria-label="New checklist item" placeholder="Add an item" className="h-9 min-w-0 flex-1" />
+                <Button type="submit" variant="secondary" className="h-9 font-medium active:scale-[0.97]">
                   Add
                 </Button>
               </form>
@@ -469,7 +516,7 @@ export function LagoonCardModal({
 
           <motion.div variants={staggerChild}>
           <Field>
-            <FieldLabel className="tabular-nums">Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</FieldLabel>
+            <FieldLabel className="text-[12px] font-semibold text-muted-foreground tabular-nums">Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</FieldLabel>
             <div className="flex flex-col gap-2">
               {commentsQ.isLoading ? (
                 <div className="flex flex-col gap-1.5" role="status" aria-label="Loading comments">
@@ -477,7 +524,7 @@ export function LagoonCardModal({
                   <Skeleton className="h-12 w-full rounded-lg" />
                 </div>
               ) : comments.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No comments yet.</p>
+                <p className="text-[12px] text-muted-foreground">No comments yet. Ask a question or share an update.</p>
               ) : (
                 <AnimatePresence initial={false}>
                 {comments.map((c) => (
@@ -488,13 +535,13 @@ export function LagoonCardModal({
                     initial="hidden"
                     animate="show"
                     exit="exit"
-                    className="rounded-lg border bg-muted/40 px-3 py-2 text-xs"
+                    className="rounded-lg border border-border bg-muted/40 px-3.5 py-3 text-[13px] leading-relaxed"
                   >
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className="text-[11px] font-semibold">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span className="text-[12px] font-semibold">
                         {names.get(c.authorId) ?? "Someone"}
                       </span>
-                      <span className="text-[10px] tabular-nums text-muted-foreground">
+                      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
                         {new Date(c.createdAt).toLocaleString()}
                       </span>
                       {canWrite ? (
@@ -523,17 +570,18 @@ export function LagoonCardModal({
               )}
             </div>
             {canWrite ? (
-              <form onSubmit={handleAddComment} className="mt-2 flex gap-2">
+              <form onSubmit={handleAddComment} className="mt-1 flex gap-2">
                 <Input
                   aria-label="Write a comment"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Write a comment…"
+                  className="h-9 min-w-0 flex-1"
                 />
                 <Button
                   type="submit"
                   variant="secondary"
-                  className="font-medium active:scale-[0.97]"
+                  className="h-9 font-medium active:scale-[0.97]"
                   disabled={!commentText.trim() || commentSending}
                   loading={commentSending}
                 >
@@ -544,16 +592,15 @@ export function LagoonCardModal({
           </Field>
           </motion.div>
           </motion.div>
+          </div>
 
-          <Separator />
-
-          <DialogFooter className="flex-row items-center justify-between border-0 bg-transparent p-0 pt-4 sm:justify-between">
+          <DialogFooter className="m-0 shrink-0 flex-row flex-wrap items-center justify-between gap-3 rounded-b-xl border-t border-border bg-muted/30 px-6 py-4 sm:justify-between sm:px-7">
             {canWrite ? (
               confirmingDelete ? (
                 <div
                   role="group"
                   aria-label="Confirm card deletion"
-                  className="flex items-center gap-2"
+                  className="flex flex-wrap items-center gap-2"
                   onKeyDown={(e) => {
                     if (e.key === "Escape") setConfirmingDelete(false);
                   }}
@@ -574,8 +621,8 @@ export function LagoonCardModal({
                   </Button>
                 </div>
               ) : (
-                <Button variant="destructive" onClick={() => setConfirmingDelete(true)} className="active:scale-[0.97]">
-                  <IconTrash size={14} /> Delete card
+                <Button variant="ghost" onClick={() => setConfirmingDelete(true)} className="h-9 text-destructive hover:bg-destructive/10 hover:text-destructive active:scale-[0.97]">
+                  <IconTrash size={14} /> Delete
                 </Button>
               )
             ) : (
@@ -585,7 +632,7 @@ export function LagoonCardModal({
               onClick={() => void handleDone()}
               disabled={saving}
               loading={saving}
-              className="lagoon-create-btn border-0 font-semibold active:scale-[0.97]"
+              className="lagoon-create-btn h-9 min-w-24 border-0 font-semibold active:scale-[0.97]"
             >
               Done
             </Button>
