@@ -237,6 +237,11 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
       data-slot="lagoon-card-inner"
       className={cx("lagoon-card cursor-grab", dragging && "is-dragging opacity-45", isDone && "is-done opacity-70")}
     >
+      {/* Task key line — compact mono identifier above the title.
+          Short id keeps long UUIDs from stretching the card. */}
+      <span className="mb-2 block font-mono tabular-nums" style={{ fontSize: 11, color: "var(--lagoon-muted-fg)" }} aria-hidden="true">
+        LGN-{task.id.slice(0, 8).toUpperCase()}
+      </span>
       {(label || (task.priority && task.priority !== "none")) && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
           {task.priority && task.priority !== "none" ? (

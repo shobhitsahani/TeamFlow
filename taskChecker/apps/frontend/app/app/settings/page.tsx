@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, memo, useEffect } from "react";
+import { useState, memo } from "react";
 import { useTenant } from "@/components/store";
 import { useAuth } from "@/lib/auth";
 import { UserAvatar } from "@/components/user/user-avatar";
@@ -264,9 +264,13 @@ function ProfileSection() {
   const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!touched && user?.name) setName(user.name);
-  }, [user?.name, touched]);
+  // Seed the field from the loaded user until first edit (render-adjustment
+  // pattern: no effect, no cascading render).
+  const [syncedName, setSyncedName] = useState<string | undefined>(undefined);
+  if (!touched && (user?.name ?? "") !== (syncedName ?? "")) {
+    setSyncedName(user?.name);
+    setName(user?.name ?? "");
+  }
 
   const trimmed = name.trim();
   const dirty = touched && trimmed !== (user?.name ?? "");
