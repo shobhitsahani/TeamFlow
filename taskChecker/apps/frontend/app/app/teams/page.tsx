@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, startTransition } from "react";
+import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { useTenant } from "@/components/store";
 import { Modal, useToast } from "@/components/overlay";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,11 @@ import { useSWR } from "@/lib/swr";
  * TeamCard — real Team rows carry only { id, name, createdAt }; show the
  * project count grouped under the team instead of member avatars.
  */
-function TeamCard({ team, projects }: { team: Team; projects: Project[] }) {
+function TeamCard({ team, projects, id, highlighted }: { team: Team; projects: Project[]; id?: string; highlighted?: boolean }) {
   const teamProjects = projects.filter((p) => p.teamId === team.id);
 
   return (
-    <div className="team-card">
+    <div className={`team-card${highlighted ? " ring-2 ring-primary/50" : ""}`} id={id} style={highlighted ? { scrollMarginTop: 24 } : undefined}>
       <div className="team-card-header">
         <div className="team-avatar">
           <IconUsers size={24} />
@@ -97,6 +97,48 @@ export default function TeamsPage() {
     });
   };
 
+  // Scroll-to-team: when navigating from the sidebar via #team-<id>,
+  // scroll that card into view and highlight it briefly.
+  const [highlightedTeamId, setHighlightedTeamId] = useState<string | null>(null);
+  const scrolledRef = useRef(false);
+
+  useEffect(() => {
+    if (teams.length === 0 || scrolledRef.current) return;
+    const hash = window.location.hash; // e.g. #team-abc123
+    if (!hash.startsWith("#team-")) return;
+    const teamId = hash.slice(6); // strip "#team-"
+    if (!teams.some((t) => t.id === teamId)) return;
+    scrolledRef.current = true;
+    setHighlightedTeamId(teamId);
+    // Wait a tick for the DOM to render the card, then scroll.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`team-${teamId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    // Clear highlight after 2 seconds
+    const timer = setTimeout(() => setHighlightedTeamId(null), 2000);
+    return () => clearTimeout(timer);
+  }, [teams]);
+
+  // Re-trigger scroll when hash changes (e.g. clicking different teams in sidebar)
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash;
+      if (!hash.startsWith("#team-")) return;
+      const teamId = hash.slice(6);
+      if (!teams.some((t) => t.id === teamId)) return;
+      setHighlightedTeamId(teamId);
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`team-${teamId}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      const timer = setTimeout(() => setHighlightedTeamId(null), 2000);
+      return () => clearTimeout(timer);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [teams]);
+
   return (
     <AppShell>
       <div className="page">
@@ -144,7 +186,7 @@ export default function TeamsPage() {
           ) : (
             filteredTeams.map((team) => (
               <StaggerItem key={team.id}>
-                <TeamCard team={team} projects={projects} />
+                <TeamCard team={team} projects={projects} id={`team-${team.id}`} highlighted={highlightedTeamId === team.id} />
               </StaggerItem>
             ))
           )}

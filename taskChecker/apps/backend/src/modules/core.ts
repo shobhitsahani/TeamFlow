@@ -5,13 +5,12 @@ import { and, count, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { inTenant } from "../lib/request.js";
 import type { Tx } from "../lib/tenant.js";
-import { badRequest, forbidden, notFound, quotaExceeded } from "../lib/errors.js";
+import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { uuidv7 } from "../lib/ids.js";
 import { requireRole, Rbac } from "../lib/rbac.js";
 import { audit } from "../lib/audit.js";
 import { teams, projects, projectListLabels } from "../db/schema.js";
 import { cacheKey, invalidate, N } from "../lib/cache.js";
-import { tierLimits } from "../lib/usage.js";
 
 export const coreRoutes = new Hono();
 
@@ -55,11 +54,7 @@ coreRoutes.get("/orgs/:orgId/projects", async (c) => {
       .where(and(eq(projects.tenantId, p.tenantId), isNull(projects.deletedAt)))
       .orderBy(projects.createdAt);
     void key; // cache-aside wired in the board endpoint (see tasks.ts)
-    // Quota context so the UI can show plan usage (X of N projects) before
-    // creation hits the cap — additive, existing readers ignore it.
-    const tenant = await tx.query.tenants.findFirst({ where: (t, { eq: e }) => e(t.id, p.tenantId) });
-    const plan = tenant?.plan ?? "free";
-    return c.json({ projects: rows, quota: { plan, used: rows.length, limit: tierLimits(plan).activeProjects } });
+    return c.json({ projects: rows });
   });
 });
 
@@ -72,18 +67,6 @@ coreRoutes.post("/projects", async (c) => {
   if (!parsed.success) throw badRequest("teamId?, name and key are required.");
   return inTenant(c, async (tx) => {
     requireRole(p.role, Rbac.write);
-    // Usage limit: active-project cap per subscription tier.
-    const tenant = await tx.query.tenants.findFirst({ where: (t, { eq: e }) => e(t.id, p.tenantId) });
-    const plan = tenant?.plan ?? "free";
-    const limits = tierLimits(plan);
-    const countRows = await tx
-      .select({ n: count() })
-      .from(projects)
-      .where(and(eq(projects.tenantId, p.tenantId), isNull(projects.deletedAt)));
-    const activeCount = countRows[0]?.n ?? 0;
-    if (activeCount >= limits.activeProjects) {
-      throw quotaExceeded(`Active-project limit (${limits.activeProjects}) reached for the ${plan} plan. Upgrade to add more.`);
-    }
     const id = uuidv7();
     await tx.insert(projects).values({
       tenantId: p.tenantId,

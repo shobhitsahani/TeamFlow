@@ -1,4 +1,4 @@
-/** Outbound email via Supabase Auth (mailer-only — no Resend).
+/** Outbound email via Supabase Auth (mailer-only).
  *
  * Best-effort by contract: every caller treats a failed send as
  * `{ sent: false, error }` and keeps a manual relay path (copyable link +
@@ -32,11 +32,11 @@
  *      frontend origin(s), e.g. your `*.vercel.app` URL and
  *      `http://localhost:4000` — otherwise `redirect_to` is ignored.
  *
- * Ops gotcha: keys present but wrong/unreachable is NOT a silent success —
- * callers get `{ sent: false, error: "supabase_<status>: …" }`, and a project
- * over its email rate limit surfaces the same way. Both reach the client so a
- * misconfigured mailer is diagnosable instead of looking like a missing code.
- * For production volume, configure custom SMTP in the Supabase dashboard.
+ * Rate Limit Note:
+ *   Supabase's default shared mailer has a limit of ~3-4 emails/hour on the
+ *   free tier (error_code: "over_email_send_rate_limit", status 429).
+ *   To lift this limit for production or active testing, enable Custom SMTP in the
+ *   Supabase Dashboard (Project Settings -> Authentication -> SMTP Settings).
  */
 import { config } from "../config.js";
 
@@ -83,7 +83,7 @@ function mailer(): Mailer | null {
  * SUPABASE_URL must be the project root (`https://<ref>.supabase.co`) — the
  * mailer appends `/auth/v1` itself. A common misconfig copies a URL that
  * already ends in `/auth/v1` (API docs show the full path), which doubles it
- * to `/auth/v1/auth/v1/admin/invite`; GoTrue then answers plain-text
+ * to `/auth/v1/auth/v1/invite`; GoTrue then answers plain-text
  * `404 page not found`. Normalize the suffix so sends survive it (config.ts
  * also logs a warning telling ops to fix the env var). */
 export function supabaseAuthBase(supabaseUrl: string): string {
@@ -96,13 +96,20 @@ export function supabaseAuthBase(supabaseUrl: string): string {
 
 async function readError(res: Response): Promise<string> {
   const body = await res.text().catch(() => "");
-  // 404 from GoTrue is almost always a wrong SUPABASE_URL (see above) — say
-  // so inline, otherwise ops chase a "missing page" that is really config.
+  let parsedMsg = "";
+  try {
+    const json = JSON.parse(body);
+    parsedMsg = json.msg || json.message || json.error_description || json.error || "";
+  } catch {}
+
+  if (res.status === 429) {
+    return `supabase_429: ${parsedMsg || "email rate limit exceeded"} (Supabase free tier built-in mailer limit is ~3 emails/hr. Configure Custom SMTP in Supabase Dashboard -> Authentication -> SMTP Settings to remove this limit)`;
+  }
   const hint =
     res.status === 404
       ? " (likely wrong SUPABASE_URL: must be https://<ref>.supabase.co with no /auth/v1 suffix, key from the same project)"
       : "";
-  return `supabase_${res.status}: ${body.slice(0, 200)}${hint}`;
+  return `supabase_${res.status}: ${parsedMsg || body.slice(0, 200)}${hint}`;
 }
 
 export async function sendInviteEmail(invite: InviteEmail): Promise<EmailResult> {
@@ -123,7 +130,7 @@ export async function sendInviteEmail(invite: InviteEmail): Promise<EmailResult>
   try {
     // 1) Supabase invite — sends the project's Invite email template and
     // creates an auth user when the address is new.
-    const res = await fetch(`${m.base}/admin/invite${redirect}`, {
+    const res = await fetch(`${m.base}/invite${redirect}`, {
       method: "POST",
       headers: { apikey: m.serviceKey, Authorization: `Bearer ${m.serviceKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ email: invite.to, data }),

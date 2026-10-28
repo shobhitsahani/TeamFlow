@@ -6,9 +6,9 @@
 // usage metering disabled — kept tierLimits for seat/storage limits, metering commented out
 
 export const TIER_LIMITS = {
-  free: { apiCallsPerDay: 1_000, seats: 10, storageGb: 5, eventsPerDay: 5_000, activeProjects: 2 },
-  pro: { apiCallsPerDay: 10_000, seats: 50, storageGb: 100, eventsPerDay: 50_000, activeProjects: 50 },
-  business: { apiCallsPerDay: 100_000, seats: 1_000, storageGb: 1_000, eventsPerDay: 500_000, activeProjects: 1_000 },
+  free: { apiCallsPerDay: 1_000_000, seats: 100_000, storageGb: 100_000, eventsPerDay: 5_000_000, activeProjects: 100_000 },
+  pro: { apiCallsPerDay: 1_000_000, seats: 100_000, storageGb: 100_000, eventsPerDay: 5_000_000, activeProjects: 100_000 },
+  business: { apiCallsPerDay: 1_000_000, seats: 100_000, storageGb: 100_000, eventsPerDay: 5_000_000, activeProjects: 100_000 },
 } as const;
 
 export type Plan = keyof typeof TIER_LIMITS;

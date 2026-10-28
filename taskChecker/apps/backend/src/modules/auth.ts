@@ -83,7 +83,7 @@ authRoutes.post("/auth/signup", async (c) => {
   const accessToken = await signAccessToken({ sub: userId, tid: tenantId, role: "owner" });
   const refreshToken = await issueRefreshToken(userId);
   return c.json(
-    { user: { id: userId, email: emailLower, name }, org: { id: tenantId, slug }, tokens: { accessToken, refreshToken } },
+    { user: { id: userId, email: emailLower, name }, org: { id: tenantId, name: orgName, slug }, tokens: { accessToken, refreshToken } },
     201,
   );
 });

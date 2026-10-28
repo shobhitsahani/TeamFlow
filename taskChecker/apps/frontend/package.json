@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev -p 3005",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@blobatar/react": "^2.7.0",
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/hanken-grotesk": "^5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
@@ -25,6 +26,7 @@
     "@repo/ui": "workspace:*",
     "@sentry/browser": "^11.0.0",
     "@tailwindcss/postcss": "^4.3.3",
+    "blobatar": "^2.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",

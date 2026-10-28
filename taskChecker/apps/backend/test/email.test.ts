@@ -16,7 +16,7 @@ describe("supabaseAuthBase", () => {
 
   it("strips a mistaken /auth/v1 suffix instead of doubling the path", () => {
     // The exact misconfig that surfaced as `supabase_404: 404 page not found`
-    // on invite sends (GoTrue 404s /auth/v1/auth/v1/admin/invite).
+    // on invite sends (GoTrue 404s /auth/v1/auth/v1/invite).
     expect(supabaseAuthBase("https://lnplireboawtrfpwpcdd.supabase.co/auth/v1")).toBe(
       "https://lnplireboawtrfpwpcdd.supabase.co/auth/v1",
     );

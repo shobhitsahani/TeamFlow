@@ -1892,8 +1892,7 @@ mark { background: var(--brand-100); color: var(--brand-800); padding: 0 2px; bo
   .st-search { display: none; }
   .search { display: none; }
   .settings-layout, .settings-grid { grid-template-columns: minmax(0, 1fr); }
-  .meters, .usage-grid, .plan-comparison { grid-template-columns: minmax(0, 1fr); }
-  .tier { grid-template-columns: minmax(0, 1fr); }
+  .meters, .usage-grid { grid-template-columns: minmax(0, 1fr); }
   .st-chat { display: none; }
   .columns, .board-grid, .st-cols { padding: 10px; }
 }
@@ -2287,5 +2286,39 @@ textarea.trello-list-editor:focus { border-color: #0c66e4; box-shadow: 0 0 0 1px
 }
 .dm-composer input:focus { border-color: var(--brand-500); background: #fff; box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
 .dm-composer input:disabled { opacity: 0.6; }
+/* Embedded Chats panel (members page) — the same dm-* chat body, inline
+   instead of in a dialog. The list grows with the fixed-height stage. */
+.dm-embed { display: flex; flex-direction: column; min-width: 0; }
+.dm-embed .dm-list { max-height: none; flex: 1 1 auto; min-height: 0; }
+.dm-embed .dm-composer { margin-top: 8px; }
+.dm-chats-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); align-items: stretch; }
+.dm-chats-rail {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px 8px; margin: 0;
+  overflow-y: auto; max-height: min(520px, 70vh);
+  border-right: 1px solid var(--lagoon-border);
+}
+.dm-chats-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px;
+  border: 1px solid transparent; background: transparent; cursor: pointer;
+  text-align: left; min-width: 0; width: 100%; color: inherit; font: inherit;
+}
+.dm-chats-item:hover { background: color-mix(in oklab, var(--lagoon-muted) 70%, transparent); }
+.dm-chats-item:focus-visible { outline: 2px solid var(--lagoon-purple); outline-offset: -2px; }
+.dm-chats-item.is-active {
+  border-color: var(--lagoon-border);
+  background: color-mix(in oklab, var(--lagoon-muted) 85%, transparent);
+}
+.dm-chats-item-meta { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dm-chats-item-name { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-chats-item-sub { font-family: var(--font-mono); font-size: 10.5px; color: var(--lagoon-muted-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-chats-item-time { margin-left: auto; flex: none; font-size: 10.5px; color: var(--lagoon-muted-fg); }
+@media (max-width: 880px) {
+  .dm-chats-grid { grid-template-columns: minmax(0, 1fr); }
+  .dm-chats-rail {
+    flex-direction: row; overflow-x: auto; overflow-y: hidden; max-height: none;
+    border-right: 0; border-bottom: 1px solid var(--lagoon-border);
+  }
+  .dm-chats-item { min-width: 200px; width: auto; }
+}
 .dm-profile-row { display: flex; align-items: center; gap: 12px; padding: 4px 0 12px; }
 .dm-profile-meta { font-size: 12px; color: var(--slate-500); display: flex; flex-direction: column; gap: 2px; }

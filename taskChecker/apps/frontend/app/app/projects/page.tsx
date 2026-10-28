@@ -38,7 +38,7 @@ function LagoonProjects() {
   const [deleting, setDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState("");
 
-  const projectsQ = useSWR<{ projects: Project[]; quota?: { plan: string; used: number; limit: number } }>(
+  const projectsQ = useSWR<{ projects: Project[] }>(
     orgId ? `dash-projects-${orgId}` : null,
     () => api.projects.list(orgId!),
   );
@@ -47,7 +47,6 @@ function LagoonProjects() {
     () => api.teams.list(orgId!),
   );
   const projects = useMemo(() => projectsQ.data?.projects ?? [], [projectsQ.data]);
-  const quota = projectsQ.data?.quota;
   const teams = useMemo(() => teamsQ.data?.teams ?? [], [teamsQ.data]);
   const teamName = useMemo(() => {
     const map = new Map(teams.map((t) => [t.id, t.name]));
@@ -181,11 +180,6 @@ function LagoonProjects() {
                   placeholder="Search projects…"
                 />
               </InputGroup>
-              {quota ? (
-                <span className="tabular-nums" style={{ marginLeft: "auto" }} title={`${quota.plan} plan project usage`}>
-                  {quota.used} of {quota.limit} {quota.plan} projects
-                </span>
-              ) : null}
             </div>
           </div>
 

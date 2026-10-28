@@ -55,7 +55,7 @@ function buildOriginAllowlist(nodeEnv: string): Set<string> {
     // CORS just gets no frontend entry here.
   }
   if (nodeEnv !== "production") {
-    for (const port of ["3000", "4000", "5173", "8080"]) {
+    for (const port of ["3000", "3005", "4000", "5173", "8080"]) {
       allow.add(`http://localhost:${port}`);
       allow.add(`http://127.0.0.1:${port}`);
     }

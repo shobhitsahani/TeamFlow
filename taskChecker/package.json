@@ -3,13 +3,13 @@
   "private": true,
   "scripts": {
     "build": "turbo run build --filter=!TeamFlow",
-    "dev": "turbo --ui=stream run dev --filter=!docs --filter=!TeamFlow",
+    "dev": "turbo --no-update-notifier --ui=stream run dev --filter=!docs --filter=!TeamFlow",
     "lint": "turbo run lint --filter=!TeamFlow",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types --filter=!TeamFlow"
   },
   "dependencies": {
-    "turbo": "^2.11.7"
+    "turbo": "^2.11.9"
   },
   "devDependencies": {
     "prettier": "3.9.6",

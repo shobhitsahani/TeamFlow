@@ -1,0 +1,431 @@
+/* Landing-scoped styles. The app's global h1–h4 reset is unlayered and
+   outranks Tailwind utilities, so headings here carry explicit class-based
+   sizes. Everything in this file stays inside the landing tree — nothing
+   reaches the app surfaces or the protected hero. */
+
+/* ---------- Type scale ----------
+   Space Grotesk carries display/voice, DM Sans carries prose, JetBrains Mono
+   carries data (counts, dates, ledger rows) with tabular figures.
+   Two display steps: the product section gets the loudest voice; denser
+   sections step down so long headings keep their line breaks intentional. */
+
+.displayHeading {
+  font-family: var(--font-joy-display);
+  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.displayHeadingM {
+  font-family: var(--font-joy-display);
+  font-size: clamp(2.25rem, 1.5rem + 3vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.lede {
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+@media (min-width: 640px) {
+  .lede {
+    font-size: 1.125rem;
+    line-height: 1.7;
+  }
+}
+
+.cardTitle {
+  font-family: var(--font-joy-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.panelTitle {
+  font-family: var(--font-joy-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.dialogTitle {
+  font-family: var(--font-joy-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.boardCardTitle {
+  font-family: var(--font-joy-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.footerHeading {
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* Data lines (ledger rows, counts, detail strings) */
+.monoData {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wayfinding numerals: a short accent dash, then the index. Decorative. */
+.sectionIndex {
+  color: rgb(113 113 122);
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  gap: 10px;
+  line-height: 1;
+}
+
+.sectionIndex::before {
+  background: rgba(198, 147, 253, 0.45);
+  content: "";
+  height: 1px;
+  width: 24px;
+}
+
+.ledgerNum {
+  color: rgb(113 113 122);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.7;
+}
+
+/* ---------- Boundaries: the light seam ----------
+   Every section boundary is the same hairline, carrying one restrained
+   segment of purple light at its center — depth at the edges, not glow
+   behind content. */
+
+.seam {
+  background: rgba(255, 255, 255, 0.06);
+  height: 1px;
+}
+
+.seam::after {
+  background: linear-gradient(90deg, transparent, rgba(198, 147, 253, 0.5), transparent);
+  content: "";
+  height: 1px;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: min(420px, 60%);
+}
+
+/* ---------- Guarantee ticker ----------
+   A quiet mono loop of the platform's own guarantee words, rendered twice
+   for a seamless wrap. Decorative repetition: hidden from assistive tech
+   and flattened to a static wrapped row under reduced motion. */
+
+.ticker {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.tickerTrack {
+  align-items: center;
+  display: flex;
+  padding-block: 11px;
+  width: max-content;
+}
+
+.tickerItem {
+  color: rgb(113 113 122);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tickerDot {
+  color: rgb(63 63 70);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  margin-inline: 22px;
+}
+
+/* ---------- Ledger rows (capabilities) ---------- */
+
+.ledgerRow {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-block: 2rem;
+}
+
+/* ---------- Horizon (CTA) ---------- */
+
+.horizonGlow {
+  background: radial-gradient(ellipse 55% 75% at 50% 100%, rgba(147, 51, 234, 0.15), transparent 70%);
+  bottom: 0;
+  height: 340px;
+  inset-inline: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.horizonLine {
+  background: linear-gradient(90deg, transparent, rgba(198, 147, 253, 0.35) 50%, transparent);
+  bottom: 0;
+  height: 1px;
+  inset-inline: 0;
+  position: absolute;
+}
+
+/* ---------- Proof row (footer) ---------- */
+
+.proofRow li {
+  display: inline-block;
+}
+
+.proofRow li + li::before {
+  content: "·";
+  margin: 0 10px;
+  color: rgb(63 63 70);
+}
+
+/* ---------- Motion system ----------
+   Scroll-driven entrances, authored per composition rather than one
+   reveal reused everywhere: sections rise, the board plate lifts with
+   scale, verdict halves part from the center seam, ledger rows cascade.
+   Content is visible by default and only browsers that support view()
+   timelines get the entrances; reduced-motion users always see the
+   composed page. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .tickerTrack {
+    animation: ticker-scroll 46s linear infinite;
+  }
+
+  .ticker:hover .tickerTrack,
+  .ticker:focus-within .tickerTrack {
+    animation-play-state: paused;
+  }
+
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 38%;
+    }
+
+    /* Sibling offsets: elements entering together arrive in sequence. */
+    .reveal[data-reveal="1"] {
+      animation-range: entry 8% entry 46%;
+    }
+    .reveal[data-reveal="2"] {
+      animation-range: entry 16% entry 54%;
+    }
+    .reveal[data-reveal="3"] {
+      animation-range: entry 24% entry 62%;
+    }
+
+    .revealPlate {
+      animation: plate-in 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+
+    .revealSlideL {
+      animation: slide-l 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+
+    .revealSlideR {
+      animation: slide-r 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+
+    .revealRow {
+      animation: row-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 42%;
+    }
+
+    .revealRow[data-reveal="1"] {
+      animation-range: entry 6% entry 48%;
+    }
+    .revealRow[data-reveal="2"] {
+      animation-range: entry 12% entry 54%;
+    }
+    .revealRow[data-reveal="3"] {
+      animation-range: entry 18% entry 60%;
+    }
+
+    .revealGlow {
+      animation: reveal-fade 1.2s linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+
+    .seam::after {
+      animation: seam-in 1.1s linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40%;
+    }
+  }
+}
+
+@keyframes ticker-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes plate-in {
+  from {
+    opacity: 0;
+    transform: translateY(48px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-l {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-r {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes seam-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scaleX(0.15);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1);
+  }
+}
+
+/* Reduced motion: the ticker flattens to a static wrapped row and the
+   duplicated copy disappears. */
+
+@media (prefers-reduced-motion: reduce) {
+  .tickerDup {
+    display: none;
+  }
+
+  .tickerTrack {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    row-gap: 6px;
+  }
+}
+
+/* ---------- Section surface habits ----------
+   Selection color scoped to landing sections only; the hero keeps
+   its own rendering untouched. */
+
+.sectionRoot ::selection {
+  background: rgba(198, 147, 253, 0.32);
+  color: #fff;
+}
+
+/* ---------- Skip link ---------- */
+
+.skipLink {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skipLink:focus {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 60;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #000;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  outline: 2px solid #c693fd;
+  outline-offset: 2px;
+}

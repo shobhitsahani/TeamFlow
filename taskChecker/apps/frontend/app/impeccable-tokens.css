@@ -372,15 +372,20 @@ body {
 /* Hover lift: the tactile -2px rise from DESIGN.md. Cards rest lifted,
    hover raises to md; drag lifts further (rule above). */
 .lagoon-card:hover,
+.lagoon-tl-row:hover,
+.lagoon-board-card:hover,
 .st-card:hover,
 .board-card:hover,
 .task-card:hover,
 .ticket:hover {
   transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--tf-accent) 75%, var(--tf-line));
   box-shadow:
-    0 9px 24px -16px color-mix(in oklab, currentColor 22%, transparent),
-    var(--shadow-1, 0 2px 4px -1px rgb(15 23 42 / 0.06));
-  border-color: color-mix(in oklab, var(--tf-accent) 32%, var(--tf-line));
+    0 0 0 1px color-mix(in oklab, var(--tf-accent) 65%, transparent),
+    0 0 16px -1px color-mix(in oklab, var(--tf-accent) 45%, transparent),
+    0 0 32px 2px color-mix(in oklab, var(--tf-accent) 22%, transparent),
+    0 8px 24px -6px color-mix(in oklab, currentColor 28%, transparent),
+    inset 0 1px 0 0 color-mix(in oklab, white 15%, transparent);
 }
 
 /* Press: smallest unmistakable acknowledgment (100-150ms feedback). */

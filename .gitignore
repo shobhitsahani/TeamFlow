@@ -32,3 +32,15 @@ litellm_config.yaml
 # Markdown docs - ignored
 *.md
 
+# Testsprite generated tests
+testsprite_tests/
+
+# AI tooling + impeccable skill installs (16MB binaries x4, never commit)
+.agents/
+.claude/
+.codex/
+.impeccable/
+.github/hooks/
+.github/skills/
+.opencode/skills/
+

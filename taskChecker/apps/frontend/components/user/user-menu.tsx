@@ -88,7 +88,11 @@ export function UserMenu({
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger render={trigger} />
       <DropdownMenuContent align={align} className="w-64">
-        <DropdownMenuLabel>
+        <DropdownMenuLabel
+          className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-muted/70 focus:bg-muted/70"
+          onClick={() => router.push("/app/settings/profile")}
+          title="Open full profile & settings"
+        >
           {authLoading || !user ? (
             <span className="flex items-center gap-2 py-0.5" aria-hidden>
               <Skeleton className="size-8 shrink-0 rounded-full" />

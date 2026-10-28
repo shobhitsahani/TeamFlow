@@ -97,7 +97,7 @@ export function GoogleSignInButton({
   onError: (message: string) => void;
   text?: "signin_with" | "signup_with" | "continue_with";
   /** official = Google-rendered button; custom = app-styled two-line button
-   * (matches the GitHub button) that opens the same One-Tap flow. */
+   * (matches the GitHub button) with an invisible native Google overlay for reliable popups. */
   variant?: "official" | "custom";
 }) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -111,12 +111,11 @@ export function GoogleSignInButton({
   });
 
   useEffect(() => {
-    if (!clientId) return;
-    if (variant === "official" && !slotRef.current) return;
+    if (!clientId || !slotRef.current) return;
     let cancelled = false;
     loadGsi()
       .then(() => {
-        if (cancelled || !window.google) return;
+        if (cancelled || !slotRef.current || !window.google) return;
         window.google.accounts.id.initialize({
           client_id: clientId,
           auto_select: false,
@@ -141,16 +140,14 @@ export function GoogleSignInButton({
               .finally(() => setBusy(false));
           },
         });
-        if (live.current.variant === "official" && slotRef.current) {
-          slotRef.current.innerHTML = "";
-          window.google.accounts.id.renderButton(slotRef.current, {
-            theme: "outline",
-            size: "large",
-            width: 340,
-            text: live.current.text,
-            shape: "rectangular",
-          });
-        }
+        slotRef.current.innerHTML = "";
+        window.google.accounts.id.renderButton(slotRef.current, {
+          theme: "outline",
+          size: "large",
+          width: live.current.variant === "custom" ? 280 : 340,
+          text: live.current.text,
+          shape: "rectangular",
+        });
       })
       .catch(() => {
         if (!cancelled) live.current.onError("Could not load Google sign-in. Check your connection and retry.");
@@ -177,7 +174,7 @@ export function GoogleSignInButton({
         // ends (origin not allowlisted yet, popup blocked, tap dismissed)
         // that never will. Naming the origin tells the user exactly which
         // string belongs in the console's JavaScript origins list.
-        if (moment.isNotDisplayed() || moment.isSkippedMoment() || moment.isDismissedMoment()) {
+        if (moment.isNotDisplayed() || moment.isSkippedMoment()) {
           setBusy(false);
           live.current.onError(
             `Google sign-in didn't open from ${window.location.origin}. Allowlist that exact origin, or continue with email.`,
@@ -207,12 +204,9 @@ export function GoogleSignInButton({
 
   if (variant === "custom") {
     return (
-      <button
-        type="button"
+      <div
         onClick={openOneTap}
-        disabled={busy}
-        aria-busy={busy}
-        className="flex items-center justify-center rounded-xl border border-white/10 px-4 py-3 hover:bg-white/5 disabled:opacity-60"
+        className="relative flex items-center justify-center overflow-hidden rounded-xl border border-white/10 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer"
       >
         <GoogleGlyph />
         <span className="ml-2 text-center text-sm font-medium leading-snug text-gray-200">
@@ -220,7 +214,17 @@ export function GoogleSignInButton({
           <br />
           Google
         </span>
-      </button>
+        <div
+          ref={slotRef}
+          className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer overflow-hidden opacity-[0.001]"
+          style={{ transform: "scale(2)", transformOrigin: "center" }}
+        />
+        {busy ? (
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/60 text-xs text-white">
+            Signing you in…
+          </div>
+        ) : null}
+      </div>
     );
   }
 

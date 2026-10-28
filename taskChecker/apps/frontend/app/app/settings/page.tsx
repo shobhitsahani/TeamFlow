@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { CreateOrgDialog, JoinOrgDialog, OrgGlyph } from "@/components/org/org-dialogs";
-import { IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight, IconTrash, IconAlert, IconMail, IconKey, IconLogout, IconBuilding, IconCheck, IconPlus } from "@/components/icons";
+import { IconUser, IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight, IconTrash, IconAlert, IconMail, IconKey, IconLogout, IconBuilding, IconCheck, IconPlus } from "@/components/icons";
 import { api, getCurrentTenantId } from "@/lib/api";
 
 // Hoist static JSX outside component (rendering-hoist-jsx)
@@ -27,7 +27,6 @@ interface SettingsSection {
 
 const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   { href: "/app/settings/members", title: "Members", description: "Manage team members and roles", icon: IconUsers },
-  // { href: "/app/settings/usage", title: "Usage & plan", description: "View usage meters and subscription tier", icon: IconCreditCard }, // usage commented out
   { href: "/app/settings/integrations", title: "Integrations", description: "Webhooks and API keys", icon: IconWebhook },
   { href: "/app/settings/audit", title: "Audit log", description: "Security and admin activity trail", icon: IconFileText },
 ] as const;
@@ -104,7 +103,9 @@ function DangerZone() {
           ? `A 6-digit code is on its way to ${res.email} (expires in 15 minutes).`
           : res.reason === "email_unconfigured"
             ? "Outbound email is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) — use the fallback code below."
-            : `Supabase refused the send (${res.reason ?? "unknown error"}) — use the fallback code below.`,
+            : res.reason?.includes("429") || res.reason?.includes("rate_limit") || res.reason?.includes("rate limit")
+              ? "Email rate limit reached (~3 emails/hr on Supabase free tier) — use the fallback code below."
+              : `Email send refused (${res.reason ?? "unknown error"}) — use the fallback code below.`,
         kind: res.sent ? "ok" : "err",
       });
     } catch (err) {
@@ -258,6 +259,7 @@ function DangerZone() {
  *  (PATCH /v1/me); email is identity and read-only. The sidebar avatar
  *  lands here so users always find where to change their info. */
 function ProfileSection() {
+  const router = useRouter();
   const { user, updateProfile } = useAuth();
   const toast = useToast();
   const [name, setName] = useState("");
@@ -407,7 +409,7 @@ function OrganizationsSection() {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">{o.name}</span>
                 <span className="block truncate text-xs text-muted-foreground tabular-nums">
-                  {o.slug} · {o.plan}
+                  {o.slug}
                 </span>
               </span>
               <Badge variant="secondary" className="hidden capitalize sm:inline-flex">

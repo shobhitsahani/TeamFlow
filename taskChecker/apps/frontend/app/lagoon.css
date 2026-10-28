@@ -236,67 +236,41 @@
   color: #fff;
 }
 
-.lagoon-side-ws {
+.lagoon-side-ws-wrap {
   margin: 0 12px;
   display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.lagoon-side-ws {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   border-radius: 8px;
   background: var(--lagoon-surface);
   padding: 8px 12px;
   text-align: left;
-  width: calc(100% - 24px);
   color: inherit;
   border: 1px solid var(--lagoon-border);
-}
-
-.lagoon-side-ws:hover {
-  background: var(--lagoon-muted);
-  border-color: color-mix(in oklab, var(--lagoon-purple) 32%, var(--lagoon-border));
-}
-
-/* Split workspace switcher: org button (switch menu) + chevron button
-   (New organization dialog). The wrap owns the sidebar gutter so both
-   buttons share one row and one left edge. */
-.lagoon-side-ws-wrap {
-  display: flex;
-  align-items: stretch;
-  gap: 4px;
-  margin: 0 12px;
-}
-
-.lagoon-side-ws-wrap .lagoon-side-ws {
-  margin: 0;
-  width: auto;
-  flex: 1;
-  min-width: 0;
-}
-
-/* Your avatar — plain profile button (opens Profile settings). Avatar
-   sizing comes from UserAvatar; this only resets the native button. */
-.lagoon-side-ws-avatar {
-  display: grid;
-  place-items: center;
-  flex: none;
-  align-self: center;
-  padding: 0;
-  border: none;
-  border-radius: 9999px;
-  background: none;
-  cursor: pointer;
+  cursor: default;
+  user-select: none;
 }
 
 .lagoon-side-ws-new {
   display: grid;
   place-items: center;
-  width: 32px;
-  min-height: 36px;
+  width: 34px;
+  min-height: 38px;
   flex: none;
   border-radius: 8px;
   background: var(--lagoon-surface);
   border: 1px solid var(--lagoon-border);
   color: var(--lagoon-muted-fg);
   cursor: pointer;
+  transition: background var(--anim-fast, 120ms ease), color var(--anim-fast, 120ms ease), border-color var(--anim-fast, 120ms ease);
 }
 
 .lagoon-side-ws-new:hover {
@@ -305,9 +279,7 @@
   border-color: color-mix(in oklab, var(--lagoon-purple) 32%, var(--lagoon-border));
 }
 
-.lagoon-side-ws-new:focus-visible,
-.lagoon-side-ws:focus-visible,
-.lagoon-side-ws-avatar:focus-visible {
+.lagoon-side-ws-new:focus-visible {
   outline: 2px solid var(--lagoon-purple);
   outline-offset: 2px;
 }
@@ -794,13 +766,25 @@
   background: var(--lagoon-card);
   padding: 12px;
   box-shadow: var(--lagoon-shadow-sm);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  position: relative;
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
 }
 
 .lagoon-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in oklab, var(--lagoon-ink) 22%, var(--lagoon-border));
-  box-shadow: 0 9px 24px -16px color-mix(in oklab, var(--lagoon-ink) 40%, transparent);
+  border-color: color-mix(in oklab, var(--lagoon-purple) 80%, transparent);
+  background: color-mix(in oklab, var(--lagoon-card) 95%, var(--lagoon-purple) 5%);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--lagoon-purple) 65%, transparent),
+    0 0 16px -1px color-mix(in oklab, var(--lagoon-purple) 45%, transparent),
+    0 0 32px 2px color-mix(in oklab, var(--lagoon-purple) 22%, transparent),
+    0 8px 24px -6px color-mix(in oklab, var(--lagoon-ink) 40%, transparent),
+    inset 0 1px 0 0 color-mix(in oklab, white 15%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1100,11 +1084,12 @@
 /* ---------- timeline / calendar ---------- */
 .lagoon-list-wrap {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  padding: 0 12px 24px;
+  padding: 16px 12px 24px;
   /* Vertical scroll-shadow: edge fades ride with the content so they
      only appear when there is more to scroll toward. Ink-based, so it
      adapts to light and dark surfaces. */
@@ -1119,7 +1104,13 @@
 
 @media (min-width: 640px) {
   .lagoon-list-wrap {
-    padding: 0 20px 24px;
+    padding: 16px 20px 24px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .lagoon-list-wrap {
+    padding: 20px 24px 28px;
   }
 }
 
@@ -1142,18 +1133,78 @@
   width: 100%;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 12px;
-  border-radius: 8px;
+  gap: 14px;
+  border-radius: 10px;
   border: 1px solid var(--lagoon-border);
   background: var(--lagoon-card);
-  padding: 10px 14px;
+  padding: 12px 16px;
+  min-height: 52px;
   text-align: left;
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  position: relative;
+  box-shadow: var(--lagoon-shadow-sm);
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
 }
 
+/* Boundary glow + tactile elevation on hover */
 .lagoon-tl-row:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--lagoon-shadow-md);
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--lagoon-purple) 80%, transparent) !important;
+  background: color-mix(in oklab, var(--lagoon-card) 94%, var(--lagoon-purple) 6%) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--lagoon-purple) 65%, transparent),
+    0 0 16px -1px color-mix(in oklab, var(--lagoon-purple) 45%, transparent),
+    0 0 32px 2px color-mix(in oklab, var(--lagoon-purple) 22%, transparent),
+    0 8px 24px -6px color-mix(in oklab, var(--lagoon-ink) 40%, transparent),
+    inset 0 1px 0 0 color-mix(in oklab, white 15%, transparent);
+}
+
+.lagoon-tl-row:active {
+  transform: translateY(0) scale(0.995);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--lagoon-purple) 75%, transparent),
+    0 0 20px 2px color-mix(in oklab, var(--lagoon-purple) 55%, transparent),
+    0 4px 14px -4px color-mix(in oklab, var(--lagoon-ink) 50%, transparent);
+  transition-duration: 80ms;
+}
+
+.lagoon-tl-row:focus-visible {
+  outline: 2px solid var(--lagoon-purple);
+  outline-offset: 2px;
+  border-color: color-mix(in oklab, var(--lagoon-purple) 85%, transparent) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--lagoon-purple) 65%, transparent),
+    0 0 18px 0px color-mix(in oklab, var(--lagoon-purple) 45%, transparent);
+}
+
+/* Micro-interactions inside LagoonTimelineRow */
+.lagoon-tl-row .lagoon-tl-dot {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease;
+}
+
+.lagoon-tl-row:hover .lagoon-tl-dot {
+  transform: scale(1.25);
+  box-shadow: 0 0 8px 1.5px currentColor;
+}
+
+.lagoon-tl-row .lagoon-tl-title {
+  transition: color 160ms ease;
+}
+
+.lagoon-tl-row:hover .lagoon-tl-title {
+  color: var(--lagoon-ink);
+}
+
+.lagoon-tl-row .lagoon-tl-desc {
+  transition: color 160ms ease;
+}
+
+.lagoon-tl-row:hover .lagoon-tl-desc {
+  color: color-mix(in oklab, var(--lagoon-muted-fg) 70%, var(--lagoon-ink));
 }
 
 .lagoon-cal-group {
@@ -1379,21 +1430,34 @@
   display: flex;
   min-height: 16rem;
   flex-direction: column;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--lagoon-border);
   background: var(--lagoon-card);
   padding: 20px;
   box-shadow: var(--lagoon-shadow-sm);
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  position: relative;
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
   color: inherit;
   text-decoration: none;
   text-align: left;
   width: 100%;
+  will-change: transform, box-shadow;
 }
 
 .lagoon-board-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--lagoon-shadow-md);
+  border-color: color-mix(in oklab, var(--lagoon-purple) 80%, transparent);
+  background: color-mix(in oklab, var(--lagoon-card) 95%, var(--lagoon-purple) 5%);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--lagoon-purple) 65%, transparent),
+    0 0 16px -1px color-mix(in oklab, var(--lagoon-purple) 45%, transparent),
+    0 0 32px 2px color-mix(in oklab, var(--lagoon-purple) 22%, transparent),
+    0 8px 24px -6px color-mix(in oklab, var(--lagoon-ink) 40%, transparent),
+    inset 0 1px 0 0 color-mix(in oklab, white 15%, transparent);
 }
 
 .lagoon-progress {
@@ -1444,7 +1508,8 @@
     transition: none;
   }
   .lagoon .lagoon-card:hover,
-  .lagoon .lagoon-board-card:hover {
+  .lagoon .lagoon-board-card:hover,
+  .lagoon .lagoon-tl-row:hover {
     transform: none;
   }
 }

@@ -22,39 +22,28 @@ import { useTenant } from "@/components/store";
 import { useToast } from "@/components/overlay";
 import { api, type Project } from "@/lib/api";
 import { cx } from "@/lib/utils";
-import { UserAvatar } from "@/components/user/user-avatar";
 import { AnimatePresence, DUR, motion } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  IconBell,
   IconBoard,
-  IconChevronDown,
+  IconCheck,
   IconFlowMark,
   IconFolder,
   IconLayers,
   IconListTodo,
-  IconLogout,
   IconPlus,
   IconPulse,
-  IconSettings,
+  IconUser,
   IconUsers,
   IconX,
 } from "@/components/icons";
 import { suggestLagoonKey } from "./lagoon-utils";
-import { CreateOrgDialog } from "@/components/org/org-dialogs";
+import { QuickChat } from "./quick-chat";
+import { CreateOrgDialog, OrgGlyph } from "@/components/org/org-dialogs";
 
 /* ---------- chrome context (menu / palette / notifications) ---------- */
 
@@ -206,14 +195,18 @@ export function LagoonShell({
       try {
         await setOrg(id);
         toast({ title: `Switched to ${name}`, msg: "Scoped to this tenant now." });
+        setSidebarOpen(false);
+        router.push("/app/board");
+        await onProjectsChanged();
       } catch (err) {
         toast({ title: "Switch failed", msg: err instanceof Error ? err.message : "Try again.", kind: "err" });
       } finally {
         setSwitchingOrgId(null);
       }
     },
-    [org?.id, switchingOrgId, setOrg, toast],
+    [org?.id, switchingOrgId, setOrg, toast, router, onProjectsChanged],
   );
+
 
   const nav = [
     { href: "/app/board", label: "Boards", icon: IconBoard, on: pathname.startsWith("/app/board") },
@@ -245,17 +238,25 @@ export function LagoonShell({
           </AnimatePresence>
           <aside className={cx("lagoon-side", !sidebarOpen && "is-closed")} aria-label="Workspace navigation">
             <div className="lagoon-side-brand">
-              <img
-                src="/logo_mark.png"
-                alt=""
-                aria-hidden="true"
-                width={32}
-                height={32}
-                className="lagoon-side-mark"
-              />
-              <span className="lagoon-display" style={{ fontSize: 15, fontWeight: 600 }}>
-                {org?.name ?? "Lagoon"}
-              </span>
+              <Link
+                href="/app/work"
+                className="flex items-center gap-2.5 min-w-0"
+                style={{ textDecoration: "none", color: "inherit" }}
+                title="TeamFlow home"
+                aria-label="TeamFlow home"
+              >
+                <img
+                  src="/logo_mark.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={30}
+                  height={30}
+                  className="lagoon-side-mark"
+                />
+                <span className="lagoon-display" style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                  TeamFlow
+                </span>
+              </Link>
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -272,127 +273,21 @@ export function LagoonShell({
                 <TooltipContent>Close menu</TooltipContent>
               </Tooltip>
             </div>
-            {/* Workspace switcher + account menu — org list with switch,
-                New organization via shared CreateOrgDialog, then the /app
-                shell destinations (settings, notifications, sign out).
-                Split control: the org button opens the switch menu, the
-                chevron opens the New organization dialog directly. */}
+            {/* Active workspace display — static unclickable card with create organization plus button */}
             <div className="lagoon-side-ws-wrap">
-            {/* Your avatar opens Profile settings (change your info);
-                the workspace name opens the org switch menu. */}
-            <button
-              type="button"
-              className="lagoon-side-ws-avatar"
-              title={user?.name ?? user?.email ?? "Profile settings"}
-              aria-label="Profile settings — change your info"
-              onClick={() => router.push("/app/settings#profile")}
-            >
-              <UserAvatar
-                name={user?.name ?? org?.name ?? "Workspace"}
-                seed={user?.id ?? org?.id ?? "workspace"}
-                size="sm"
-              />
-            </button>
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger
-                render={
-                  <button
-                    className="lagoon-side-ws"
-                    title={user?.email ?? "Workspace"}
-                    aria-label="Switch organization"
-                  />
-                }
-              >
-                <span style={{ minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div className="lagoon-side-ws" aria-label="Current workspace">
+                <OrgGlyph name={org?.name ?? "Workspace"} hue={org?.hue ?? 0} size={28} />
+                <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
+                  <span style={{ display: "block", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {org?.name ?? "Workspace"}
                   </span>
-                </span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>
-                  {authLoading || !user ? (
-                    <span className="flex flex-col gap-1.5 py-0.5" aria-hidden>
-                      <Skeleton className="h-3.5 w-28 rounded" />
-                      <Skeleton className="h-3 w-36 rounded" />
+                  {org?.role ? (
+                    <span style={{ display: "block", fontSize: 11, color: "var(--lagoon-muted-fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {org.role.charAt(0).toUpperCase() + org.role.slice(1)}
                     </span>
-                  ) : (
-                    <>
-                      <span className="flex items-center gap-2">
-                        <UserAvatar
-                          name={user.name}
-                          seed={user.id}
-                          size="sm"
-                        />
-                        <span className="block max-w-full truncate text-sm font-semibold text-foreground">
-                          {user.name}
-                        </span>
-                      </span>
-                      {user.email ? (
-                        <span className="block max-w-full truncate text-xs font-normal text-muted-foreground">
-                          {user.email}
-                        </span>
-                      ) : null}
-                    </>
-                  )}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Organizations</DropdownMenuLabel>
-                <DropdownMenuGroup>
-                  {orgs.map((o) => (
-                    <DropdownMenuItem
-                      key={o.id}
-                      closeOnClick
-                      disabled={switchingOrgId !== null}
-                      onClick={() => void handleSwitchOrg(o.id, o.name)}
-                    >
-                      <UserAvatar name={o.name} seed={o.id} size="sm" />
-                      <span className="grow truncate">{o.name}</span>
-                      {o.id === org?.id ? (
-                        <span className="cmdk-hint">current</span>
-                      ) : switchingOrgId === o.id ? (
-                        <span className="cmdk-hint">switching…</span>
-                      ) : null}
-                    </DropdownMenuItem>
-                  ))}
-                  {orgs.length === 0 ? (
-                    <p className="px-2 py-1.5 text-xs text-muted-foreground">No memberships</p>
                   ) : null}
-                  <DropdownMenuItem closeOnClick onClick={() => setShowNewOrg(true)}>
-                    <IconPlus size={16} />
-                    <span className="grow font-semibold">New organization</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings#profile")}>
-                    <IconUsers size={16} />
-                    Profile settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
-                    <IconSettings size={16} />
-                    Workspace settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem closeOnClick onClick={openNotifs}>
-                    <IconBell size={16} />
-                    Notifications
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  closeOnClick
-                  variant="destructive"
-                  onClick={async () => {
-                    await logout();
-                    toast({ title: "Signed out", msg: "Session ended — see you soon." });
-                    router.replace("/auth/sign-in");
-                  }}
-                >
-                  <IconLogout size={16} />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </div>
+              </div>
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -405,11 +300,43 @@ export function LagoonShell({
                     />
                   }
                 >
-                  <IconChevronDown size={12} />
+                  <IconPlus size={14} />
                 </TooltipTrigger>
-                <TooltipContent>Create new organization</TooltipContent>
+                <TooltipContent>New organization</TooltipContent>
               </Tooltip>
             </div>
+
+            {/* Organizations navigation — list of organizations for quick 1-click switching */}
+            <nav style={{ padding: "14px 12px 0" }} aria-label="Organizations">
+              <p className="lagoon-nav-label" style={{ padding: "0 8px 4px", margin: 0 }}>
+                Organizations
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 180, overflowY: "auto" }}>
+                {orgs.map((o) => {
+                  const isCurrent = o.id === org?.id;
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      className={cx("lagoon-nav-link", isCurrent && "is-on")}
+                      style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}
+                      onClick={() => {
+                        if (!isCurrent) void handleSwitchOrg(o.id, o.name);
+                      }}
+                      aria-current={isCurrent ? "true" : undefined}
+                      title={isCurrent ? `${o.name} (current)` : `Switch to ${o.name}`}
+                      disabled={switchingOrgId === o.id}
+                    >
+                      <OrgGlyph name={o.name} hue={o.hue} size={18} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                        {o.name}
+                      </span>
+                      {isCurrent ? <IconCheck size={13} className="shrink-0 text-primary" /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
 
             <nav style={{ padding: "16px 12px 0" }} aria-label="Workspace sections">
               <p className="lagoon-nav-label">Workspace</p>
@@ -428,6 +355,9 @@ export function LagoonShell({
                 ))}
               </div>
             </nav>
+
+            {/* Quick chat — live org chat preview below the Members nav item. */}
+            <QuickChat />
 
             <nav style={{ padding: "16px 12px 0", overflowY: "auto" }} aria-label="Boards">
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "0 4px 4px 8px" }}>
@@ -583,7 +513,7 @@ export function LagoonShell({
 
         {paletteOpen ? <DynamicCommandPalette onClose={() => setPaletteOpen(false)} /> : null}
         <DynamicNotifSheet open={notifOpen} onClose={() => setNotifOpen(false)} />
-        <CreateOrgDialog open={showNewOrg} onClose={() => setShowNewOrg(false)} />
+        <CreateOrgDialog open={showNewOrg} onClose={() => { setShowNewOrg(false); void onProjectsChanged(); }} />
       </LagoonChromeCtx.Provider>
     </LagoonAuthGate>
   );

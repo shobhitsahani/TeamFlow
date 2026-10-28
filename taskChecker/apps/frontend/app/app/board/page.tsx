@@ -19,7 +19,9 @@ import {
   IconListTodo,
   IconLogout,
   IconMenu,
+  IconBuilding,
   IconMoreHorizontal,
+  IconUser,
   IconPlus,
   IconSearch,
   IconSettings,
@@ -499,17 +501,38 @@ const LagoonTimelineRow = memo(function LagoonTimelineRow({
           onOpen(task);
         }
       }}
-      className="lagoon-tl-row cursor-pointer flex-nowrap bg-card text-left"
+      className="lagoon-tl-row group/tl-row w-full cursor-pointer flex-nowrap text-left"
     >
       <ItemMedia>
-        <span style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[task.status] ?? "var(--lagoon-muted-fg)", flex: "none" }} />
+        <span
+          className="lagoon-tl-dot"
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 9999,
+            background: STATUS_DOT[task.status] ?? "var(--lagoon-muted-fg)",
+            color: STATUS_DOT[task.status] ?? "var(--lagoon-muted-fg)",
+            flex: "none",
+          }}
+        />
       </ItemMedia>
       <ItemContent>
-        <ItemTitle className="block w-full min-w-0 truncate text-[13px]">{task.title}</ItemTitle>
-        <ItemDescription className="font-mono text-[10px] tabular-nums">
-          {project ? `${project.key} · ` : ""}{STATUS_LABELS[task.status] ?? task.status}
+        <ItemTitle className="lagoon-tl-title block w-full min-w-0 truncate text-sm font-semibold leading-snug">{task.title}</ItemTitle>
+        <ItemDescription className="lagoon-tl-desc font-mono text-xs text-muted-foreground tabular-nums flex items-center gap-1.5 mt-0.5">
+          {project ? <span className="font-semibold text-foreground/80">{project.key}</span> : null}
+          {project ? <span>·</span> : null}
+          <span>{STATUS_LABELS[task.status] ?? task.status}</span>
         </ItemDescription>
       </ItemContent>
+      {task.priority && task.priority !== "none" ? (
+        <span
+          className={cx("lagoon-card-prio", priorityTone(task.priority))}
+          title={`Priority: ${PRIORITY_LABEL[task.priority] ?? task.priority}`}
+        >
+          <span className="lagoon-card-prio-dot" aria-hidden />
+          {PRIORITY_LABEL[task.priority] ?? task.priority}
+        </span>
+      ) : null}
       {label ? <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)} style={{ marginBottom: 0 }}>{label.text}</Badge> : null}
       {due ? (
         <Badge variant="secondary" className={cx("lagoon-due gap-1 font-normal", due.status === "overdue" && "is-overdue bg-destructive/10 text-destructive font-semibold", due.status === "today" && "is-today font-semibold")}>
@@ -571,7 +594,7 @@ function LagoonBoard() {
   const { user, memberships, logout } = useAuth();
   const { org, unread } = useTenant();
   const { openMenu, openNotifs, openNewBoard } = useLagoonChrome();
-  const orgId = getCurrentTenantId();
+  const orgId = org?.id ?? getCurrentTenantId();
   const searchParams = useSearchParams();
   const updateTask = useUpdateTask();
 
@@ -1323,96 +1346,120 @@ function LagoonBoard() {
             />
           </InputGroup>
           <AvatarGroup className="items-center" data-lagoon-avatar-cluster>
-            {members.slice(0, 3).map((m) => {
-              const display = m.name ?? m.email ?? m.userId.slice(0, 4);
-              const isMe = user?.id != null && m.userId === user.id;
-              const avatar = (
-                <Avatar
-                  title={isMe ? "Account settings" : display}
-                  size="sm"
-                  className="lagoon-avatar"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    background: lagoonAvatarTone(m.userId),
-                    cursor: isMe ? "pointer" : undefined,
-                  }}
-                >
-                  <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9 }}>
-                    {lagoonInitials(display)}
-                  </AvatarFallback>
-                </Avatar>
-              );
-              /* Your own avatar opens your account menu (settings,
-                 notifications, sign out). Teammates keep a name tooltip. */
-              if (!isMe) return <span key={m.userId} className="contents">{avatar}</span>;
-              return (
-                <DropdownMenu key={m.userId} modal={false}>
-                  <DropdownMenuTrigger render={avatar} aria-label="Account menu, signed in as yourself" />
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>
-                      {user ? (
-                        <>
-                          <span className="flex items-center gap-2">
-                            <Avatar className="size-6">
-                              <AvatarFallback
-                                style={{
-                                  background: lagoonAvatarTone(user.id),
-                                  color: "#fff",
-                                }}
-                              >
-                                {lagoonInitials(user.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="block max-w-full truncate text-sm font-semibold text-foreground">
-                              {user.name}
-                            </span>
-                          </span>
-                          {user.email ? (
-                            <span className="block max-w-full truncate text-xs font-normal text-muted-foreground">
-                              {user.email}
-                            </span>
-                          ) : null}
-                        </>
-                      ) : (
-                        <span className="flex flex-col gap-1.5 py-0.5" aria-hidden>
-                          <Skeleton className="h-3.5 w-28 rounded" />
-                          <Skeleton className="h-3 w-36 rounded" />
-                        </span>
-                      )}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
-                        <IconSettings size={16} />
-                        Account settings
-                      </DropdownMenuItem>
-                      <DropdownMenuItem closeOnClick onClick={openNotifs}>
-                        <IconBell size={16} />
-                        Notifications
-                        {unread > 0 ? (
-                          <Badge variant="secondary" className="ml-auto tabular-nums">{unread}</Badge>
-                        ) : null}
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      closeOnClick
-                      variant="destructive"
-                      onClick={async () => {
-                        await logout();
-                        toast({ title: "Signed out", msg: "Session ended — see you soon." });
-                        router.replace("/auth/sign-in");
+            {members
+              .filter((m) => user?.id == null || m.userId !== user.id)
+              .slice(0, 2)
+              .map((m) => {
+                const display = m.name ?? m.email ?? m.userId.slice(0, 4);
+                return (
+                  <span key={m.userId} className="contents">
+                    <Avatar
+                      title={display}
+                      size="sm"
+                      className="lagoon-avatar"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        background: lagoonAvatarTone(m.userId),
                       }}
                     >
-                      <IconLogout size={16} />
-                      Sign out
+                      <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9 }}>
+                        {lagoonInitials(display)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </span>
+                );
+              })}
+            {user && (
+              <DropdownMenu key="current-user-avatar" modal={false}>
+                <DropdownMenuTrigger
+                  render={
+                    <Avatar
+                      title={`${user.name} · Profile and settings`}
+                      size="sm"
+                      className="lagoon-avatar ring-1 ring-border/50"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        background: lagoonAvatarTone(user.id),
+                        cursor: "pointer",
+                      }}
+                    >
+                      <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9, fontWeight: 700 }}>
+                        {lagoonInitials(user.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  }
+                  aria-label="Account menu, signed in as yourself"
+                />
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel
+                    className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-muted/70 focus:bg-muted/70"
+                    onClick={() => router.push("/app/settings/profile")}
+                    title="Open full profile and settings"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Avatar className="size-7">
+                        <AvatarFallback
+                          style={{
+                            background: lagoonAvatarTone(user.id),
+                            color: "#fff",
+                            fontSize: 11,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {lagoonInitials(user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="min-w-0 flex-1">
+                        <span className="block max-w-full truncate text-sm font-semibold text-foreground">
+                          {user.name}
+                        </span>
+                        {user.email ? (
+                          <span className="block max-w-full truncate text-xs font-normal text-muted-foreground">
+                            {user.email}
+                          </span>
+                        ) : null}
+                      </span>
+                    </span>
+                    <span className="mt-1.5 block text-[11px] font-semibold text-primary">
+                      Manage profile & settings →
+                    </span>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings/profile")}>
+                      <IconUser size={16} />
+                      Profile & Account Settings
                     </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            })}
-          </AvatarGroup>
+                    <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
+                      <IconBuilding size={16} />
+                      Workspace Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem closeOnClick onClick={openNotifs}>
+                      <IconBell size={16} />
+                      Notifications
+                      {unread > 0 ? (
+                        <Badge variant="secondary" className="ml-auto tabular-nums">{unread}</Badge>
+                      ) : null}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    closeOnClick
+                    variant="destructive"
+                    onClick={async () => {
+                      await logout();
+                      toast({ title: "Signed out", msg: "Session ended — see you soon." });
+                      router.replace("/auth/sign-in");
+                    }}
+                  >
+                    <IconLogout size={16} />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}</AvatarGroup>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger
               render={
@@ -1600,7 +1647,7 @@ function LagoonBoard() {
       {/* View switch: short opacity crossfade (fast in, instant out), no slide.
           Skipped on first paint; tab indicator above shows the direction. */}
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={view} variants={viewFade} initial="hidden" animate="show" exit="exit">
+        <motion.div key={view} variants={viewFade} initial="hidden" animate="show" exit="exit" className="flex flex-1 flex-col min-h-0">
       {view === "board" ? (
         <div className="lagoon-board-scroll">
           <div className="lagoon-cols">
@@ -1762,7 +1809,7 @@ function LagoonBoard() {
         </div>
       ) : view === "timeline" ? (
         <div className="lagoon-list-wrap">
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 880 }}>
+          <div className="flex w-full max-w-6xl flex-col gap-2.5">
             {timelineTasks.length === 0 ? (
               <PageEnter className="lagoon-empty">
                 <p style={{ fontSize: 13, color: "var(--lagoon-muted-fg)" }}>Nothing scheduled — add due dates to line up the work.</p>

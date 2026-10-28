@@ -11,6 +11,6 @@
     "check-types": "pnpm --dir taskChecker run check-types"
   },
   "devDependencies": {
-    "turbo": "^2.11.7"
+    "turbo": "^2.11.9"
   }
 }

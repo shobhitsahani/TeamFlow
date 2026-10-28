@@ -405,6 +405,52 @@ export function ContextBar() {
           </div>
           <CreateOrgDialog open={showNewOrg} onClose={() => setShowNewOrg(false)} />
           <JoinOrgDialog open={showJoinOrg} onClose={() => setShowJoinOrg(false)} />
+
+          {/* All organizations — always visible, scrollable list for quick switching */}
+          {orgs.length > 1 ? (
+            <div style={{ marginTop: 8 }}>
+              <div className="st-sec-label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Organizations</span>
+                <button
+                  className="st-col-add"
+                  style={{ margin: 0 }}
+                  title="New organization"
+                  aria-label="New organization"
+                  onClick={() => setShowNewOrg(true)}
+                >
+                  <IconPlus size={14} />
+                </button>
+              </div>
+              <nav
+                style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 200, overflowY: "auto" }}
+                aria-label="Switch organization"
+              >
+                {orgs.map((o) => {
+                  const isCurrent = o.id === org?.id;
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      className={cx("st-nav-item", isCurrent && "is-active")}
+                      style={{ width: "100%", textAlign: "left" }}
+                      onClick={() => {
+                        if (!isCurrent) void handleSwitchOrg(o.id, o.name, () => {});
+                      }}
+                      aria-current={isCurrent ? "true" : undefined}
+                      title={isCurrent ? `${o.name} (current)` : `Switch to ${o.name}`}
+                      disabled={switchingOrgId === o.id}
+                    >
+                      <OrgGlyph name={o.name} hue={o.hue} size={20} />
+                      <span className="grow" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {o.name}
+                      </span>
+                      {isCurrent ? <IconCheck size={14} className="dim" /> : null}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          ) : null}
         </div>
 
         <div>
@@ -434,7 +480,7 @@ export function ContextBar() {
           </div>
           <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {teams.slice(0, 6).map((t) => (
-              <Link key={t.id} href="/app/teams" className="st-nav-item">
+              <Link key={t.id} href={`/app/teams#team-${t.id}`} className="st-nav-item">
                 <IconUsers size={16} className="dim" />
                 <span className="grow">{t.name}</span>
               </Link>

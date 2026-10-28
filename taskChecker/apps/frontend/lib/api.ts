@@ -438,7 +438,7 @@ async function request<T>(
 export const api = {
   auth: {
     signup: (data: { email: string; password: string; name: string; orgName: string }) =>
-      request<{ user: User; org: { id: string; slug: string }; tokens: TokenBundle }>("/auth/signup", {
+      request<{ user: User; org: { id: string; name: string; slug: string }; tokens: TokenBundle }>("/auth/signup", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -566,7 +566,7 @@ export const api = {
 
   projects: {
     list: (orgId: string) =>
-      request<{ projects: Project[]; quota?: { plan: string; used: number; limit: number } }>(`/orgs/${orgId}/projects`),
+      request<{ projects: Project[] }>(`/orgs/${orgId}/projects`),
 
     create: (data: { teamId?: string; name: string; key: string }) =>
       request<{ project: Project }>("/projects", { method: "POST", body: JSON.stringify(data) }),

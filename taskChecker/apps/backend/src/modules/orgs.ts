@@ -110,24 +110,6 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
       .where(and(eq(invites.tenantId, orgId), eq(invites.email, emailLower)))
       .limit(1);
     const refreshing = prior.length > 0;
-    // Usage limit: seat cap per subscription tier (active members + live
-    // pending invites — expired ones hold no seat). A refresh replaces its
-    // own seat, so it never trips the cap.
-    const tenant = await tx.query.tenants.findFirst({ where: (t, { eq: e }) => e(t.id, orgId) });
-    const plan = tenant?.plan ?? "free";
-    const seats = tierLimits(plan).seats;
-    const activeSeatsRows = await tx
-      .select({ n: count() })
-      .from(memberships)
-      .where(and(eq(memberships.tenantId, orgId), inArray(memberships.status, ["active", "invited"])));
-    const pendingInvitesRows = await tx
-      .select({ n: count() })
-      .from(invites)
-      .where(and(eq(invites.tenantId, orgId), isNull(invites.acceptedAt), gt(invites.expiresAt, new Date())));
-    const usedSeats = (activeSeatsRows[0]?.n ?? 0) + (pendingInvitesRows[0]?.n ?? 0);
-    if (usedSeats >= seats && !refreshing) {
-      throw quotaExceeded(`Seat limit (${seats}) reached for the ${plan} plan. Deactivate inactive members or upgrade.`);
-    }
     const token = randomToken(32);
     // Short shareable code (typable from an email/chat/whiteboard). Hash at
     // rest like the token; regenerate on the (astronomical) hash collision.
@@ -176,7 +158,7 @@ orgRoutes.post("/orgs/:orgId/invites", async (c) => {
       invite: { id: invite[0].id, email: emailLower, role: parsed.data.role, expiresAt: expiresAt.toISOString() },
       invitationUrl,
       code,
-      orgName: tenant?.name ?? "a workspace",
+      orgName: (await tx.select({ name: tenants.name }).from(tenants).where(eq(tenants.id, orgId)).limit(1))[0]?.name ?? "a workspace",
       expiresAt,
       refreshed: refreshing,
     };
