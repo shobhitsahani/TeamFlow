@@ -667,7 +667,10 @@
 
 .lagoon-col {
   display: flex;
-  flex: 1 1 0;
+  /* All four board columns share the canvas width equally. A shared
+     flex-basis (matching min-width) keeps every column the same size
+     regardless of how many cards each one holds — Backlog included. */
+  flex: 1 1 280px;
   min-width: 280px;
   max-width: 420px;
   flex-direction: column;
