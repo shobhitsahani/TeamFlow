@@ -4,7 +4,7 @@ import { useState, useMemo, memo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/components/store";
 import { LagoonShell } from "@/components/lagoon/LagoonShell";
-import { useRealtime } from "@/lib/realtime";
+
 import { Modal, ConfirmDialog, useToast } from "@/components/overlay";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -21,16 +21,15 @@ import {
   IconKey,
   IconClock,
   IconMessageSquare,
-  IconChevronDown,
   IconX,
 } from "@/components/icons";
-import { api, getCurrentTenantId, type DmConversation, type Project, type Role } from "@/lib/api";
+import { api, getCurrentTenantId, type Project, type Role } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSWR } from "@/lib/swr";
-import { cx, formatChatTime, hueFrom } from "@/lib/utils";
+import { cx, hueFrom } from "@/lib/utils";
 import { MemberContextMenu } from "@/components/member-context-menu";
 import { DmChatDialog } from "@/components/dm-chat-dialog";
-import { DmChatView, type DmPeer } from "@/components/dm-chat-view";
+import { type DmPeer } from "@/components/dm-chat-view";
 import { PlusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Item24 } from "@/components/ui/item-24";
@@ -302,9 +301,6 @@ export default function MembersPage() {
   const [dmPeer, setDmPeer] = useState<DmPeer | null>(null);
   const [dmOpen, setDmOpen] = useState(false);
   const [profile, setProfile] = useState<Member | null>(null);
-  // Embedded Chats panel — persistent rail of DM threads + inline chat stage.
-  const [chatsOpen, setChatsOpen] = useState(false);
-  const [inlinePeer, setInlinePeer] = useState<DmPeer | null>(null);
 
   const membersQ = useSWR<{ members: Member[] }>(
     orgId ? `members-${orgId}` : null,
@@ -316,12 +312,6 @@ export default function MembersPage() {
     () => api.projects.list(orgId!),
   );
   const sidebarProjects = useMemo(() => projectsQ.data?.projects ?? [], [projectsQ.data]);
-  // Conversations for the embedded Chats rail (backend sorts by last activity).
-  const dmConvQ = useSWR<{ conversations: DmConversation[] }>(
-    orgId ? `dm-conversations-${orgId}` : null,
-    () => api.dm.listConversations(),
-  );
-  const dmConversations = useMemo(() => dmConvQ.data?.conversations ?? [], [dmConvQ.data]);
   const members = useMemo(() => membersQ.data?.members ?? [], [membersQ.data]);
   const currentUser = useMemo(
     () => members.find((m) => m.userId === user?.id),
@@ -361,69 +351,10 @@ export default function MembersPage() {
   useEffect(() => {
     dmOpenRef.current = dmOpen;
   });
-  const inlinePeerRef = useRef(inlinePeer);
-  useEffect(() => {
-    inlinePeerRef.current = inlinePeer;
-  });
-  const dmConvMutateRef = useRef(dmConvQ.mutate);
-  useEffect(() => {
-    dmConvMutateRef.current = dmConvQ.mutate;
-  });
-  // Remember the Chats panel expansion across visits. Read in a subscription
-  // callback so the effect body never calls setState synchronously
-  // (same pattern as board/page.tsx starred flag).
-  useEffect(() => {
-    let cancelled = false;
-    void Promise.resolve()
-      .then(() => {
-        try {
-          return window.localStorage.getItem("taskchecker:chats-open") === "1";
-        } catch {
-          return false;
-        }
-      })
-      .then((value) => {
-        if (!cancelled) setChatsOpen(value);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
   const selfIdRef = useRef(currentUserId);
   useEffect(() => {
     selfIdRef.current = currentUserId;
   });
-  useRealtime(
-    useMemo(
-      () => ({
-        onDm: (msg: { type: string; meta?: unknown }) => {
-          const meta = msg.meta as
-            | { conversationId?: string; messageId?: string; senderId?: string; peerId?: string }
-            | undefined;
-          if (msg.type === "dm.message") {
-            if (!meta?.conversationId) return;
-            void dmConvMutateRef.current(); // rail follows new activity / ordering
-            if (meta.senderId && meta.senderId === selfIdRef.current) return; // own echo — dialog already mutated
-            // If the matching dialog is open it refetches itself — just nudge.
-            if (dmOpenRef.current && dmPeerRef.current?.conversationId === meta.conversationId) return;
-            // Same for an inline chat open in the embedded panel.
-            if (inlinePeerRef.current?.conversationId === meta.conversationId) return;
-            const sender = membersRef.current.find((m) => m.userId === meta.senderId);
-            const label = sender?.name ?? sender?.email ?? "Someone";
-            toast({ title: "New secure message", msg: `${label} sent you an encrypted DM — click them to open it.` });
-          } else if (msg.type === "dm.created") {
-            void dmConvMutateRef.current();
-            if (meta?.peerId && meta.peerId !== selfIdRef.current) {
-              const peer = membersRef.current.find((m) => m.userId === meta.peerId);
-              if (peer) toast({ title: "New secure chat", msg: `${peer.name ?? peer.email ?? "A member"} started a DM with you.` });
-            }
-          }
-        },
-      }),
-      [toast],
-    ),
-  );
-
   const handleInvite = async () => {
     const email = inviteEmail.trim();
     if (!email || !orgId || inviting) return;
@@ -519,8 +450,6 @@ export default function MembersPage() {
         peerEmail: res.conversation.peerEmail,
       });
       setDmOpen(true);
-      // A freshly created thread (get-or-create) should appear in the Chats rail.
-      void dmConvQ.mutate();
     } catch (err) {
       toast({ title: "Couldn't open chat", msg: err instanceof Error ? err.message : "Try again." });
     }
@@ -555,28 +484,6 @@ export default function MembersPage() {
     // latest keystroke. A deferred (transition) update can desync the visible
     // text from state under rapid typing and poison the filter query.
     setSearch(e.target.value);
-  };
-
-  // Embedded Chats panel controls.
-  const toggleChats = () => {
-    setChatsOpen((v) => {
-      const next = !v;
-      try {
-        window.localStorage.setItem("taskchecker:chats-open", next ? "1" : "0");
-      } catch {
-        // Storage unavailable — expansion just won't persist.
-      }
-      return next;
-    });
-  };
-
-  const openInlineChat = (c: DmConversation) => {
-    setInlinePeer({
-      conversationId: c.id,
-      peerId: c.peerId,
-      peerName: c.peerName,
-      peerEmail: c.peerEmail,
-    });
   };
 
   return (
@@ -721,170 +628,6 @@ export default function MembersPage() {
                 </TableBody>
               </Table>
             )}
-          </div>
-
-          {/* Embedded Chats — persistent conversations rail + inline E2E chat.
-              The Message-session modal flow stays as-is; this panel makes
-              existing threads reachable without hunting for the member row. */}
-          <div style={{ paddingTop: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
-                <IconMessageSquare size={14} style={{ color: "var(--lagoon-muted-fg)" }} />
-                Chats
-                <Badge variant="secondary">{dmConversations.length}</Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleChats}
-                aria-expanded={chatsOpen}
-                aria-controls="dm-chats-panel"
-              >
-                <IconChevronDown
-                  size={14}
-                  style={{ transform: chatsOpen ? "none" : "rotate(-90deg)", transition: "transform 0.15s ease" }}
-                />
-                {chatsOpen ? "Hide" : "Show"}
-              </Button>
-            </div>
-            {chatsOpen ? (
-              <div
-                id="dm-chats-panel"
-                style={{
-                  marginTop: 12,
-                  borderRadius: 12,
-                  border: "1px solid var(--lagoon-border)",
-                  background: "var(--lagoon-card)",
-                  overflow: "hidden",
-                }}
-              >
-                {dmConvQ.isLoading ? (
-                  <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-                    {[0, 1, 2].map((i) => (
-                      <Skeleton key={i} className="h-10 w-full rounded-xl" />
-                    ))}
-                  </div>
-                ) : dmConvQ.error ? (
-                  <div style={{ padding: 16, fontSize: 12, color: "var(--lagoon-muted-fg)" }}>
-                    Couldn&apos;t load your chats right now ·{" "}
-                    <button
-                      type="button"
-                      onClick={() => void dmConvQ.mutate()}
-                      style={{ textDecoration: "underline", background: "none", border: "none", color: "inherit", font: "inherit", padding: 0, cursor: "pointer" }}
-                    >
-                      Retry
-                    </button>
-                  </div>
-                ) : dmConversations.length === 0 ? (
-                  <div className="lagoon-empty" style={{ padding: 24 }}>
-                    <IconMessageSquare size={24} style={{ color: "var(--lagoon-muted-fg)" }} />
-                    <p style={{ marginTop: 10, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>
-                      No chats yet — click a member or &ldquo;Message securely&rdquo; to start one.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="dm-chats-grid">
-                    <div className="dm-chats-rail" aria-label="Your conversations">
-                      {dmConversations.map((c) => {
-                        const active = inlinePeer?.conversationId === c.id;
-                        const tint = hueFrom(c.peerId);
-                        const when = c.lastMessageAt ? formatChatTime(c.lastMessageAt).relative : "";
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            className={cx("dm-chats-item", active && "is-active")}
-                            aria-current={active ? "true" : undefined}
-                            onClick={() => openInlineChat(c)}
-                          >
-                            <Avatar>
-                              <AvatarFallback
-                                style={{
-                                  background: `hsl(${tint} 45% 20%)`,
-                                  color: `hsl(${tint} 80% 78%)`,
-                                }}
-                              >
-                                {initials(c.peerName, c.peerEmail)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="dm-chats-item-meta">
-                              <span className="dm-chats-item-name">{c.peerName ?? c.peerEmail ?? "Member"}</span>
-                              <span className="dm-chats-item-sub">{c.peerEmail ?? c.peerId.slice(0, 8)}</span>
-                            </span>
-                            <span className="dm-chats-item-time">{when || "—"}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      {inlinePeer ? (
-                        <>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: 10,
-                              padding: "10px 14px",
-                              borderBottom: "1px solid var(--lagoon-border)",
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                              <Avatar size="sm">
-                                <AvatarFallback
-                                  style={{
-                                    background: `hsl(${hueFrom(inlinePeer.peerId)} 45% 20%)`,
-                                    color: `hsl(${hueFrom(inlinePeer.peerId)} 80% 78%)`,
-                                  }}
-                                >
-                                  {initials(inlinePeer.peerName, inlinePeer.peerEmail)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {inlinePeer.peerName ?? inlinePeer.peerEmail ?? "Member"}
-                                </div>
-                                <div
-                                  style={{
-                                    fontFamily: "var(--font-mono)",
-                                    fontSize: 10.5,
-                                    color: "var(--lagoon-muted-fg)",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {inlinePeer.peerEmail ?? ""}
-                                </div>
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="icon-sm" onClick={() => setInlinePeer(null)} aria-label="Close chat">
-                              <IconX size={14} />
-                            </Button>
-                          </div>
-                          <div className="dm-embed" style={{ height: "min(480px, 62vh)", padding: 16 }}>
-                            <DmChatView
-                              key={inlinePeer.conversationId}
-                              peer={inlinePeer}
-                              currentUserId={currentUserId}
-                              onClose={() => setInlinePeer(null)}
-                              onSent={() => void dmConvQ.mutate()}
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="lagoon-empty" style={{ padding: 32 }}>
-                          <IconMessageSquare size={24} style={{ color: "var(--lagoon-muted-fg)" }} />
-                          <p style={{ marginTop: 10, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>
-                            Select a conversation to read &amp; reply — encrypted end-to-end.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
           </div>
 
           {/* Footer — counts */}
@@ -1035,7 +778,6 @@ export default function MembersPage() {
             onClose={() => setDmOpen(false)}
             peer={dmPeer}
             currentUserId={currentUserId}
-            onSent={() => void dmConvQ.mutate()}
           />
         )}
         {profile && (

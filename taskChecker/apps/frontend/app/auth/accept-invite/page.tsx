@@ -3,8 +3,9 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { IconLock, IconUser, IconEye, IconEyeOff, IconArrowRight, IconCheck, IconAlertCircle, IconKey } from "@/components/icons";
+import { IconLock, IconUser, IconEye, IconEyeOff, IconArrowRight, IconAlertCircle, IconKey } from "@/components/icons";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,13 +28,13 @@ function AcceptInviteForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [previewError, setPreviewError] = useState("");
   // Join-by-code: the short code from the invite email, typed by hand.
   const [codeInput, setCodeInput] = useState("");
   const [resolvedCode, setResolvedCode] = useState("");
   const [codeLoading, setCodeLoading] = useState(false);
+  const { login } = useAuth();
 
   useEffect(() => {
     if (!token) return;
@@ -76,17 +77,17 @@ function AcceptInviteForm() {
     setLoading(true);
 
     try {
+      if (!preview) throw new Error("Invitation not loaded yet.");
       if (token) {
         await api.auth.acceptInvite(token, { name, password });
       } else {
         await api.auth.acceptInviteByCode(resolvedCode, { name, password });
       }
-      setSuccess(true);
-      // Redirect after short delay
-      setTimeout(() => {
-        router.push("/app/work");
-        router.refresh();
-      }, 1500);
+      // Auto-log the newly-created member in so they land straight in the
+      // workspace instead of being bounced back to the sign-in page.
+      await login(preview.email, password);
+      router.push("/app/work");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to accept invite");
     } finally {
@@ -206,22 +207,6 @@ function AcceptInviteForm() {
             </CardContent>
           </form>
         ) : null}
-      </AuthCard>
-    );
-  }
-
-  if (success) {
-    return (
-      <AuthCard sub="Welcome to your new organization!">
-        <CardContent>
-          <div className="flex flex-col items-center gap-2 py-6 text-center">
-            <span className="grid size-12 place-items-center rounded-full bg-emerald-500/15 text-emerald-600">
-              <IconCheck size={24} />
-            </span>
-            <h2 className="text-lg font-semibold">Invite accepted</h2>
-            <p className="text-sm text-muted-foreground">Redirecting to your workspace…</p>
-          </div>
-        </CardContent>
       </AuthCard>
     );
   }

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LayoutDashboard, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LiquidNavbar } from "@/components/ui/liquid-glass-navbar";
 
 export function LandingNav() {
   const router = useRouter();
@@ -37,29 +38,16 @@ export function LandingNav() {
         </div>
 
         {/* Section Navigation Links */}
-        <nav className="hidden items-center gap-6 md:flex" aria-label="Landing Navigation">
-          <a
-            href="#board-preview"
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 transition-colors hover:text-white"
-          >
-            <LayoutDashboard className="size-3.5 text-purple-400" />
-            Interactive Board
-          </a>
-          <a
-            href="#tenant-security"
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 transition-colors hover:text-white"
-          >
-            <Shield className="size-3.5 text-purple-400" />
-            Tenant Isolation
-          </a>
-          <a
-            href="#capabilities"
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 transition-colors hover:text-white"
-          >
-            <Zap className="size-3.5 text-purple-400" />
-            Capabilities
-          </a>
-        </nav>
+        <div className="hidden md:block">
+          <LiquidNavbar
+            tone="dark"
+            items={[
+              { label: "Interactive Board", href: "#board-preview", icon: <LayoutDashboard className="size-4" />, fx: "glow" },
+              { label: "Tenant Isolation", href: "#tenant-security", icon: <Shield className="size-4" />, fx: "spin" },
+              { label: "Capabilities", href: "#capabilities", icon: <Zap className="size-4" />, fx: "wave" },
+            ]}
+          />
+        </div>
 
         {/* CTA Group */}
         <div className="flex items-center gap-2.5">

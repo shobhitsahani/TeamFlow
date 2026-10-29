@@ -23,7 +23,7 @@ import { useToast } from "@/components/overlay";
 import { api, type Project } from "@/lib/api";
 import { cx } from "@/lib/utils";
 import { AnimatePresence, DUR, motion } from "@/components/motion";
-import { Button } from "@/components/ui/button";
+import { LiquidNavbar } from "@/components/ui/liquid-glass-navbar";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,15 +35,22 @@ import {
   IconFolder,
   IconLayers,
   IconListTodo,
+  IconMessageSquare,
   IconPlus,
   IconPulse,
   IconUser,
   IconUsers,
   IconX,
+  IconSearch,
+  IconBell,
+  IconMenu,
 } from "@/components/icons";
 import { suggestLagoonKey } from "./lagoon-utils";
-import { QuickChat } from "./quick-chat";
 import { CreateOrgDialog, OrgGlyph } from "@/components/org/org-dialogs";
+import { UserAvatar } from "@/components/user/user-avatar";
+import { UserMenu } from "@/components/user/user-menu";
+import { PhotoComponent } from "@/components/user/photo-component";
+import { useUserPhoto } from "@/lib/avatar-store";
 
 /* ---------- chrome context (menu / palette / notifications) ---------- */
 
@@ -124,6 +131,7 @@ export function LagoonShell({
   const toast = useToast();
   const { org, orgs, setOrg } = useTenant();
   const { user, logout, isLoading: authLoading } = useAuth();
+  const { photoUrl, setPhotoUrl } = useUserPhoto();
   const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
   const [showNewOrg, setShowNewOrg] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -134,6 +142,7 @@ export function LagoonShell({
   const [newBoardKey, setNewBoardKey] = useState("");
   const [keyTouched, setKeyTouched] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
 
   const openMenu = useCallback(() => setSidebarOpen(true), []);
   const openPalette = useCallback(() => setPaletteOpen(true), []);
@@ -207,27 +216,37 @@ export function LagoonShell({
     [org?.id, switchingOrgId, setOrg, toast, router, onProjectsChanged],
   );
 
-
   const nav = [
     { href: "/app/board", label: "Boards", icon: IconBoard, on: pathname.startsWith("/app/board") },
     { href: "/app/projects", label: "Projects", icon: IconLayers, on: pathname.startsWith("/app/projects") },
     { href: "/app/work", label: "Work", icon: IconListTodo, on: pathname.startsWith("/app/work") },
     { href: "/app/library", label: "Library", icon: IconFolder, on: pathname.startsWith("/app/library") },
     { href: "/app/activity", label: "Activity", icon: IconPulse, on: pathname.startsWith("/app/activity") },
+    { href: "/app/chat", label: "Chat", icon: IconMessageSquare, on: pathname.startsWith("/app/chat") },
     { href: "/app/settings/members", label: "Members", icon: IconUsers, on: pathname.startsWith("/app/settings/members") },
   ];
+
+  const currentNav = nav.find((n) => n.on) ?? { label: "Work" };
+
+  const liquidNavItems = nav.map(({ href, label, icon: Icon }) => ({
+    label,
+    icon: <Icon size={16} />,
+    fx: "glow" as const,
+  }));
+  const activeNavIndex = Math.max(0, nav.findIndex((n) => n.on));
 
   return (
     <LagoonAuthGate>
       <LagoonChromeCtx.Provider value={{ openMenu, openPalette, openNotifs, openNewBoard }}>
-        <div className="lagoon lagoon-shell">
+        <div className="lagoon lagoon-shell flex h-screen w-full overflow-hidden bg-[#0c1017] text-slate-100">
+          {/* Mobile backdrop */}
           <AnimatePresence>
             {sidebarOpen ? (
               <motion.button
                 key="lagoon-scrim"
                 aria-label="Close menu"
                 onClick={() => setSidebarOpen(false)}
-                style={{ position: "fixed", inset: 0, zIndex: 30, background: "rgb(15 23 42 / 0.4)" }}
+                style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0, 0, 0, 0.6)", backdropFilter: "blur(4px)" }}
                 className="lagoon-only-mobile"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -236,24 +255,35 @@ export function LagoonShell({
               />
             ) : null}
           </AnimatePresence>
-          <aside className={cx("lagoon-side", !sidebarOpen && "is-closed")} aria-label="Workspace navigation">
-            <div className="lagoon-side-brand">
+
+          {/* Left Sidebar */}
+          <aside
+            className={cx(
+              "lagoon-side flex flex-col w-64 shrink-0 bg-[#0e131b] border-r border-white/8 transition-transform duration-200 z-50",
+              !sidebarOpen && "is-closed",
+            )}
+            aria-label="Workspace navigation"
+          >
+            {/* Brand top */}
+            <div className="lagoon-side-brand flex items-center justify-between px-4 py-3.5 border-b border-white/6">
               <Link
                 href="/app/work"
-                className="flex items-center gap-2.5 min-w-0"
+                className="flex items-center gap-2.5 min-w-0 group"
                 style={{ textDecoration: "none", color: "inherit" }}
                 title="TeamFlow home"
                 aria-label="TeamFlow home"
               >
-                <img
-                  src="/logo_mark.png"
-                  alt=""
-                  aria-hidden="true"
-                  width={30}
-                  height={30}
-                  className="lagoon-side-mark"
-                />
-                <span className="lagoon-display" style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                <div className="relative flex items-center justify-center size-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 shadow-md shadow-purple-500/20 ring-1 ring-white/20">
+                  <img
+                    src="/logo_mark.png"
+                    alt=""
+                    aria-hidden="true"
+                    width={20}
+                    height={20}
+                    className="drop-shadow-sm"
+                  />
+                </div>
+                <span className="font-bold text-base tracking-tight text-white group-hover:text-purple-300 transition-colors">
                   TeamFlow
                 </span>
               </Link>
@@ -263,8 +293,7 @@ export function LagoonShell({
                     <button
                       aria-label="Close menu"
                       onClick={() => setSidebarOpen(false)}
-                      className="lagoon-icon-btn lagoon-only-mobile"
-                      style={{ marginLeft: "auto" }}
+                      className="lagoon-icon-btn lagoon-only-mobile rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-white/5"
                     />
                   }
                 >
@@ -273,95 +302,103 @@ export function LagoonShell({
                 <TooltipContent>Close menu</TooltipContent>
               </Tooltip>
             </div>
-            {/* Active workspace display — static unclickable card with create organization plus button */}
-            <div className="lagoon-side-ws-wrap">
-              <div className="lagoon-side-ws" aria-label="Current workspace">
-                <OrgGlyph name={org?.name ?? "Workspace"} hue={org?.hue ?? 0} size={28} />
-                <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
-                  <span style={{ display: "block", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {org?.name ?? "Workspace"}
-                  </span>
-                  {org?.role ? (
-                    <span style={{ display: "block", fontSize: 11, color: "var(--lagoon-muted-fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {org.role.charAt(0).toUpperCase() + org.role.slice(1)}
+
+            {/* Active workspace display & new org trigger */}
+            <div className="px-3 pt-3">
+              <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/6 hover:bg-white/[0.06] transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <OrgGlyph name={org?.name ?? "Workspace"} hue={org?.hue ?? 0} size={26} />
+                  <div className="min-w-0">
+                    <span className="block text-xs font-semibold text-white truncate">
+                      {org?.name ?? "Workspace"}
                     </span>
-                  ) : null}
+                    <span className="block text-[10px] text-slate-400 capitalize truncate">
+                      {org?.role ?? "Member"}
+                    </span>
+                  </div>
                 </div>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        aria-label="Create new organization"
+                        title="New organization"
+                        onClick={() => setShowNewOrg(true)}
+                        className="rounded-lg p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                      />
+                    }
+                  >
+                    <IconPlus size={14} />
+                  </TooltipTrigger>
+                  <TooltipContent>New organization</TooltipContent>
+                </Tooltip>
               </div>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      aria-label="Create new organization"
-                      title="New organization"
-                      onClick={() => setShowNewOrg(true)}
-                      className="lagoon-side-ws-new"
-                    />
-                  }
-                >
-                  <IconPlus size={14} />
-                </TooltipTrigger>
-                <TooltipContent>New organization</TooltipContent>
-              </Tooltip>
             </div>
 
-            {/* Organizations navigation — list of organizations for quick 1-click switching */}
-            <nav style={{ padding: "14px 12px 0" }} aria-label="Organizations">
-              <p className="lagoon-nav-label" style={{ padding: "0 8px 4px", margin: 0 }}>
+            {/* Organizations Quick Switcher */}
+            <nav className="px-3 pt-3" aria-label="Organizations">
+              <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider uppercase text-slate-400">
                 Organizations
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 180, overflowY: "auto" }}>
+              <div className="flex flex-col gap-1 max-h-36 overflow-y-auto pr-1">
                 {orgs.map((o) => {
                   const isCurrent = o.id === org?.id;
                   return (
                     <button
                       key={o.id}
                       type="button"
-                      className={cx("lagoon-nav-link", isCurrent && "is-on")}
-                      style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}
+                      className={cx(
+                        "flex items-center gap-2.5 w-full px-2.5 py-1.5 text-xs font-medium rounded-lg text-left transition-all",
+                        isCurrent
+                          ? "bg-primary/20 text-white font-semibold shadow-xs ring-1 ring-primary/40"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-white/5",
+                      )}
                       onClick={() => {
                         if (!isCurrent) void handleSwitchOrg(o.id, o.name);
                       }}
                       aria-current={isCurrent ? "true" : undefined}
-                      title={isCurrent ? `${o.name} (current)` : `Switch to ${o.name}`}
                       disabled={switchingOrgId === o.id}
                     >
-                      <OrgGlyph name={o.name} hue={o.hue} size={18} />
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                        {o.name}
-                      </span>
-                      {isCurrent ? <IconCheck size={13} className="shrink-0 text-primary" /> : null}
+                      <OrgGlyph name={o.name} hue={o.hue} size={16} />
+                      <span className="truncate flex-1">{o.name}</span>
+                      {isCurrent ? <IconCheck size={12} className="shrink-0 text-primary" /> : null}
                     </button>
                   );
                 })}
               </div>
             </nav>
 
-            <nav style={{ padding: "16px 12px 0" }} aria-label="Workspace sections">
-              <p className="lagoon-nav-label">Workspace</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {/* Workspace Sections Nav */}
+            <nav className="px-3 pt-4" aria-label="Workspace sections">
+              <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider uppercase text-slate-400">
+                Workspace
+              </p>
+              <div className="flex flex-col gap-1">
                 {nav.map(({ href, label, icon: Icon, on }) => (
                   <Link
                     key={label}
                     href={href}
                     aria-current={on ? "page" : undefined}
-                    className={cx("lagoon-nav-link", on && "is-on")}
+                    className={cx(
+                      "relative flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition-all",
+                      on
+                        ? "bg-primary text-white shadow-sm font-semibold"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-white/5",
+                    )}
                     onClick={() => setSidebarOpen(false)}
                   >
-                    <Icon size={16} />
-                    {label}
+                    <Icon size={16} className={on ? "text-white" : "text-slate-400"} />
+                    <span>{label}</span>
                   </Link>
                 ))}
               </div>
             </nav>
 
-            {/* Quick chat — live org chat preview below the Members nav item. */}
-            <QuickChat />
-
-            <nav style={{ padding: "16px 12px 0", overflowY: "auto" }} aria-label="Boards">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "0 4px 4px 8px" }}>
-                <p className="lagoon-nav-label" style={{ padding: 0, margin: 0 }}>
+            {/* Boards Section */}
+            <nav className="px-3 pt-4 flex-1 overflow-y-auto" aria-label="Boards">
+              <div className="flex items-center justify-between px-2 pb-1">
+                <p className="text-[11px] font-semibold tracking-wider uppercase text-slate-400">
                   Boards
                 </p>
                 <Tooltip>
@@ -371,149 +408,200 @@ export function LagoonShell({
                         type="button"
                         aria-label="Create new board"
                         onClick={openNewBoard}
-                        className="lagoon-side-ws-new"
-                        style={{
-                          width: 28,
-                          minHeight: 28,
-                        }}
+                        className="rounded-md p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
                       />
                     }
                   >
-                    <IconPlus size={14} />
+                    <IconPlus size={13} />
                   </TooltipTrigger>
                   <TooltipContent>Create new board</TooltipContent>
                 </Tooltip>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div className="flex flex-col gap-1">
                 {projects.map((p) => (
-                  <Button
+                  <button
                     key={p.id}
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-current={p.id === activeProjectId ? "true" : undefined}
                     onClick={() => {
                       onSelectProject(p.id);
                       setSidebarOpen(false);
                       router.push(`/app/board?project=${p.id}`);
                     }}
                     className={cx(
-                      "lagoon-board-link w-full justify-start font-normal",
-                      p.id === activeProjectId && "is-on"
+                      "flex items-center gap-2.5 px-2.5 py-1.5 text-xs rounded-lg text-left transition-colors",
+                      p.id === activeProjectId
+                        ? "bg-white/10 text-white font-semibold"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-white/5",
                     )}
                   >
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 9999,
-                        background: "var(--lagoon-gold)",
-                        flex: "none",
-                      }}
-                    />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {p.name}
-                    </span>
-                  </Button>
+                    <span className="size-2 rounded-full bg-amber-400 shrink-0" />
+                    <span className="truncate">{p.name}</span>
+                  </button>
                 ))}
+
                 {newBoardOpen ? (
-                  <form onSubmit={submitCreate} className="lagoon-side-form" style={{ marginTop: 4 }}>
-                    <Field>
-                      <FieldLabel htmlFor="lagoon-board-name" className="sr-only">
-                        Board name
-                      </FieldLabel>
-                      <Input
-                        id="lagoon-board-name"
-                        autoFocus
-                        value={newBoardName}
-                        onChange={(e) => setNewBoardName(e.target.value)}
-                        placeholder="Board name"
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="lagoon-board-key" className="sr-only">
-                        Board key
-                      </FieldLabel>
-                      <Input
-                        id="lagoon-board-key"
-                        value={keyTouched ? newBoardKey : suggestLagoonKey(newBoardName)}
-                        onChange={(e) => {
-                          setKeyTouched(true);
-                          setNewBoardKey(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10));
-                        }}
-                        placeholder="KEY"
-                        maxLength={10}
-                        style={{ marginTop: 6, fontFamily: "var(--font-mono)" }}
-                      />
-                    </Field>
-                    <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={!newBoardName.trim() || !effectiveKey || creating}
-                        loading={creating}
-                      >
+                  <form onSubmit={submitCreate} className="p-2 mt-1 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-2">
+                    <Input
+                      autoFocus
+                      value={newBoardName}
+                      onChange={(e) => setNewBoardName(e.target.value)}
+                      placeholder="Board name"
+                      className="text-xs h-8"
+                    />
+                    <Input
+                      value={keyTouched ? newBoardKey : suggestLagoonKey(newBoardName)}
+                      onChange={(e) => {
+                        setKeyTouched(true);
+                        setNewBoardKey(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10));
+                      }}
+                      placeholder="KEY"
+                      maxLength={10}
+                      className="text-xs h-8 font-mono"
+                    />
+                    <div className="flex gap-2">
+                      <Button type="submit" size="sm" className="h-7 text-xs flex-1" disabled={!newBoardName.trim() || creating} loading={creating}>
                         Create
                       </Button>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label="Cancel"
-                              style={{ color: "#fff" }}
-                              onClick={() => setNewBoardOpen(false)}
-                            />
-                          }
-                        >
-                          <IconX size={16} />
-                        </TooltipTrigger>
-                        <TooltipContent>Cancel</TooltipContent>
-                      </Tooltip>
+                      <button
+                        type="button"
+                        onClick={() => setNewBoardOpen(false)}
+                        className="p-1 text-slate-400 hover:text-white rounded-md hover:bg-white/10"
+                      >
+                        <IconX size={14} />
+                      </button>
                     </div>
                   </form>
                 ) : null}
               </div>
             </nav>
 
-            <div style={{ marginTop: "auto", padding: "12px 0 0" }}>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={openNewBoard}
-                      className="lagoon-new-board-btn w-[calc(100%-24px)] justify-center"
-                    />
-                  }
+            {/* User Profile Card at Sidebar Bottom (Ready for Photo Component) */}
+            <div className="p-3 border-t border-white/8 bg-black/20">
+              <div className="flex items-center justify-between gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPhotoModalOpen(true)}
+                  className="flex items-center gap-2.5 min-w-0 text-left rounded-xl p-1 -m-1 hover:bg-white/5 transition-colors group flex-1"
+                  title="Click to change photo"
                 >
-                  <IconPlus size={16} /> New board
-                </TooltipTrigger>
-                <TooltipContent>Create new board</TooltipContent>
-              </Tooltip>
+                  <UserAvatar
+                    name={user?.name ?? "User"}
+                    src={photoUrl}
+                    seed={user?.id}
+                    size="default"
+                    status="online"
+                    editable
+                  />
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold text-white truncate group-hover:text-purple-300 transition-colors">
+                      {user?.name ?? "User"}
+                    </span>
+                    <span className="block text-[10px] text-slate-400 truncate">
+                      {user?.email ?? "online"}
+                    </span>
+                  </div>
+                </button>
+                <UserMenu onOpenPalette={openPalette} onOpenNotifs={openNotifs} />
+              </div>
             </div>
           </aside>
 
-          {/* Subtle section fade on route change (120ms) — keyed by pathname
-              only, so query-only switches (project/view) don't remount state. */}
-          <motion.div
-            key={pathname}
-            className="lagoon-main"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: DUR.instant, ease: "easeOut" }}
-          >
-            {children}
-          </motion.div>
+          {/* Main Area: Top Bar + Content */}
+          <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+            {/* Top Bar Header */}
+            <header className="h-14 shrink-0 flex items-center justify-between px-6 border-b border-white/8 bg-[#0c1017]/80 backdrop-blur-md z-30">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  className="lagoon-only-mobile p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+                  aria-label="Open sidebar"
+                >
+                  <IconMenu size={18} />
+                </button>
+                <div className="flex items-center gap-2 text-xs font-medium">
+                  <span className="text-slate-400">{org?.name ?? "Workspace"}</span>
+                  <span className="text-slate-600">/</span>
+                  <span className="text-white font-semibold">{currentNav.label}</span>
+                </div>
+              </div>
+
+              {/* Right tools */}
+              <div className="flex items-center gap-2.5">
+                {/* ⌘K Command Palette trigger */}
+                <button
+                  type="button"
+                  onClick={openPalette}
+                  className="flex items-center gap-3 px-3 py-1.5 text-xs text-slate-400 bg-white/[0.04] hover:bg-white/[0.08] hover:text-slate-200 border border-white/8 rounded-xl transition-all shadow-xs"
+                >
+                  <IconSearch size={14} className="text-slate-400" />
+                  <span className="hidden sm:inline">Search anything...</span>
+                  <kbd className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono text-slate-300">
+                    ⌘K
+                  </kbd>
+                </button>
+
+                {/* Notifications */}
+                <button
+                  type="button"
+                  onClick={openNotifs}
+                  className="relative p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                  aria-label="Notifications"
+                >
+                  <IconBell size={16} />
+                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary ring-2 ring-[#0c1017]" />
+                </button>
+
+                {/* Photo Component trigger / Avatar in Top Bar */}
+                <button
+                  type="button"
+                  onClick={() => setPhotoModalOpen(true)}
+                  className="relative rounded-full ring-1 ring-white/10 hover:ring-primary/60 transition-all p-0.5"
+                  title="Update photo"
+                >
+                  <UserAvatar
+                    name={user?.name ?? "User"}
+                    src={photoUrl}
+                    seed={user?.id}
+                    size="sm"
+                    status="online"
+                  />
+                </button>
+              </div>
+            </header>
+
+            {/* Page content with smooth fade entrance */}
+            <motion.div
+              key={pathname}
+              className="flex-1 overflow-y-auto lagoon-main"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              {children}
+            </motion.div>
+          </div>
         </div>
 
+        {/* Dynamic Dialogs & Modals */}
         {paletteOpen ? <DynamicCommandPalette onClose={() => setPaletteOpen(false)} /> : null}
         <DynamicNotifSheet open={notifOpen} onClose={() => setNotifOpen(false)} />
         <CreateOrgDialog open={showNewOrg} onClose={() => { setShowNewOrg(false); void onProjectsChanged(); }} />
+
+        {/* Global PhotoComponent Modal */}
+        {photoModalOpen ? (
+          <PhotoComponent
+            name={user?.name ?? "User"}
+            currentPhotoUrl={photoUrl}
+            onSavePhoto={(url) => {
+              setPhotoUrl(url);
+              toast({ title: "Photo saved", msg: "Profile photo updated successfully." });
+              setPhotoModalOpen(false);
+            }}
+            trigger={() => null}
+            onClose={() => setPhotoModalOpen(false)}
+          />
+        ) : null}
       </LagoonChromeCtx.Provider>
     </LagoonAuthGate>
   );

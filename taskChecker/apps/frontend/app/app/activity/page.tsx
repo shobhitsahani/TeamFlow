@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, memo, useState, startTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LagoonShell } from "@/components/lagoon/LagoonShell";
@@ -12,10 +12,9 @@ import { useSWR } from "@/lib/swr";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Timeline, type TimelineItem } from "@/components/ui/timeline";
 import { PageEnter } from "@/components/motion";
-import { timeAgo, hueFrom } from "@/lib/utils";
 
 // Hoist static JSX outside component (rendering-hoist-jsx)
 const ACTIVITY_TYPES = [
@@ -42,8 +41,8 @@ const TASK_STATUS_LABELS: Record<string, string> = {
 };
 
 /** Action -> row icon. Single local icon set; entity type refines it.
- * Returns ready-to-render JSX (not a component) so TimelineRow never
- * creates a component during render. */
+ * Returns ready-to-render JSX (not a component) so timeline items never
+ * create a component during render. */
 function iconFor(event: ActivityEvent) {
   switch (event.action) {
     case "created":
@@ -80,89 +79,31 @@ function dayLabel(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/**
- * rerender-memo: Memoize TimelineRow to prevent unnecessary re-renders
- */
-const TimelineRow = memo(function TimelineRow({
-  event,
-  actorName,
-  actorLoading,
-}: {
-  event: ActivityEvent;
-  actorName: string | null;
-  actorLoading?: boolean;
-}) {
+/** Map one activity event onto the shared Timeline primitive. */
+function toTimelineItem(
+  event: ActivityEvent,
+  actorName: string | null,
+  actorLoading?: boolean,
+): TimelineItem {
   const action = ACTION_LABELS[event.action] ?? event.action;
-  const tint = event.actorId ? hueFrom(event.actorId) : 0;
-  const actionIcon = iconFor(event);
   const display = actorName ?? "Someone";
-  const initials = actorName
-    ? actorName
-        .split(/\s+/)
-        .map((w) => w.slice(0, 1))
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "?";
+  const status: TimelineItem["status"] =
+    event.action === "deleted"
+      ? "error"
+      : event.action === "created"
+        ? "completed"
+        : event.action === "status_changed"
+          ? "active"
+          : "default";
 
-  return (
-    <li
-      className="lagoon-tl-row"
-      style={{
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "12px 16px",
-        borderRadius: 12,
-        border: "1px solid var(--lagoon-border)",
-        background: "var(--lagoon-card)",
-      }}
-    >
-      <span className="relative shrink-0" style={{ position: "relative", flex: "none" }}>
-        {actorLoading ? (
-          <Skeleton aria-hidden className="size-9 shrink-0 rounded-full" />
-        ) : (
-          <Avatar className="size-9" style={{ border: "1px solid var(--lagoon-border)" }}>
-            <AvatarFallback style={{ background: `hsl(${tint} 60% 45%)`, color: "#fff" }}>
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        )}
-        <span
-          className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full"
-          style={{
-            position: "absolute",
-            right: -4,
-            bottom: -4,
-            width: 16,
-            height: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 9999,
-            border: "1px solid var(--lagoon-border)",
-            background: "var(--lagoon-muted)",
-            color: "var(--lagoon-muted-fg)",
-          }}
-        >
-          {actionIcon}
-        </span>
-      </span>
-
-      <p className="flex-1 text-sm" style={{ flex: 1, fontSize: 13, color: "var(--lagoon-muted-fg)" }}>
-        <span style={{ fontWeight: 600, color: "var(--lagoon-ink)" }}>{display}</span> {action}{" "}
-        <span style={{ fontWeight: 600, color: "var(--lagoon-ink)" }}>
-          {event.entityType} {event.entityId.slice(0, 8)}
-        </span>
-      </p>
-
-      <span className="shrink-0 text-xs tabular-nums" style={{ flex: "none", fontSize: 11, color: "var(--lagoon-muted-fg)" }}>
-        {timeAgo(event.createdAt)}
-      </span>
-    </li>
-  );
-});
+  return {
+    id: event.id,
+    title: `${display} ${action} ${event.entityType} ${event.entityId.slice(0, 8)}`,
+    timestamp: event.createdAt,
+    status,
+    icon: actorLoading ? <Skeleton className="size-3 rounded-full" /> : iconFor(event),
+  };
+}
 
 function DaySeparator({ label }: { label: string }) {
   return (
@@ -568,18 +509,18 @@ export default function ActivityPage() {
               {groups.map((group) => (
                 <div key={group.label} className="flex flex-col gap-4">
                   <DaySeparator label={group.label} />
-                  <ol className="relative flex flex-col gap-3" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {group.events.map((event) => (
-                      <TimelineRow
-                        key={event.id}
-                        event={event}
-                        actorName={event.actorId ? actorNames.get(event.actorId) ?? null : null}
-                        actorLoading={
-                          membersQ.isLoading && !!event.actorId && !actorNames.get(event.actorId)
-                        }
-                      />
-                    ))}
-                  </ol>
+                  <Timeline
+                    className="lagoon-timeline"
+                    variant="compact"
+                    timestampPosition="inline"
+                    items={group.events.map((event) =>
+                      toTimelineItem(
+                        event,
+                        event.actorId ? actorNames.get(event.actorId) ?? null : null,
+                        membersQ.isLoading && !!event.actorId && !actorNames.get(event.actorId),
+                      ),
+                    )}
+                  />
                 </div>
               ))}
               {hasMore && !loading ? (

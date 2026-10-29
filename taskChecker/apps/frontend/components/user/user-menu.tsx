@@ -1,9 +1,10 @@
 "use client";
 
 /* TeamFlow User menu — compact reusable account menu on shadcn primitives.
-   Avatar trigger + DropdownMenu + Separator + Badge role. Used in the
-   Lagoon header, the /app topbar, and the mobile menu alike. */
+   Avatar trigger + DropdownMenu + Separator + Badge role + PhotoComponent ready.
+   Used in the Lagoon header, the /app topbar, and the mobile menu alike. */
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +23,9 @@ import { useAuth } from "@/lib/auth";
 import { useTenant } from "@/components/store";
 import { useToast } from "@/components/overlay";
 import { useTheme } from "@/components/theme-provider";
+import { useUserPhoto } from "@/lib/avatar-store";
 import { UserAvatar } from "./user-avatar";
+import { PhotoComponent } from "./photo-component";
 import {
   IconBell,
   IconBuilding,
@@ -48,6 +51,8 @@ export function UserMenu({
   const { user, logout, isLoading: authLoading } = useAuth();
   const { org, orgs, setOrg } = useTenant();
   const { theme, toggle } = useTheme();
+  const { photoUrl, setPhotoUrl } = useUserPhoto();
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const name = user?.name ?? "You";
   const email = user?.email ?? "";
@@ -71,140 +76,151 @@ export function UserMenu({
     <Button
       variant="ghost"
       size="icon"
-      className="rounded-full"
+      className="rounded-full relative p-0 overflow-hidden ring-1 ring-white/10 hover:ring-primary/50 transition-all"
       aria-label={user ? `Account menu, signed in as ${name}` : "Account menu"}
       title={email || name}
     >
       <UserAvatar
         name={name}
+        src={photoUrl}
         seed={user?.id ?? name}
         size="sm"
+        status="online"
         loading={authLoading || !user}
       />
     </Button>
   );
 
   return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger render={trigger} />
-      <DropdownMenuContent align={align} className="w-64">
-        <DropdownMenuLabel
-          className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-muted/70 focus:bg-muted/70"
-          onClick={() => router.push("/app/settings/profile")}
-          title="Open full profile & settings"
-        >
-          {authLoading || !user ? (
-            <span className="flex items-center gap-2 py-0.5" aria-hidden>
-              <Skeleton className="size-8 shrink-0 rounded-full" />
-              <span className="flex min-w-0 flex-col gap-1.5">
-                <Skeleton className="h-3.5 w-28 rounded" />
-                <Skeleton className="h-3 w-36 rounded" />
-              </span>
-            </span>
-          ) : (
-            <span className="flex min-w-0 items-center gap-2">
-              <UserAvatar name={name} seed={user.id} size="default" />
-              <span className="min-w-0">
-                <span className="block max-w-full truncate text-sm font-semibold text-foreground">
-                  {name}
+    <>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger render={trigger} />
+        <DropdownMenuContent align={align} className="w-64 border-white/10 bg-[#0e131b]/95 backdrop-blur-xl shadow-2xl">
+          <DropdownMenuLabel
+            className="cursor-pointer rounded-lg p-2.5 transition-colors hover:bg-white/5 focus:bg-white/5"
+            onClick={() => router.push("/app/settings/profile")}
+            title="Open full profile & settings"
+          >
+            {authLoading || !user ? (
+              <span className="flex items-center gap-2.5 py-0.5" aria-hidden>
+                <Skeleton className="size-9 shrink-0 rounded-full" />
+                <span className="flex min-w-0 flex-col gap-1.5">
+                  <Skeleton className="h-3.5 w-28 rounded" />
+                  <Skeleton className="h-3 w-36 rounded" />
                 </span>
-                {email ? (
-                  <span className="block max-w-full truncate text-xs font-normal text-muted-foreground">
-                    {email}
+              </span>
+            ) : (
+              <span className="flex min-w-0 items-center gap-3">
+                <UserAvatar name={name} src={photoUrl} seed={user.id} size="default" status="online" />
+                <span className="min-w-0">
+                  <span className="block max-w-full truncate text-sm font-semibold text-white">
+                    {name}
                   </span>
-                ) : null}
-                <span className="mt-1 flex items-center gap-1.5">
-                  <Badge variant="secondary" className="capitalize">
-                    {role}
-                  </Badge>
-                  {org ? (
-                    <span className="max-w-[10rem] truncate text-xs text-muted-foreground">
-                      {org.name}
+                  {email ? (
+                    <span className="block max-w-full truncate text-xs font-normal text-slate-400">
+                      {email}
                     </span>
                   ) : null}
+                  <span className="mt-1 flex items-center gap-1.5">
+                    <Badge variant="secondary" className="capitalize text-[10px] px-1.5 py-0.5">
+                      {role}
+                    </Badge>
+                    {org ? (
+                      <span className="max-w-[10rem] truncate text-[11px] text-slate-400">
+                        {org.name}
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
               </span>
-            </span>
-          )}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
-            <IconUser size={16} />
-            Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
-            <IconSettings size={16} />
-            Settings
-          </DropdownMenuItem>
-          <DropdownMenuItem closeOnClick onClick={showShortcuts}>
-            <IconCommand size={16} />
-            Keyboard shortcuts
-            <span className="kbd ml-auto">⌘K</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            closeOnClick={false}
-            onClick={() => toggle()}
-          >
-            <IconSettings size={16} />
-            Theme: {theme === "dark" ? "Dark" : "Light"}
-            <span className="ml-auto text-xs text-muted-foreground">Toggle</span>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <div className="px-2 pt-1 pb-0.5 text-[11px] font-semibold text-muted-foreground">
-            Workspace
-          </div>
-          {orgs.slice(0, 5).map((o) => (
-            <DropdownMenuItem
-              key={o.id}
-              closeOnClick
-              disabled={o.id === org?.id}
-              onClick={() => {
-                if (o.id !== org?.id) {
-                  void setOrg(o.id);
-                  toast({ title: `Switched to ${o.name}`, msg: "Scoped to this tenant now." });
-                }
-              }}
-            >
-              <IconBuilding size={16} />
-              <span className="max-w-[10rem] truncate">{o.name}</span>
-              <span className="ml-auto text-xs text-muted-foreground capitalize">{o.role}</span>
-              {o.id === org?.id ? <span className="cmdk-hint">current</span> : null}
+            )}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="bg-white/10" />
+          <DropdownMenuGroup>
+            <DropdownMenuItem closeOnClick onClick={() => setPhotoOpen(true)}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+              <span>Update photo</span>
+              <span className="ml-auto text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">New</span>
             </DropdownMenuItem>
-          ))}
-          {orgs.length > 5 ? (
-            <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings#organizations")}>
-              <IconBuilding size={16} />
-              View all {orgs.length} workspaces
+            <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings/profile")}>
+              <IconUser size={16} />
+              Profile
             </DropdownMenuItem>
-          ) : null}
-          <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings#organizations")}>
-            <IconSettings size={16} />
-            Manage organizations
-          </DropdownMenuItem>
-          <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings#organizations")}>
-            <IconPlus size={16} />
-            New organization
-          </DropdownMenuItem>
-          <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings#organizations")}>
-            <IconKey size={16} />
-            Join via invite
-          </DropdownMenuItem>
-          {onOpenNotifs ? (
-            <DropdownMenuItem closeOnClick onClick={onOpenNotifs}>
-              <IconBell size={16} />
-              Notifications
+            <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
+              <IconSettings size={16} />
+              Settings
             </DropdownMenuItem>
-          ) : null}
-        </DropdownMenuGroup>
-        <Separator className="my-1" />
-        <DropdownMenuItem closeOnClick variant="destructive" onClick={() => void signOut()}>
-          <IconLogout size={16} />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+            <DropdownMenuItem closeOnClick onClick={showShortcuts}>
+              <IconCommand size={16} />
+              Keyboard shortcuts
+              <span className="kbd ml-auto">⌘K</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false} onClick={() => toggle()}>
+              <IconSettings size={16} />
+              Theme: {theme === "dark" ? "Dark" : "Light"}
+              <span className="ml-auto text-xs text-muted-foreground">Toggle</span>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator className="bg-white/10" />
+          <DropdownMenuGroup>
+            <div className="px-2 pt-1 pb-0.5 text-[11px] font-semibold text-slate-400">
+              Workspace
+            </div>
+            {orgs.slice(0, 5).map((o) => (
+              <DropdownMenuItem
+                key={o.id}
+                closeOnClick
+                disabled={o.id === org?.id}
+                onClick={() => {
+                  if (o.id !== org?.id) {
+                    void setOrg(o.id);
+                    toast({ title: `Switched to ${o.name}`, msg: "Scoped to this tenant now." });
+                  }
+                }}
+              >
+                <IconBuilding size={16} />
+                <span className="max-w-[10rem] truncate">{o.name}</span>
+                <span className="ml-auto text-xs text-slate-400 capitalize">{o.role}</span>
+                {o.id === org?.id ? <span className="cmdk-hint">current</span> : null}
+              </DropdownMenuItem>
+            ))}
+            {orgs.length > 5 ? (
+              <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings#organizations")}>
+                <IconBuilding size={16} />
+                View all {orgs.length} workspaces
+              </DropdownMenuItem>
+            ) : null}
+            {onOpenNotifs ? (
+              <DropdownMenuItem closeOnClick onClick={onOpenNotifs}>
+                <IconBell size={16} />
+                Notifications
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuGroup>
+          <Separator className="my-1 bg-white/10" />
+          <DropdownMenuItem closeOnClick variant="destructive" onClick={() => void signOut()}>
+            <IconLogout size={16} />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {photoOpen ? (
+        <PhotoComponent
+          name={name}
+          currentPhotoUrl={photoUrl}
+          onSavePhoto={(url) => {
+            setPhotoUrl(url);
+            toast({ title: "Photo updated", msg: "Profile avatar changed successfully." });
+            setPhotoOpen(false);
+          }}
+          trigger={() => null}
+          onClose={() => setPhotoOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }

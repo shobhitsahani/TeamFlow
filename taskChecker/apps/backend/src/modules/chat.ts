@@ -44,12 +44,15 @@ function sanitizeAttachments(list: z.infer<typeof attachmentSchema>[]) {
   return list
     .filter((a) => typeof a.url === "string" && a.url.length > 0)
     .slice(0, 4)
-    .map((a) => ({
-      url: a.url,
-      name: (a.name || "image").slice(0, 200),
-      mime: /^image\//.test(a.mime) ? a.mime : "image/png",
-      size: Math.min(a.size || 0, 8 * 1024 * 1024),
-    }));
+    .map((a) => {
+      const mime = /^(?:image|audio)\//.test(a.mime || "") ? a.mime : "image/png";
+      return {
+        url: a.url,
+        name: (a.name || mime.startsWith("audio/") ? "audio" : "image").slice(0, 200),
+        mime,
+        size: Math.min(a.size || 0, 8 * 1024 * 1024),
+      };
+    });
 }
 
 function chatRecord(r: ChatRow, reactions: ReactionGroup[] = []) {
@@ -134,15 +137,19 @@ chatRoutes.get("/chat/messages", async (c) => {
 chatRoutes.post("/chat/messages", async (c) => {
   const p = c.get("principal");
   const parsed = postSchema.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) throw badRequest("Message body (≤2000 chars) or up to 4 images required.");
+  if (!parsed.success) throw badRequest("Message body (≤2000 chars) or up to 4 attachments required.");
 
   const body = (parsed.data.body ?? "").trim();
   const attachments = sanitizeAttachments(parsed.data.attachments ?? []);
   if (!body && attachments.length === 0) throw badRequest("Message body or at least one image is required.");
   if (body.length > 2000) throw badRequest("Message body must be ≤2000 chars.");
   for (const a of attachments) {
-    if (!/^data:image\//.test(a.url) && !/^https?:\/\//.test(a.url) && !a.url.startsWith("/v1/")) {
-      throw badRequest("Image url must be a data:image URL, https URL, or /v1 attachment URL.");
+    if (
+      !/^data:(?:image|audio)\//.test(a.url) &&
+      !/^https?:\/\//.test(a.url) &&
+      !a.url.startsWith("/v1/")
+    ) {
+      throw badRequest("Attachment url must be a data:image/data:audio URL, https URL, or /v1 attachment URL.");
     }
   }
   return inTenant(c, async (tx) => {
