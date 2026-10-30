@@ -50,3 +50,14 @@ testsprite_tests/
 *.py
 *.pyc
 __pycache__/
+
+# Temp / debug artifacts
+temp_extract/
+audit-report-*.html
+environment.yml
+*.png
+
+# Script debug artifacts
+scripts/*.log
+scripts/ws-debug.*
+scripts/probe.cjs
