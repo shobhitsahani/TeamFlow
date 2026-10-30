@@ -45,3 +45,8 @@ testsprite_tests/
 .opencode/skills/
 
 .worktrees/
+
+# Python
+*.py
+*.pyc
+__pycache__/
