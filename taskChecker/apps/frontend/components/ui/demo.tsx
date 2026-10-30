@@ -1,9 +1,9 @@
-import AetherFlowHero from "@/components/ui/aether-flow-hero";
+"use client"
 
-export default function DemoOne() {
-  return (
-    <main className="App bg-black">
-      <AetherFlowHero />
-    </main>
-  );
+import { GlassReveal21st } from "@/components/ui/liquid-glass-logo-reveal"
+
+export function GlassReveal21stDemo() {
+  return <GlassReveal21st className="h-svh min-h-[420px] w-full" />
 }
+
+export default GlassReveal21stDemo
