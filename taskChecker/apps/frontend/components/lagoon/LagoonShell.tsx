@@ -23,7 +23,7 @@ import { useToast } from "@/components/overlay";
 import { api, type Project } from "@/lib/api";
 import { cx } from "@/lib/utils";
 import { AnimatePresence, DUR, motion } from "@/components/motion";
-import { LiquidNavbar } from "@/components/ui/liquid-glass-navbar";
+import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +46,7 @@ import {
   IconMenu,
 } from "@/components/icons";
 import { suggestLagoonKey } from "./lagoon-utils";
+import { LagoonWorkspaceNav } from "./LagoonWorkspaceNav";
 import { CreateOrgDialog, OrgGlyph } from "@/components/org/org-dialogs";
 import { UserAvatar } from "@/components/user/user-avatar";
 import { UserMenu } from "@/components/user/user-menu";
@@ -129,7 +130,7 @@ export function LagoonShell({
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
-  const { org, orgs, setOrg } = useTenant();
+  const { org, orgs, setOrg, unread } = useTenant();
   const { user, logout, isLoading: authLoading } = useAuth();
   const { photoUrl, setPhotoUrl } = useUserPhoto();
   const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
@@ -221,19 +222,12 @@ export function LagoonShell({
     { href: "/app/projects", label: "Projects", icon: IconLayers, on: pathname.startsWith("/app/projects") },
     { href: "/app/work", label: "Work", icon: IconListTodo, on: pathname.startsWith("/app/work") },
     { href: "/app/library", label: "Library", icon: IconFolder, on: pathname.startsWith("/app/library") },
-    { href: "/app/activity", label: "Activity", icon: IconPulse, on: pathname.startsWith("/app/activity") },
+    { href: "/app/activity", label: "Activity", icon: IconPulse, on: pathname.startsWith("/app/activity"), badge: unread },
     { href: "/app/chat", label: "Chat", icon: IconMessageSquare, on: pathname.startsWith("/app/chat") },
     { href: "/app/settings/members", label: "Members", icon: IconUsers, on: pathname.startsWith("/app/settings/members") },
   ];
 
   const currentNav = nav.find((n) => n.on) ?? { label: "Work" };
-
-  const liquidNavItems = nav.map(({ href, label, icon: Icon }) => ({
-    label,
-    icon: <Icon size={16} />,
-    fx: "glow" as const,
-  }));
-  const activeNavIndex = Math.max(0, nav.findIndex((n) => n.on));
 
   return (
     <LagoonAuthGate>
@@ -370,30 +364,10 @@ export function LagoonShell({
             </nav>
 
             {/* Workspace Sections Nav */}
-            <nav className="px-3 pt-4" aria-label="Workspace sections">
-              <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider uppercase text-slate-400">
-                Workspace
-              </p>
-              <div className="flex flex-col gap-1">
-                {nav.map(({ href, label, icon: Icon, on }) => (
-                  <Link
-                    key={label}
-                    href={href}
-                    aria-current={on ? "page" : undefined}
-                    className={cx(
-                      "relative flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition-all",
-                      on
-                        ? "bg-primary text-white shadow-sm font-semibold"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-white/5",
-                    )}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <Icon size={16} className={on ? "text-white" : "text-slate-400"} />
-                    <span>{label}</span>
-                  </Link>
-                ))}
-              </div>
-            </nav>
+            <LagoonWorkspaceNav
+              items={nav}
+              onNavigate={() => setSidebarOpen(false)}
+            />
 
             {/* Boards Section */}
             <nav className="px-3 pt-4 flex-1 overflow-y-auto" aria-label="Boards">
