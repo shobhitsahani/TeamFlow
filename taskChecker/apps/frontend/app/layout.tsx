@@ -19,6 +19,7 @@ import "./themes/variant-b-chartroom.css";
 import "./themes/variant-c-pier.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toast";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "TeamFlow",
@@ -47,6 +48,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );
