@@ -116,7 +116,6 @@ export const VARIANTS = {
       scale: 1.02,
       rotate: 1.2,
       zIndex: 50,
-      boxShadow: "0 20px 30px -10px rgba(0, 0, 0, 0.5)",
       transition: TRANSITIONS.fast,
     },
     dropped: {
@@ -127,15 +126,13 @@ export const VARIANTS = {
     },
   } satisfies Variants,
 
-  // Realtime card pulse highlight
+  // Realtime card pulse highlight (transform and opacity only)
   cardRealtimePulse: {
-    initial: { boxShadow: "0 0 0 0px rgba(168, 85, 247, 0)" },
+    initial: { opacity: 0, scale: 0.98 },
     pulse: {
-      boxShadow: [
-        "0 0 0 0px rgba(168, 85, 247, 0.7)",
-        "0 0 0 6px rgba(168, 85, 247, 0)",
-      ],
-      transition: { duration: 0.8, ease: "easeOut" },
+      opacity: [0.9, 0.4, 0],
+      scale: [0.99, 1.02, 1.04],
+      transition: { duration: 1.2, ease: "easeOut" },
     },
   } satisfies Variants,
 

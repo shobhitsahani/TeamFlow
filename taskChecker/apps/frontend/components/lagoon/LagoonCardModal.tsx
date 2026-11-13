@@ -257,7 +257,7 @@ export function LagoonCardModal({
           <DialogContent
             aria-label="Card details"
             showCloseButton={false}
-            className="lagoon tf-task-modal flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-xl border border-border p-0 shadow-2xl sm:max-w-[720px]"
+            className="lagoon tf-task-modal tf-glass-modal flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-xl p-0 shadow-2xl sm:max-w-[720px]"
             style={{ maxHeight: "min(880px, calc(100dvh - 2rem))" }}
           >
             <motion.div variants={focalPop} initial="hidden" animate="show" exit="exit" className="flex min-h-0 flex-1 flex-col">

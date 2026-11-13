@@ -68,7 +68,7 @@ export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => vo
         if (!next) onClose();
       }}
     >
-      <SheetContent className="gap-0 p-0 sm:max-w-sm">
+      <SheetContent className="tf-glass-drawer gap-0 p-0 sm:max-w-sm">
         <SheetHeader className="flex-row items-center gap-2 border-b p-4 text-left">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <SheetTitle>Notifications</SheetTitle>

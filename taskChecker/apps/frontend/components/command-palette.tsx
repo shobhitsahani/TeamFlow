@@ -377,7 +377,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       <DialogContent
         aria-label="Command palette"
         showCloseButton={false}
-        className="top-[10vh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-lg"
+        className="tf-glass-modal top-[10vh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-lg"
         onKeyDown={onKeyDown}
       >
         <DialogTitle className="sr-only">Command palette</DialogTitle>

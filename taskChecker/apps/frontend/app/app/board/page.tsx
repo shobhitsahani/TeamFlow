@@ -24,7 +24,6 @@ import {
   IconUser,
   IconPlus,
   IconSearch,
-  IconSettings,
   IconSliders,
   IconStar,
   IconX,

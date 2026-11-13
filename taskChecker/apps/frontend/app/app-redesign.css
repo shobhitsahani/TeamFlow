@@ -1,14 +1,28 @@
 /* ================================================================
    TeamFlow App Redesign: Glassmorphism Design System & Tokens
-   Scoped strictly to .tf-app-scope and /app surfaces.
+   Scoped strictly to .tf-app-scope, .tf-in-app, and /app surfaces.
    Guarantees 0% style bleed into /, /auth/sign-in, /auth/sign-up.
    ================================================================ */
 
-.tf-app-scope {
-  /* Ambient canvas background */
+:root,
+.tf-app-scope,
+.tf-in-app {
+  /* Ambient canvas background (dark default) */
   --app-canvas-bg: #090c12;
   --app-canvas-glow-1: oklch(0.24 0.06 295 / 0.18);
   --app-canvas-glow-2: oklch(0.22 0.05 250 / 0.14);
+
+  /* Semantic surface & text tokens */
+  --tf-fg: #f8fafc;
+  --tf-fg-muted: #94a3b8;
+  --tf-border: rgba(255, 255, 255, 0.08);
+  --tf-border-strong: rgba(255, 255, 255, 0.14);
+  --tf-hover-bg: rgba(255, 255, 255, 0.05);
+  --tf-active-bg: rgba(255, 255, 255, 0.09);
+  --tf-card-bg: #11151f;
+  --tf-card-hover: #151b27;
+  --tf-card-border: rgba(255, 255, 255, 0.08);
+  --tf-card-border-hover: rgba(255, 255, 255, 0.16);
 
   /* Elevation 1: Filter bar, table headers, shallow floating strips */
   --glass-bg-1: rgba(255, 255, 255, 0.05);
@@ -17,13 +31,13 @@
   --glass-shadow-1: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
 
   /* Elevation 2: Sidebar, Top bar, Popovers, Dropdowns */
-  --glass-bg-2: rgba(14, 18, 27, 0.72);
+  --glass-bg-2: rgba(14, 18, 27, 0.76);
   --glass-border-2: rgba(255, 255, 255, 0.11);
   --glass-blur-2: 18px;
   --glass-shadow-2: 0 12px 32px -4px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
 
   /* Elevation 3: Modals, Task Drawer, Command Palette */
-  --glass-bg-3: rgba(11, 15, 22, 0.88);
+  --glass-bg-3: rgba(11, 15, 22, 0.90);
   --glass-border-3: rgba(255, 255, 255, 0.16);
   --glass-blur-3: 24px;
   --glass-shadow-3: 0 28px 64px -12px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.45);
@@ -35,12 +49,6 @@
   --glass-solid-fallback-2: #0e121b;
   --glass-solid-fallback-3: #0a0d14;
 
-  /* Card surface - nearly solid for dense content readability */
-  --card-solid-bg: #131722;
-  --card-solid-hover: #171d2b;
-  --card-solid-border: rgba(255, 255, 255, 0.07);
-  --card-solid-border-hover: rgba(255, 255, 255, 0.14);
-
   /* Typography */
   --font-display: var(--font-joy-display, "Space Grotesk Variable", "Space Grotesk", sans-serif);
   --font-body: var(--font-joy-body, "DM Sans Variable", "DM Sans", sans-serif);
@@ -50,33 +58,41 @@
   --accent-oklch: oklch(0.65 0.24 300);
 }
 
-/* Light mode overrides */
-html:not(.dark) .tf-app-scope {
-  --app-canvas-bg: #f5f6f9;
+/* Light mode overrides (applied only when html lacks .dark and inside app scope) */
+html:not(.dark) .tf-app-scope,
+html:not(.dark).tf-in-app,
+html:not(.dark) .tf-in-app {
+  --app-canvas-bg: #f8fafc;
   --app-canvas-glow-1: oklch(0.92 0.04 295 / 0.35);
   --app-canvas-glow-2: oklch(0.94 0.03 250 / 0.25);
 
-  --glass-bg-1: rgba(255, 255, 255, 0.65);
+  --tf-fg: #0f172a;
+  --tf-fg-muted: #64748b;
+  --tf-border: rgba(0, 0, 0, 0.08);
+  --tf-border-strong: rgba(0, 0, 0, 0.15);
+  --tf-hover-bg: rgba(0, 0, 0, 0.04);
+  --tf-active-bg: rgba(0, 0, 0, 0.08);
+  --tf-card-bg: #ffffff;
+  --tf-card-hover: #fcfdfe;
+  --tf-card-border: rgba(0, 0, 0, 0.08);
+  --tf-card-border-hover: rgba(0, 0, 0, 0.16);
+
+  --glass-bg-1: rgba(255, 255, 255, 0.72);
   --glass-border-1: rgba(0, 0, 0, 0.07);
   --glass-shadow-1: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
 
-  --glass-bg-2: rgba(255, 255, 255, 0.78);
+  --glass-bg-2: rgba(255, 255, 255, 0.85);
   --glass-border-2: rgba(0, 0, 0, 0.09);
   --glass-shadow-2: 0 12px 32px -4px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
 
-  --glass-bg-3: rgba(255, 255, 255, 0.92);
+  --glass-bg-3: rgba(255, 255, 255, 0.95);
   --glass-border-3: rgba(0, 0, 0, 0.12);
   --glass-shadow-3: 0 24px 60px -12px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.06);
 
-  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
   --glass-solid-fallback-1: #ffffff;
   --glass-solid-fallback-2: #f9fafb;
   --glass-solid-fallback-3: #ffffff;
-
-  --card-solid-bg: #ffffff;
-  --card-solid-hover: #fcfdfe;
-  --card-solid-border: rgba(0, 0, 0, 0.08);
-  --card-solid-border-hover: rgba(0, 0, 0, 0.14);
 }
 
 /* Ambient Canvas Background */
@@ -145,34 +161,90 @@ html:not(.dark) .tf-app-scope {
   }
 }
 
+/* Floating Filter Bar Glassmorphism */
+.tf-app-scope .lagoon-filterbar,
+.tf-in-app .lagoon-filterbar {
+  background: var(--glass-bg-1) !important;
+  border-bottom: 1px solid var(--glass-border-1) !important;
+  backdrop-filter: blur(var(--glass-blur-1)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-1)) saturate(var(--glass-saturate));
+}
+
+/* Secondary Board Toolbar Glass styling */
+.tf-app-scope .lagoon-header,
+.tf-in-app .lagoon-header {
+  background: var(--glass-bg-1) !important;
+  border-bottom: 1px solid var(--glass-border-1) !important;
+  backdrop-filter: blur(var(--glass-blur-1)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-1)) saturate(var(--glass-saturate));
+}
+
+/* Floating Modals & Task Drawer (Elevation 3) */
+.tf-task-modal,
+.tf-glass-modal,
+.tf-in-app [data-slot="dialog-content"].tf-glass-modal,
+.tf-in-app [data-slot="sheet-content"].tf-glass-drawer {
+  background: var(--glass-bg-3) !important;
+  border: 1px solid var(--glass-border-3) !important;
+  box-shadow: var(--glass-highlight), var(--glass-shadow-3) !important;
+  backdrop-filter: blur(var(--glass-blur-3)) saturate(var(--glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-3)) saturate(var(--glass-saturate)) !important;
+  color: var(--tf-fg);
+}
+
+/* Dropdown & Popover Floating Layers (Elevation 2) */
+.tf-in-app [data-slot="dropdown-menu-content"],
+.tf-in-app [data-slot="popover-content"] {
+  background: var(--glass-bg-2) !important;
+  border: 1px solid var(--glass-border-2) !important;
+  box-shadow: var(--glass-highlight), var(--glass-shadow-2) !important;
+  backdrop-filter: blur(var(--glass-blur-2)) saturate(var(--glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-2)) saturate(var(--glass-saturate)) !important;
+  color: var(--tf-fg);
+}
+
 /* Solid Kanban Card */
 .tf-kanban-card {
-  background-color: var(--card-solid-bg);
-  border: 1px solid var(--card-solid-border);
+  position: relative;
+  background-color: var(--tf-card-bg);
+  border: 1px solid var(--tf-card-border);
   transition: transform 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out;
 }
 
 .tf-kanban-card:hover {
   transform: translateY(-2px);
-  border-color: var(--card-solid-border-hover);
+  border-color: var(--tf-card-border-hover);
   box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.4);
 }
 
-/* Realtime pulse animation on updated cards */
-@keyframes tf-pulse-ring {
-  0% {
-    box-shadow: 0 0 0 0px rgba(168, 85, 247, 0.8);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0px rgba(168, 85, 247, 0);
-  }
+/* Realtime pulse animation on updated cards (animates transform and opacity only) */
+.tf-realtime-pulsing {
+  position: relative;
 }
 
-.tf-realtime-pulsing {
-  animation: tf-pulse-ring 1s cubic-bezier(0, 0, 0.2, 1) 2;
+.tf-realtime-pulsing::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid oklch(0.65 0.24 300);
+  pointer-events: none;
+  animation: tf-pulse-opacity-scale 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes tf-pulse-opacity-scale {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
 }
 
 /* Tabular figures for data, counters, and dates */

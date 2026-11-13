@@ -266,7 +266,7 @@ export function LagoonShell({
   return (
     <LagoonAuthGate>
       <LagoonChromeCtx.Provider value={{ openMenu, openPalette, openNotifs, openNewBoard }}>
-        <div className="tf-app-scope tf-ambient-canvas flex h-screen w-full overflow-hidden text-slate-100">
+        <div className="tf-app-scope tf-ambient-canvas flex h-screen w-full overflow-hidden text-[var(--tf-fg)]">
           {/* Mobile backdrop scrim */}
           <AnimatePresence>
             {sidebarOpen ? (
@@ -288,20 +288,20 @@ export function LagoonShell({
             as="aside"
             elevation={2}
             className={cx(
-              "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r lg:static lg:translate-x-0 transition-transform duration-200 ease-out",
+              "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[var(--tf-border)] lg:static lg:translate-x-0 transition-transform duration-200 ease-out",
               sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
             )}
             aria-label="Workspace navigation"
           >
             {/* Brand top */}
-            <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3.5">
+            <div className="flex items-center justify-between border-b border-[var(--tf-border)] px-4 py-3.5">
               <Link
                 href="/app/work"
                 className="group flex min-w-0 items-center gap-2.5 outline-none"
                 title="TeamFlow Home"
                 aria-label="TeamFlow Home"
               >
-                <div className="relative flex size-8 items-center justify-center rounded-xl bg-purple-600/30 border border-purple-500/40 shadow-xs">
+                <div className="relative flex size-8 items-center justify-center rounded-xl bg-purple-600/20 border border-purple-500/30 shadow-xs">
                   <img
                     src="/logo_mark.png"
                     alt=""
@@ -312,10 +312,10 @@ export function LagoonShell({
                   />
                 </div>
                 <div className="min-w-0">
-                  <span className="block font-bold text-base tracking-tight text-white group-hover:text-purple-300 transition-colors">
+                  <span className="block font-bold text-base tracking-tight text-[var(--tf-fg)] group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                     TeamFlow
                   </span>
-                  <span className="block text-[10px] text-zinc-400 truncate">
+                  <span className="block text-[10px] text-[var(--tf-fg-muted)] truncate">
                     Quiet Harbor
                   </span>
                 </div>
@@ -325,7 +325,7 @@ export function LagoonShell({
                 type="button"
                 aria-label="Close menu"
                 onClick={() => setSidebarOpen(false)}
-                className="rounded-lg p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 lg:hidden"
+                className="rounded-lg p-1.5 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] lg:hidden"
               >
                 <IconX size={16} />
               </button>
@@ -333,11 +333,11 @@ export function LagoonShell({
 
             {/* Tenant isolation & Role header */}
             <div className="p-3">
-              <div className="flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-2.5">
+              <div className="flex flex-col gap-2 rounded-xl border border-[var(--tf-border)] bg-[var(--tf-hover-bg)] p-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <OrgGlyph name={org?.name ?? "Workspace"} hue={org?.hue ?? 0} size={24} />
-                    <span className="truncate text-xs font-semibold text-white">
+                    <span className="truncate text-xs font-semibold text-[var(--tf-fg)]">
                       {org?.name ?? "Workspace"}
                     </span>
                   </div>
@@ -348,7 +348,7 @@ export function LagoonShell({
                           type="button"
                           aria-label="Create organization"
                           onClick={() => setShowNewOrg(true)}
-                          className="rounded-md p-1 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                          className="rounded-md p-1 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] transition-colors"
                         />
                       }
                     >
@@ -359,8 +359,8 @@ export function LagoonShell({
                 </div>
 
                 {/* Scoped RBAC Role Badge */}
-                <div className="flex items-center justify-between border-t border-white/[0.06] pt-1.5">
-                  <span className="text-[10px] font-medium text-zinc-400">Permissions:</span>
+                <div className="flex items-center justify-between border-t border-[var(--tf-border)] pt-1.5">
+                  <span className="text-[10px] font-medium text-[var(--tf-fg-muted)]">Permissions:</span>
                   <RoleBadge role={org?.role ?? "member"} />
                 </div>
               </div>
@@ -369,7 +369,7 @@ export function LagoonShell({
             {/* Organizations Switcher */}
             {orgs.length > 1 && (
               <nav className="px-3 pb-2" aria-label="Organizations">
-                <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider uppercase text-zinc-400 select-none">
+                <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider uppercase text-[var(--tf-fg-muted)] select-none">
                   Switch Org
                 </p>
                 <div className="flex flex-col gap-1 max-h-28 overflow-y-auto pr-1">
@@ -382,8 +382,8 @@ export function LagoonShell({
                         className={cx(
                           "flex items-center gap-2 w-full px-2 py-1 text-xs rounded-lg text-left transition-colors",
                           isCurrent
-                            ? "bg-purple-600/20 text-white font-medium border border-purple-500/30"
-                            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
+                            ? "bg-purple-600/15 text-purple-700 dark:text-purple-200 font-medium border border-purple-500/30"
+                            : "text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]",
                         )}
                         onClick={() => {
                           if (!isCurrent) void handleSwitchOrg(o.id, o.name);
@@ -393,7 +393,7 @@ export function LagoonShell({
                       >
                         <OrgGlyph name={o.name} hue={o.hue} size={14} />
                         <span className="truncate flex-1">{o.name}</span>
-                        {isCurrent ? <IconCheck size={12} className="text-purple-400 shrink-0" /> : null}
+                        {isCurrent ? <IconCheck size={12} className="text-purple-600 dark:text-purple-400 shrink-0" /> : null}
                       </button>
                     );
                   })}
@@ -407,7 +407,7 @@ export function LagoonShell({
             {/* Boards section */}
             <nav className="px-3 pt-3 flex-1 overflow-y-auto" aria-label="Boards">
               <div className="flex items-center justify-between px-2 pb-1">
-                <p className="text-[11px] font-semibold tracking-wider uppercase text-zinc-400 select-none">
+                <p className="text-[11px] font-semibold tracking-wider uppercase text-[var(--tf-fg-muted)] select-none">
                   Boards
                 </p>
                 <Tooltip>
@@ -417,7 +417,7 @@ export function LagoonShell({
                         type="button"
                         aria-label="Create new board"
                         onClick={openNewBoard}
-                        className="rounded-md p-1 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                        className="rounded-md p-1 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] transition-colors"
                       />
                     }
                   >
@@ -440,17 +440,17 @@ export function LagoonShell({
                     className={cx(
                       "flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg text-left transition-colors",
                       p.id === activeProjectId
-                        ? "bg-white/10 text-white font-semibold border border-white/10 shadow-xs"
-                        : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
+                        ? "bg-[var(--tf-active-bg)] text-[var(--tf-fg)] font-semibold border border-[var(--tf-border)] shadow-xs"
+                        : "text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]",
                     )}
                   >
-                    <span className="size-1.5 rounded-full bg-purple-400 shrink-0" />
+                    <span className="size-1.5 rounded-full bg-purple-500 shrink-0" />
                     <span className="truncate">{p.name}</span>
                   </button>
                 ))}
 
                 {newBoardOpen ? (
-                  <form onSubmit={submitCreate} className="p-2 mt-1 rounded-xl bg-white/[0.04] border border-white/10 flex flex-col gap-2">
+                  <form onSubmit={submitCreate} className="p-2 mt-1 rounded-xl bg-[var(--tf-hover-bg)] border border-[var(--tf-border)] flex flex-col gap-2">
                     <Input
                       autoFocus
                       value={newBoardName}
@@ -475,7 +475,7 @@ export function LagoonShell({
                       <button
                         type="button"
                         onClick={() => setNewBoardOpen(false)}
-                        className="p-1 text-zinc-400 hover:text-white rounded-md hover:bg-white/10"
+                        className="p-1 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] rounded-md hover:bg-[var(--tf-hover-bg)]"
                       >
                         <IconX size={14} />
                       </button>
@@ -486,12 +486,12 @@ export function LagoonShell({
             </nav>
 
             {/* Sidebar User Profile Footer */}
-            <div className="p-3 border-t border-white/[0.08] bg-black/20">
+            <div className="p-3 border-t border-[var(--tf-border)] bg-[var(--tf-hover-bg)]">
               <div className="flex items-center justify-between gap-2.5">
                 <button
                   type="button"
                   onClick={() => setPhotoModalOpen(true)}
-                  className="flex items-center gap-2.5 min-w-0 text-left rounded-xl p-1 -m-1 hover:bg-white/5 transition-colors group flex-1"
+                  className="flex items-center gap-2.5 min-w-0 text-left rounded-xl p-1 -m-1 hover:bg-[var(--tf-hover-bg)] transition-colors group flex-1"
                   title="Click to change photo"
                 >
                   <UserAvatar
@@ -503,10 +503,10 @@ export function LagoonShell({
                     editable
                   />
                   <div className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold text-white truncate group-hover:text-purple-300 transition-colors">
+                    <span className="block text-xs font-semibold text-[var(--tf-fg)] truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                       {user?.name ?? "User"}
                     </span>
-                    <span className="block text-[10px] text-zinc-400 truncate">
+                    <span className="block text-[10px] text-[var(--tf-fg-muted)] truncate">
                       {user?.email ?? "online"}
                     </span>
                   </div>
@@ -522,13 +522,13 @@ export function LagoonShell({
             <GlassSurface
               as="header"
               elevation={2}
-              className="h-14 shrink-0 flex items-center justify-between px-4 sm:px-6 border-b border-white/[0.08] z-30"
+              className="h-14 shrink-0 flex items-center justify-between px-4 sm:px-6 border-b border-[var(--tf-border)] z-30"
             >
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
-                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 lg:hidden tf-touch-target"
+                  className="p-2 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] rounded-lg hover:bg-[var(--tf-hover-bg)] lg:hidden tf-touch-target"
                   aria-label="Open sidebar navigation"
                 >
                   <IconMenu size={18} />
@@ -536,9 +536,9 @@ export function LagoonShell({
 
                 {/* Breadcrumbs */}
                 <div className="flex items-center gap-2 text-xs font-medium">
-                  <span className="text-zinc-400 hidden sm:inline">{org?.name ?? "Workspace"}</span>
-                  <span className="text-zinc-600 hidden sm:inline">/</span>
-                  <span className="text-white font-semibold">{currentNav.label}</span>
+                  <span className="text-[var(--tf-fg-muted)] hidden sm:inline">{org?.name ?? "Workspace"}</span>
+                  <span className="text-[var(--tf-fg-muted)] opacity-60 hidden sm:inline">/</span>
+                  <span className="text-[var(--tf-fg)] font-semibold">{currentNav.label}</span>
                 </div>
               </div>
 
@@ -553,11 +553,11 @@ export function LagoonShell({
                 <button
                   type="button"
                   onClick={openPalette}
-                  className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-zinc-400 bg-white/[0.04] hover:bg-white/[0.08] hover:text-zinc-200 border border-white/[0.08] rounded-xl transition-all shadow-xs"
+                  className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-[var(--tf-fg-muted)] bg-[var(--tf-hover-bg)] hover:bg-[var(--tf-active-bg)] hover:text-[var(--tf-fg)] border border-[var(--tf-border)] rounded-xl transition-all shadow-xs"
                 >
-                  <IconSearch size={14} className="text-zinc-400" />
+                  <IconSearch size={14} className="text-[var(--tf-fg-muted)]" />
                   <span className="hidden sm:inline">Search…</span>
-                  <kbd className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-white/10 font-mono text-zinc-300">
+                  <kbd className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 font-mono text-[var(--tf-fg-muted)]">
                     ⌘K
                   </kbd>
                 </button>
@@ -566,12 +566,12 @@ export function LagoonShell({
                 <button
                   type="button"
                   onClick={openNotifs}
-                  className="relative p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors tf-touch-target flex items-center justify-center"
+                  className="relative p-2 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] rounded-xl transition-colors tf-touch-target flex items-center justify-center"
                   aria-label="Notifications"
                 >
                   <IconBell size={16} />
                   {unread > 0 && (
-                    <span className="absolute top-2 right-2 size-2 rounded-full bg-purple-500 ring-2 ring-black" />
+                    <span className="absolute top-2 right-2 size-2 rounded-full bg-purple-500 ring-2 ring-black dark:ring-white" />
                   )}
                 </button>
 
@@ -579,7 +579,7 @@ export function LagoonShell({
                 <button
                   type="button"
                   onClick={() => setPhotoModalOpen(true)}
-                  className="relative rounded-full ring-1 ring-white/10 hover:ring-purple-400/60 transition-all p-0.5"
+                  className="relative rounded-full ring-1 ring-[var(--tf-border)] hover:ring-purple-400/60 transition-all p-0.5"
                   title="Update profile photo"
                 >
                   <UserAvatar
