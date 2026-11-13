@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { CreateOrgDialog, JoinOrgDialog, OrgGlyph } from "@/components/org/org-dialogs";
-import { IconUser, IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight, IconTrash, IconAlert, IconMail, IconKey, IconLogout, IconBuilding, IconCheck, IconPlus } from "@/components/icons";
+import { IconUsers, IconWebhook, IconFileText, IconSettings, IconChevronRight, IconTrash, IconAlert, IconMail, IconKey, IconLogout, IconBuilding, IconCheck, IconPlus } from "@/components/icons";
 import { api, getCurrentTenantId } from "@/lib/api";
 
 // Hoist static JSX outside component (rendering-hoist-jsx)
@@ -259,7 +259,6 @@ function DangerZone() {
  *  (PATCH /v1/me); email is identity and read-only. The sidebar avatar
  *  lands here so users always find where to change their info. */
 function ProfileSection() {
-  const router = useRouter();
   const { user, updateProfile } = useAuth();
   const toast = useToast();
   const [name, setName] = useState("");
@@ -293,26 +292,29 @@ function ProfileSection() {
   };
 
   return (
-    <section id="profile" aria-label="Profile" className="settings-card scroll-mt-24">
-      <div className="flex flex-wrap items-center gap-3">
-        {user ? (
-          <UserAvatar name={user.name} seed={user.id} size="lg" />
-        ) : null}
-        <div className="min-w-0 flex-1">
-          <h3>Profile</h3>
-          <p>{user?.email ?? "…"}</p>
+    <section id="profile" aria-label="Profile" className="settings-card scroll-mt-24 !flex-col !items-stretch gap-5 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 w-full border-b border-[var(--tf-border)] pb-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          {user ? (
+            <UserAvatar name={user.name} seed={user.id} size="lg" />
+          ) : null}
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-[var(--tf-fg)]">Profile</h3>
+            <p className="text-xs text-[var(--tf-fg-muted)] truncate">{user?.email ?? "…"}</p>
+          </div>
         </div>
         <Button
           size="sm"
           onClick={() => void handleSave()}
           disabled={!dirty || !valid || saving}
           loading={saving}
+          className="shrink-0"
         >
-          <IconCheck size={14} /> Save changes
+          <IconCheck size={14} className="mr-1.5" /> Save changes
         </Button>
       </div>
 
-      <FieldGroup className="mt-3">
+      <FieldGroup className="w-full gap-4">
         <Field>
           <FieldLabel htmlFor="profile-name">Display name</FieldLabel>
           <Input
@@ -373,30 +375,32 @@ function OrganizationsSection() {
   };
 
   return (
-    <section id="organizations" aria-label="Organizations" className="settings-card scroll-mt-24">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="settings-card-icon">
-          <IconBuilding size={20} />
+    <section id="organizations" aria-label="Organizations" className="settings-card scroll-mt-24 !flex-col !items-stretch gap-5 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 w-full border-b border-[var(--tf-border)] pb-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="settings-card-icon shrink-0">
+            <IconBuilding size={20} />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-[var(--tf-fg)]">Organizations</h3>
+            <p className="text-xs text-[var(--tf-fg-muted)]">
+              {orgs.length === 0
+                ? "No workspaces yet — create or join one."
+                : `${orgs.length} workspace${orgs.length === 1 ? "" : "s"} · currently in ${org?.name ?? "none"}`}
+            </p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <h3>Organizations</h3>
-          <p>
-            {orgs.length === 0
-              ? "No workspaces yet — create or join one."
-              : `${orgs.length} workspace${orgs.length === 1 ? "" : "s"} · currently in ${org?.name ?? "none"}`}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button variant="secondary" size="sm" onClick={() => setShowJoinOrg(true)}>
-            <IconKey size={14} /> Join via invite
+            <IconKey size={14} className="mr-1.5" /> Join via invite
           </Button>
           <Button size="sm" onClick={() => setShowNewOrg(true)}>
-            <IconPlus size={14} /> New organization
+            <IconPlus size={14} className="mr-1.5" /> New organization
           </Button>
         </div>
       </div>
 
-      <ul className="mt-3 flex flex-col gap-2">
+      <ul className="flex flex-col gap-2.5 w-full">
         {orgs.map((o) => {
           const isCurrent = o.id === org?.id;
           const switching = switchingId === o.id;

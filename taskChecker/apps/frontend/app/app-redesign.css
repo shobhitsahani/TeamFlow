@@ -268,3 +268,43 @@ html:not(.dark) .tf-in-app {
 .tf-columns-snap > * {
   scroll-snap-align: start;
 }
+
+/* Settings surfaces scoped styling */
+.tf-in-app .settings-card {
+  background: var(--tf-card-bg);
+  border-color: var(--tf-border);
+  color: var(--tf-fg);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.tf-in-app .settings-card:hover {
+  border-color: var(--tf-border);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
+}
+
+.tf-in-app .settings-card-content h3 {
+  color: var(--tf-fg);
+}
+
+.tf-in-app .settings-card-content p {
+  color: var(--tf-fg-muted);
+}
+
+.tf-in-app .settings-nav-item {
+  color: var(--tf-fg-muted);
+  border-radius: 8px;
+  transition: all 120ms ease;
+}
+
+.tf-in-app .settings-nav-item:hover {
+  background: var(--tf-hover-bg);
+  color: var(--tf-fg);
+}
+
+.tf-in-app .settings-nav-item.active {
+  background: var(--tf-hover-bg);
+  color: var(--tf-fg);
+  border-color: var(--tf-border);
+}
