@@ -11,15 +11,12 @@ import { LagoonShell, useLagoonChrome } from "@/components/lagoon/LagoonShell";
 import { EventManager, type CalendarEvent } from "@/components/ui/event-manager";
 import { LagoonCardModal } from "@/components/lagoon/LagoonCardModal";
 import {
-  IconBell,
   IconCalendar,
   IconCheck,
   IconColumns,
   IconList,
   IconListTodo,
-  IconLogout,
   IconMenu,
-  IconBuilding,
   IconMoreHorizontal,
   IconSettings,
   IconUser,
@@ -36,10 +33,9 @@ import { useTenant } from "@/components/store";
 import { useSWR } from "@/lib/swr";
 import { useRealtime } from "@/lib/realtime";
 import { useUpdateTask } from "@/lib/mutations";
-import { AnimatePresence, DUR, LAYOUT_SPRING, MOTION_SPRINGS, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
+import { AnimatePresence, DUR, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,8 +47,6 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -78,12 +72,6 @@ const STATUS_ORDER = ["backlog", "todo", "in_progress", "done"] as const;
 /** Whole-theme variant picker (impeccable generate): localStorage key + the
  *  html[data-theme] values defined in app/themes/. "" = Quiet Harbor. */
 const VARIANT_KEY = "tf.theme.variant.v1";
-const VARIANTS: { value: "" | "drydock" | "chartroom" | "pier"; label: string }[] = [
-  { value: "", label: "Quiet Harbor (default)" },
-  { value: "drydock", label: "Drydock Amber" },
-  { value: "chartroom", label: "Chart-Room Steel" },
-  { value: "pier", label: "Pier Concrete" },
-];
 const STATUS_LABELS: Record<string, string> = {
   backlog: "Backlog",
   todo: "To do",
@@ -630,9 +618,9 @@ const LagoonTouchGhost = memo(function LagoonTouchGhost({
 function LagoonBoard() {
   const toast = useToast();
   const router = useRouter();
-  const { user, memberships, logout } = useAuth();
-  const { org, unread } = useTenant();
-  const { openMenu, openNotifs, openNewBoard } = useLagoonChrome();
+  const { user, memberships } = useAuth();
+  const { org } = useTenant();
+  const { openMenu, openNewBoard } = useLagoonChrome();
   const orgId = org?.id ?? getCurrentTenantId();
   const searchParams = useSearchParams();
   const updateTask = useUpdateTask();
@@ -852,7 +840,7 @@ function LagoonBoard() {
   // Whole-theme variants (impeccable generate, opt-in): "" is the Quiet
   // Harbor incumbent; the others map to html[data-theme="…"] in
   // app/themes/. Persisted per browser; the CSS import is inert until set.
-  const [variant, setVariant] = useState<"" | "drydock" | "chartroom" | "pier">(() => {
+  const [variant] = useState<"" | "drydock" | "chartroom" | "pier">(() => {
     if (typeof window === "undefined") return "";
     try {
       const v = window.localStorage.getItem(VARIANT_KEY);
