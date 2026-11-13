@@ -31,6 +31,8 @@ litellm_config.yaml
 
 # Markdown docs - ignored
 *.md
+!PRODUCT.md
+!DESIGN.md
 
 # Testsprite generated tests
 testsprite_tests/
