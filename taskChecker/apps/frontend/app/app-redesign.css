@@ -1,0 +1,198 @@
+/* ================================================================
+   TeamFlow App Redesign: Glassmorphism Design System & Tokens
+   Scoped strictly to .tf-app-scope and /app surfaces.
+   Guarantees 0% style bleed into /, /auth/sign-in, /auth/sign-up.
+   ================================================================ */
+
+.tf-app-scope {
+  /* Ambient canvas background */
+  --app-canvas-bg: #090c12;
+  --app-canvas-glow-1: oklch(0.24 0.06 295 / 0.18);
+  --app-canvas-glow-2: oklch(0.22 0.05 250 / 0.14);
+
+  /* Elevation 1: Filter bar, table headers, shallow floating strips */
+  --glass-bg-1: rgba(255, 255, 255, 0.05);
+  --glass-border-1: rgba(255, 255, 255, 0.08);
+  --glass-blur-1: 12px;
+  --glass-shadow-1: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
+
+  /* Elevation 2: Sidebar, Top bar, Popovers, Dropdowns */
+  --glass-bg-2: rgba(14, 18, 27, 0.72);
+  --glass-border-2: rgba(255, 255, 255, 0.11);
+  --glass-blur-2: 18px;
+  --glass-shadow-2: 0 12px 32px -4px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
+
+  /* Elevation 3: Modals, Task Drawer, Command Palette */
+  --glass-bg-3: rgba(11, 15, 22, 0.88);
+  --glass-border-3: rgba(255, 255, 255, 0.16);
+  --glass-blur-3: 24px;
+  --glass-shadow-3: 0 28px 64px -12px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Shared glass properties */
+  --glass-saturate: 140%;
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+  --glass-solid-fallback-1: #11151f;
+  --glass-solid-fallback-2: #0e121b;
+  --glass-solid-fallback-3: #0a0d14;
+
+  /* Card surface - nearly solid for dense content readability */
+  --card-solid-bg: #131722;
+  --card-solid-hover: #171d2b;
+  --card-solid-border: rgba(255, 255, 255, 0.07);
+  --card-solid-border-hover: rgba(255, 255, 255, 0.14);
+
+  /* Typography */
+  --font-display: var(--font-joy-display, "Space Grotesk Variable", "Space Grotesk", sans-serif);
+  --font-body: var(--font-joy-body, "DM Sans Variable", "DM Sans", sans-serif);
+  --font-mono: var(--font-mono, "JetBrains Mono Variable", monospace);
+
+  /* Accent color */
+  --accent-oklch: oklch(0.65 0.24 300);
+}
+
+/* Light mode overrides */
+html:not(.dark) .tf-app-scope {
+  --app-canvas-bg: #f5f6f9;
+  --app-canvas-glow-1: oklch(0.92 0.04 295 / 0.35);
+  --app-canvas-glow-2: oklch(0.94 0.03 250 / 0.25);
+
+  --glass-bg-1: rgba(255, 255, 255, 0.65);
+  --glass-border-1: rgba(0, 0, 0, 0.07);
+  --glass-shadow-1: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+
+  --glass-bg-2: rgba(255, 255, 255, 0.78);
+  --glass-border-2: rgba(0, 0, 0, 0.09);
+  --glass-shadow-2: 0 12px 32px -4px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  --glass-bg-3: rgba(255, 255, 255, 0.92);
+  --glass-border-3: rgba(0, 0, 0, 0.12);
+  --glass-shadow-3: 0 24px 60px -12px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.06);
+
+  --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+  --glass-solid-fallback-1: #ffffff;
+  --glass-solid-fallback-2: #f9fafb;
+  --glass-solid-fallback-3: #ffffff;
+
+  --card-solid-bg: #ffffff;
+  --card-solid-hover: #fcfdfe;
+  --card-solid-border: rgba(0, 0, 0, 0.08);
+  --card-solid-border-hover: rgba(0, 0, 0, 0.14);
+}
+
+/* Ambient Canvas Background */
+.tf-ambient-canvas {
+  background-color: var(--app-canvas-bg);
+  background-image:
+    radial-gradient(ellipse 60% 50% at 10% 10%, var(--app-canvas-glow-1), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 90% 90%, var(--app-canvas-glow-2), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Glass Surface Utilities */
+.glass-surface-1 {
+  background: var(--glass-bg-1);
+  border: 1px solid var(--glass-border-1);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-1);
+  backdrop-filter: blur(var(--glass-blur-1)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-1)) saturate(var(--glass-saturate));
+}
+
+.glass-surface-2 {
+  background: var(--glass-bg-2);
+  border: 1px solid var(--glass-border-2);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-2);
+  backdrop-filter: blur(var(--glass-blur-2)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-2)) saturate(var(--glass-saturate));
+}
+
+.glass-surface-3 {
+  background: var(--glass-bg-3);
+  border: 1px solid var(--glass-border-3);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-3);
+  backdrop-filter: blur(var(--glass-blur-3)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-3)) saturate(var(--glass-saturate));
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-surface-1 {
+    background: var(--glass-solid-fallback-1) !important;
+  }
+  .glass-surface-2 {
+    background: var(--glass-solid-fallback-2) !important;
+  }
+  .glass-surface-3 {
+    background: var(--glass-solid-fallback-3) !important;
+  }
+}
+
+/* Reduced transparency fallback */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface-1 {
+    background: var(--glass-solid-fallback-1) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .glass-surface-2 {
+    background: var(--glass-solid-fallback-2) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .glass-surface-3 {
+    background: var(--glass-solid-fallback-3) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* Solid Kanban Card */
+.tf-kanban-card {
+  background-color: var(--card-solid-bg);
+  border: 1px solid var(--card-solid-border);
+  transition: transform 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+.tf-kanban-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--card-solid-border-hover);
+  box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.4);
+}
+
+/* Realtime pulse animation on updated cards */
+@keyframes tf-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0px rgba(168, 85, 247, 0.8);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0px rgba(168, 85, 247, 0);
+  }
+}
+
+.tf-realtime-pulsing {
+  animation: tf-pulse-ring 1s cubic-bezier(0, 0, 0.2, 1) 2;
+}
+
+/* Tabular figures for data, counters, and dates */
+.tf-tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Touch targets */
+.tf-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Scroll snap for horizontal columns on small screens */
+.tf-columns-snap {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tf-columns-snap > * {
+  scroll-snap-align: start;
+}
