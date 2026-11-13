@@ -667,7 +667,7 @@ export function LagoonShell({
             {/* Route Content with Smooth Transition */}
             <motion.main
               key={pathname}
-              className="flex-1 overflow-y-auto"
+              className="flex-1 flex flex-col min-h-0 overflow-y-auto"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: DUR.fast, ease: "easeOut" }}

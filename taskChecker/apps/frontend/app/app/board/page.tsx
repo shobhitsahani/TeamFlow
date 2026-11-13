@@ -21,6 +21,7 @@ import {
   IconMenu,
   IconBuilding,
   IconMoreHorizontal,
+  IconSettings,
   IconUser,
   IconPlus,
   IconSearch,
@@ -1428,7 +1429,7 @@ function LagoonBoard() {
         {announce}
       </div>
       {/* Board Header (Elevation 1 Glass) */}
-      <header className="lagoon-header flex items-center justify-between px-4 sm:px-6 py-2.5 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/30 backdrop-blur-md">
+      <header className="lagoon-header shrink-0 flex items-center justify-between px-4 sm:px-6 py-2.5 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/30 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
           <Tooltip>
             <TooltipTrigger
@@ -1534,42 +1535,127 @@ function LagoonBoard() {
 
         {/* Right: Board options & Primary Create Button */}
         <div className="flex items-center gap-2">
-          {/* Board Options Dropdown (Star / Theme Variant) */}
+          {/* More Options Dropdown */}
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Board options"
-                  className="rounded-lg text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]"
-                />
-              }
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="More options"
+                        className="rounded-lg text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]"
+                      />
+                    }
+                  />
+                }
+              >
+                <IconMoreHorizontal size={16} />
+              </TooltipTrigger>
+              <TooltipContent>More options</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent
+              align="end"
+              sideOffset={4}
+              className="w-56 max-w-[calc(100vw-2rem)] glass-surface-2 p-1.5 shadow-xl duration-150 motion-reduce:animate-none"
             >
-              <IconMoreHorizontal size={16} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 glass-surface-2 p-1.5 shadow-xl">
-              <DropdownMenuItem closeOnClick onClick={openNotifs} className="text-xs">
-                <IconBell size={14} />
-                <span>Notifications</span>
-                {unread > 0 ? (
-                  <Badge variant="secondary" className="ml-auto text-[10px] tabular-nums">{unread}</Badge>
-                ) : null}
-              </DropdownMenuItem>
-              <DropdownMenuItem closeOnClick onClick={toggleStarred} className="text-xs">
-                <IconStar size={14} style={starred ? { color: "var(--lagoon-gold)" } : undefined} />
-                <span>{starred ? "Unstar board" : "Star board"}</span>
-              </DropdownMenuItem>
+              {/* Account Group */}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tf-fg-muted)] select-none">
+                  Account
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => router.push("/app/profile")}
+                  className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] focus:bg-[var(--tf-hover-bg)] transition-colors outline-none"
+                >
+                  <IconUser size={14} className="shrink-0 text-[var(--tf-fg-muted)]" />
+                  <span>Open profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => router.push("/app/settings")}
+                  className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] focus:bg-[var(--tf-hover-bg)] transition-colors outline-none"
+                >
+                  <IconSettings size={14} className="shrink-0 text-[var(--tf-fg-muted)]" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+
               <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
-              <DropdownMenuLabel className="text-[10px] uppercase font-semibold text-[var(--tf-fg-muted)]">Theme variant</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={variant} onValueChange={(v) => setVariant(v as "" | "drydock" | "chartroom" | "pier")}>
-                {VARIANTS.map((opt) => (
-                  <DropdownMenuRadioItem key={opt.label} value={opt.value} closeOnClick className="text-xs">
-                    {opt.label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
+
+              {/* Go to (this project) Group */}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tf-fg-muted)] select-none">
+                  Go to (this project)
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => {
+                    setView("board");
+                    const p = new URLSearchParams(searchParams.toString());
+                    p.set("view", "board");
+                    if (selectedProjectId) p.set("project", selectedProjectId);
+                    router.replace(`/app/board?${p.toString()}`, { scroll: false });
+                  }}
+                  className="flex items-center justify-between gap-2.5 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] focus:bg-[var(--tf-hover-bg)] transition-colors outline-none"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <IconColumns size={14} className="shrink-0 text-[var(--tf-fg-muted)]" />
+                    <span className={view === "board" ? "font-semibold text-purple-600 dark:text-purple-400" : ""}>
+                      Board
+                    </span>
+                  </span>
+                  {view === "board" ? (
+                    <IconCheck size={14} className="shrink-0 text-purple-600 dark:text-purple-400" />
+                  ) : null}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => {
+                    setView("timeline");
+                    const p = new URLSearchParams(searchParams.toString());
+                    p.set("view", "timeline");
+                    if (selectedProjectId) p.set("project", selectedProjectId);
+                    router.replace(`/app/board?${p.toString()}`, { scroll: false });
+                  }}
+                  className="flex items-center justify-between gap-2.5 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] focus:bg-[var(--tf-hover-bg)] transition-colors outline-none"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <IconList size={14} className="shrink-0 text-[var(--tf-fg-muted)]" />
+                    <span className={view === "timeline" ? "font-semibold text-purple-600 dark:text-purple-400" : ""}>
+                      Timeline
+                    </span>
+                  </span>
+                  {view === "timeline" ? (
+                    <IconCheck size={14} className="shrink-0 text-purple-600 dark:text-purple-400" />
+                  ) : null}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => {
+                    setView("calendar");
+                    const p = new URLSearchParams(searchParams.toString());
+                    p.set("view", "calendar");
+                    if (selectedProjectId) p.set("project", selectedProjectId);
+                    router.replace(`/app/board?${p.toString()}`, { scroll: false });
+                  }}
+                  className="flex items-center justify-between gap-2.5 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] focus:bg-[var(--tf-hover-bg)] transition-colors outline-none"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <IconCalendar size={14} className="shrink-0 text-[var(--tf-fg-muted)]" />
+                    <span className={view === "calendar" ? "font-semibold text-purple-600 dark:text-purple-400" : ""}>
+                      Calendar
+                    </span>
+                  </span>
+                  {view === "calendar" ? (
+                    <IconCheck size={14} className="shrink-0 text-purple-600 dark:text-purple-400" />
+                  ) : null}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -1603,7 +1689,7 @@ function LagoonBoard() {
       </header>
 
       {/* Filter Bar (Elevation 1 Glass) */}
-      <div className="lagoon-filterbar flex items-center justify-between px-4 sm:px-6 py-2 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/20" role="toolbar" aria-label="Board filters">
+      <div className="lagoon-filterbar shrink-0 flex items-center justify-between px-4 sm:px-6 py-2 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/20" role="toolbar" aria-label="Board filters">
         {/* Mobile View Switcher */}
         <div className="flex md:hidden items-center rounded-xl bg-black/5 dark:bg-white/5 p-1 border border-[var(--tf-border)]" role="tablist">
           {(["board", "timeline", "calendar"] as const).map((tab) => (
