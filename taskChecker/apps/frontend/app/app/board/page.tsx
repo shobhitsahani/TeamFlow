@@ -1428,7 +1428,7 @@ function LagoonBoard() {
         {announce}
       </div>
       {/* Board Header (Elevation 1 Glass) */}
-      <header className="lagoon-header flex items-center justify-between px-4 sm:px-6 py-2.5 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/30 backdrop-blur-md">
+      <header className="lagoon-header shrink-0 flex items-center justify-between px-4 sm:px-6 py-2.5 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/30 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
           <Tooltip>
             <TooltipTrigger
@@ -1603,7 +1603,7 @@ function LagoonBoard() {
       </header>
 
       {/* Filter Bar (Elevation 1 Glass) */}
-      <div className="lagoon-filterbar flex items-center justify-between px-4 sm:px-6 py-2 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/20" role="toolbar" aria-label="Board filters">
+      <div className="lagoon-filterbar shrink-0 flex items-center justify-between px-4 sm:px-6 py-2 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/20" role="toolbar" aria-label="Board filters">
         {/* Mobile View Switcher */}
         <div className="flex md:hidden items-center rounded-xl bg-black/5 dark:bg-white/5 p-1 border border-[var(--tf-border)]" role="tablist">
           {(["board", "timeline", "calendar"] as const).map((tab) => (
