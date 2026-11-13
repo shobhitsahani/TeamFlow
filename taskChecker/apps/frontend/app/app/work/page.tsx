@@ -88,7 +88,7 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
           </div>
 
           {/* Task Title */}
-          <h3 className="text-sm font-semibold text-white group-hover:text-purple-300 transition-colors line-clamp-2">
+          <h3 className="text-sm font-semibold text-white group-hover:text-zinc-200 transition-colors line-clamp-2">
             {task.title}
           </h3>
 
@@ -256,7 +256,7 @@ export default function WorkPage() {
 
               <Button
                 onClick={() => router.push("/app/board")}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-purple-600/20 px-4 py-2 rounded-xl transition-all"
+                className="bg-[oklch(0.65_0.24_300)] hover:brightness-110 text-white font-semibold shadow-xs px-4 py-2 rounded-xl transition-all"
               >
                 <IconPlus size={15} className="mr-1.5" /> New task
               </Button>
@@ -409,14 +409,11 @@ export default function WorkPage() {
                   }}
                 />
 
-                {/* Floating icon container with spring bounce */}
-                <motion.div
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-                  className="relative flex items-center justify-center size-16 rounded-2xl bg-gradient-to-tr from-purple-600/30 to-indigo-600/20 border border-purple-500/30 text-purple-300 shadow-xl shadow-purple-500/10 mb-4"
+                <div
+                  className="relative flex items-center justify-center size-14 rounded-2xl bg-white/[0.04] border border-white/10 text-zinc-300 shadow-sm mb-4"
                 >
-                  <IconSearch size={28} />
-                </motion.div>
+                  <IconSearch size={24} />
+                </div>
 
                 <h2 className="text-xl font-bold tracking-tight text-white mb-2">
                   {search ? `No tasks match "${search.trim()}"` : "You're all caught up"}

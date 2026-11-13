@@ -11,6 +11,8 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { AppShell } from "@/components/app-shell";
 import { IconPlus, IconSearch, IconUsers } from "@/components/icons";
 import { api, getCurrentTenantId, type Project, type Team } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSWR } from "@/lib/swr";
 
 /**
@@ -21,7 +23,7 @@ function TeamCard({ team, projects, id, highlighted }: { team: Team; projects: P
   const teamProjects = projects.filter((p) => p.teamId === team.id);
 
   return (
-    <div className={`team-card${highlighted ? " ring-2 ring-primary/50" : ""}`} id={id} style={highlighted ? { scrollMarginTop: 24 } : undefined}>
+    <div className={`team-card tf-kanban-card${highlighted ? " ring-2 ring-primary/50" : ""}`} id={id} style={highlighted ? { scrollMarginTop: 24 } : undefined}>
       <div className="team-card-header">
         <div className="team-avatar">
           <IconUsers size={24} />
@@ -58,6 +60,9 @@ export default function TeamsPage() {
   const [creating, setCreating] = useState(false);
 
   const orgId = getCurrentTenantId();
+  const { memberships } = useAuth();
+  const myRole = memberships.find((m) => m.tenant_id === orgId)?.role;
+  const canWrite = myRole === "owner" || myRole === "admin";
   const teamsQ = useSWR<{ teams: Team[] }>(
     orgId ? `teams-teams-${orgId}` : null,
     () => api.teams.list(orgId!),
@@ -148,9 +153,18 @@ export default function TeamsPage() {
             <p className="page-subtitle">All teams in {org?.name ?? "your organization"}</p>
           </div>
           <div className="page-actions">
-            <Button onClick={() => setShowNew(true)}>
-              <IconPlus size={14} /> New team
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button onClick={() => setShowNew(true)} disabled={!canWrite}>
+                    <IconPlus size={14} /> New team
+                  </Button>
+                }
+              />
+              {!canWrite ? (
+                <TooltipContent>Owner or admin role required</TooltipContent>
+              ) : null}
+            </Tooltip>
           </div>
         </header>
 
@@ -159,6 +173,7 @@ export default function TeamsPage() {
             <IconSearch size={16} />
             <Input
               type="text"
+              aria-label="Search teams"
               value={search}
               onChange={handleSearchChange}
               placeholder="Search teams…"
@@ -169,19 +184,21 @@ export default function TeamsPage() {
 
         <Stagger className="teams-grid">
           {teamsQ.isLoading ? (
-            <div className="flex flex-col gap-3" role="status" aria-label="Loading teams">
-              <Skeleton className="h-20 w-full rounded-lg" />
-              <Skeleton className="h-20 w-full rounded-lg" />
-              <Skeleton className="h-20 w-full rounded-lg" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="status" aria-label="Loading teams">
+              <Skeleton className="h-28 w-full rounded-xl" />
+              <Skeleton className="h-28 w-full rounded-xl" />
+              <Skeleton className="h-28 w-full rounded-xl" />
             </div>
           ) : filteredTeams.length === 0 ? (
             <PageEnter className="empty-state">
               <IconUsers size={48} className="dim" />
               <h3>No teams found</h3>
               <p>{search ? "Try a different search term" : "Create your first team to get started"}</p>
-              <Button onClick={() => setShowNew(true)}>
-                <IconPlus size={14} /> New team
-              </Button>
+              {canWrite ? (
+                <Button onClick={() => setShowNew(true)}>
+                  <IconPlus size={14} /> New team
+                </Button>
+              ) : null}
             </PageEnter>
           ) : (
             filteredTeams.map((team) => (

@@ -34,6 +34,7 @@ import { useToast } from "@/components/overlay";
 import { useAuth } from "@/lib/auth";
 import { useTenant } from "@/components/store";
 import { useSWR } from "@/lib/swr";
+import { useRealtime } from "@/lib/realtime";
 import { useUpdateTask } from "@/lib/mutations";
 import { AnimatePresence, DUR, LAYOUT_SPRING, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
@@ -140,6 +141,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   isDone,
   today,
   moveTargets,
+  recentlyUpdated,
   onDragStart,
   onDragEnd,
   onTouchDragStart,
@@ -164,6 +166,7 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
   today: string | null;
   /** All board lists (status + display label) for the keyboard Move menu. */
   moveTargets: { status: Task["status"]; label: string }[];
+  recentlyUpdated?: boolean;
   onDragStart: (e: React.DragEvent, taskId: string) => void;
   onDragEnd: () => void;
   onTouchDragStart: (e: React.PointerEvent, taskId: string) => void;
@@ -237,7 +240,12 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
     >
     <Card
       data-slot="lagoon-card-inner"
-      className={cx("lagoon-card cursor-grab", dragging && "is-dragging opacity-45", isDone && "is-done opacity-70")}
+      className={cx(
+        "lagoon-card cursor-grab tf-kanban-card",
+        dragging && "is-dragging opacity-45",
+        isDone && "is-done opacity-70",
+        recentlyUpdated && "tf-realtime-pulsing"
+      )}
     >
       {/* Task key line — compact mono identifier above the title.
           Short id keeps long UUIDs from stretching the card. */}
@@ -725,6 +733,40 @@ function LagoonBoard() {
   const [composerFor, setComposerFor] = useState<Task["status"] | null>(null);
   const [composerText, setComposerText] = useState("");
   const [starred, setStarred] = useState(false);
+  const [recentlyUpdatedTaskId, setRecentlyUpdatedTaskId] = useState<string | null>(null);
+  const pulseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerTaskPulse = useCallback((taskId: string) => {
+    setRecentlyUpdatedTaskId(taskId);
+    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+    pulseTimerRef.current = setTimeout(() => {
+      setRecentlyUpdatedTaskId(null);
+    }, 1500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+    };
+  }, []);
+
+  useRealtime({
+    onActivity: (activity) => {
+      const entityId = (activity.entityId || activity.taskId || (activity.data as Record<string, unknown>)?.taskId || (activity.data as Record<string, unknown>)?.id) as string | undefined;
+      const entityType = (activity.entityType as string | undefined) ?? (typeof activity.type === "string" && activity.type.startsWith("task.") ? "task" : undefined);
+      if (entityType === "task" && entityId) {
+        triggerTaskPulse(entityId);
+        void tasksQ.mutate();
+      }
+    },
+    onNotification: (notif) => {
+      const entityId = (notif.entityId || notif.taskId || (notif.data as Record<string, unknown>)?.taskId || (notif.data as Record<string, unknown>)?.id) as string | undefined;
+      if (entityId) {
+        triggerTaskPulse(entityId);
+      }
+    },
+  });
   // Client-only starred flag per board; read in a subscription callback so the
   // effect body never calls setState synchronously.
   useEffect(() => {
@@ -802,6 +844,32 @@ function LagoonBoard() {
       })),
     [projectTasks],
   );
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName ?? "").toLowerCase();
+      const isInput =
+        activeTag === "input" ||
+        activeTag === "textarea" ||
+        (document.activeElement as HTMLElement)?.isContentEditable;
+      if (isInput) return;
+
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if ((e.key === "c" || e.key === "n") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (canWrite && selectedProjectId) {
+          e.preventDefault();
+          setComposerText("");
+          setComposerFor(columns[0]?.status ?? "backlog");
+          setView("board");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canWrite, selectedProjectId, columns]);
 
   const filteredColumns = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
@@ -1338,11 +1406,12 @@ function LagoonBoard() {
               <IconSearch size={14} />
             </InputGroupAddon>
             <InputGroupInput
+              ref={searchInputRef}
               type="search"
               aria-label="Search tasks"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tasks…"
+              placeholder="Search tasks… (/)"
             />
           </InputGroup>
           <AvatarGroup className="items-center" data-lagoon-avatar-cluster>
@@ -1508,18 +1577,28 @@ function LagoonBoard() {
           {/* Calendar view owns creation via the EventManager's New Event
               action — one primary CTA per screen, never two side by side. */}
           {view !== "calendar" ? (
-            <Button
-              type="button"
-              className="lagoon-create-btn h-8 border-0"
-              onClick={() => {
-                setComposerText("");
-                setComposerFor(columns[0]?.status ?? "backlog");
-                setView("board");
-              }}
-              disabled={!selectedProjectId || !user}
-            >
-              <IconPlus size={14} /> <span data-lagoon-create-label>Create</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    className="lagoon-create-btn h-8 border-0"
+                    onClick={() => {
+                      if (!canWrite) return;
+                      setComposerText("");
+                      setComposerFor(columns[0]?.status ?? "backlog");
+                      setView("board");
+                    }}
+                    disabled={!selectedProjectId || !user || !canWrite}
+                  />
+                }
+              >
+                <IconPlus size={14} /> <span data-lagoon-create-label>Create</span>
+              </TooltipTrigger>
+              {!canWrite ? (
+                <TooltipContent>Viewers have read-only access</TooltipContent>
+              ) : null}
+            </Tooltip>
           ) : null}
         </div>
       </header>
@@ -1650,7 +1729,7 @@ function LagoonBoard() {
         <motion.div key={view} variants={viewFade} initial="hidden" animate="show" exit="exit" className="flex flex-1 flex-col min-h-0">
       {view === "board" ? (
         <div className="lagoon-board-scroll">
-          <div className="lagoon-cols">
+          <div className="lagoon-cols tf-columns-snap">
             {tasksQ.isLoading && projectTasks.length === 0 ? (
               STATUS_ORDER.map((status) => (
                 <div key={status} className="lagoon-col" aria-hidden="true" style={{ gap: 8 }}>
@@ -1696,6 +1775,7 @@ function LagoonBoard() {
                         canWrite={canWrite}
                         isDone={col.status === "done"}
                         today={today}
+                        recentlyUpdated={recentlyUpdatedTaskId === task.id}
                         moveTargets={STATUS_ORDER.map((s) => ({ status: s, label: labelFor(s) }))}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}

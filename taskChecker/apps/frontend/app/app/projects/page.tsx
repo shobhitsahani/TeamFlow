@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Modal, useToast } from "@/components/overlay";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { toYmd, todayYmd } from "@/components/lagoon/lagoon-utils";
 
@@ -162,9 +163,18 @@ function LagoonProjects() {
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Button size="sm" className="lagoon-create-btn border-0" onClick={openNewBoard}>
-                  <IconPlus size={14} /> New project
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button size="sm" className="lagoon-create-btn border-0" onClick={openNewBoard} disabled={!canWrite}>
+                        <IconPlus size={14} /> New project
+                      </Button>
+                    }
+                  />
+                  {!canWrite ? (
+                    <TooltipContent>Viewers have read-only access</TooltipContent>
+                  ) : null}
+                </Tooltip>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 12, color: "var(--lagoon-muted-fg)", flexWrap: "wrap" }}>
