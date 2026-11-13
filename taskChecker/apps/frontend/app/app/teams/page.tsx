@@ -12,6 +12,7 @@ import { AppShell } from "@/components/app-shell";
 import { IconPlus, IconSearch, IconUsers } from "@/components/icons";
 import { api, getCurrentTenantId, type Project, type Team } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSWR } from "@/lib/swr";
 
@@ -168,18 +169,19 @@ export default function TeamsPage() {
           </div>
         </header>
 
-        <div className="teams-toolbar">
-          <div className="search-box">
-            <IconSearch size={16} />
-            <Input
-              type="text"
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+          <InputGroup variant="search" className="lagoon-search" style={{ width: 280 }}>
+            <InputGroupAddon align="inline-start">
+              <IconSearch size={14} />
+            </InputGroupAddon>
+            <InputGroupInput
+              type="search"
               aria-label="Search teams"
               value={search}
               onChange={handleSearchChange}
               placeholder="Search teams…"
-              className="border-0 bg-transparent shadow-none focus-visible:ring-0"
             />
-          </div>
+          </InputGroup>
         </div>
 
         <Stagger className="teams-grid">

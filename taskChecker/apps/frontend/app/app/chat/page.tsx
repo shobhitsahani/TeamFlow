@@ -636,7 +636,7 @@ function ChatRoom() {
 
   return (
     <div
-      className="flex h-full w-full bg-[#0c1017] text-slate-100 overflow-hidden"
+      className="flex h-full w-full bg-background text-foreground overflow-hidden"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
@@ -644,7 +644,7 @@ function ChatRoom() {
       }}
     >
       {/* Main chat column */}
-      <div className="flex flex-1 flex-col h-full min-w-0 min-h-0 bg-[#0c1017]">
+      <div className="flex flex-1 flex-col h-full min-w-0 min-h-0 bg-background">
         {/* Compact Channel Header */}
         <ChatHeader
           channel={channelSlug}
@@ -992,7 +992,7 @@ function ChatRoom() {
         <ChatTypingIndicator typingUsers={typingNames} />
 
         {/* Bottom Composer */}
-        <div className="px-4 md:px-6 pb-4 pt-1 bg-[#0c1017] select-none">
+        <div className="px-4 md:px-6 pb-4 pt-1 bg-background select-none">
           <ChatInput
             ref={inputRef}
               value={draft}
@@ -1023,7 +1023,7 @@ function ChatRoom() {
             animate={{ width: 240, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.18, ease: "easeInOut" }}
-            className="hidden md:flex overflow-hidden shrink-0 border-l border-white/8"
+            className="hidden md:flex overflow-hidden shrink-0 border-l border-border"
           >
             <ChatMembersPanel
               members={members}

@@ -65,7 +65,7 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
     >
       <Link
         href={`/app/tasks/${task.id}`}
-        className="flex flex-col justify-between p-4.5 rounded-2xl bg-[#121824]/90 border border-white/8 hover:border-purple-500/30 hover:bg-[#161e2e] shadow-lg hover:shadow-purple-500/5 transition-all text-slate-200"
+        className="flex flex-col justify-between p-4.5 rounded-2xl bg-card border border-border hover:border-primary/40 hover:bg-card/90 shadow-xs hover:shadow-md transition-all text-card-foreground"
         style={{ minHeight: 140 }}
       >
         <div>
@@ -76,7 +76,7 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
                 className="size-2 rounded-full shrink-0 shadow-xs"
                 style={{ background: STATUS_DOT[task.status] ?? "var(--lagoon-muted-fg)" }}
               />
-              <span className="text-[11px] font-medium text-slate-400">
+              <span className="text-[11px] font-medium text-muted-foreground">
                 {STATUS_LABEL[task.status] ?? task.status}
               </span>
             </div>
@@ -88,24 +88,24 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
           </div>
 
           {/* Task Title */}
-          <h3 className="text-sm font-semibold text-white group-hover:text-zinc-200 transition-colors line-clamp-2">
+          <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
             {task.title}
           </h3>
 
           {/* Task Description */}
           {task.description ? (
-            <p className="mt-1.5 text-xs text-slate-400 line-clamp-2 leading-relaxed">
+            <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
               {task.description}
             </p>
           ) : null}
         </div>
 
         {/* Footer info: Due date, project key, photo avatar */}
-        <div className="mt-4 pt-3 border-t border-white/6 flex items-center justify-between text-xs text-slate-400">
+        <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             {task.dueAt ? (
               <span
-                className={cx("flex items-center gap-1 font-mono text-[11px]", overdue && "text-red-400 font-semibold")}
+                className={cx("flex items-center gap-1 font-mono text-[11px]", overdue && "text-red-500 font-semibold")}
               >
                 <IconClock size={12} />
                 {new Date(task.dueAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -113,7 +113,7 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
               </span>
             ) : null}
             {project ? (
-              <span className="px-1.5 py-0.5 rounded-md bg-white/5 font-mono text-[10px] text-slate-300 border border-white/5">
+              <span className="px-1.5 py-0.5 rounded-md bg-muted font-mono text-[10px] text-muted-foreground border border-border">
                 {project.key}
               </span>
             ) : null}
@@ -221,20 +221,20 @@ export default function WorkPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/8"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border"
           >
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
                   Your work
                 </h1>
-                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/25">
                   {attention.open} active
                 </span>
               </div>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Tasks assigned to you or created by you in{" "}
-                <span className="text-slate-200 font-medium">{org?.name ?? "your organization"}</span>
+                <span className="text-foreground font-medium">{org?.name ?? "your organization"}</span>
               </p>
             </div>
 
@@ -243,7 +243,7 @@ export default function WorkPage() {
               <button
                 type="button"
                 onClick={() => setPhotoModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-300 hover:text-white transition-all shadow-xs"
+                className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl bg-card hover:bg-muted border border-border text-foreground transition-all shadow-xs"
               >
                 <UserAvatar
                   name={user?.name ?? "User"}
@@ -256,7 +256,7 @@ export default function WorkPage() {
 
               <Button
                 onClick={() => router.push("/app/board")}
-                className="bg-[oklch(0.65_0.24_300)] hover:brightness-110 text-white font-semibold shadow-xs px-4 py-2 rounded-xl transition-all"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs px-4 py-2 rounded-xl transition-all"
               >
                 <IconPlus size={15} className="mr-1.5" /> New task
               </Button>
@@ -270,7 +270,7 @@ export default function WorkPage() {
                 label: "Assigned to You",
                 value: attention.assigned,
                 icon: IconCheck,
-                color: "text-purple-400",
+                color: "text-purple-500 dark:text-purple-400",
                 bg: "bg-purple-500/10",
                 border: "border-purple-500/20",
               },
@@ -278,7 +278,7 @@ export default function WorkPage() {
                 label: "Open in Scope",
                 value: attention.open,
                 icon: IconPulse,
-                color: "text-blue-400",
+                color: "text-blue-500 dark:text-blue-400",
                 bg: "bg-blue-500/10",
                 border: "border-blue-500/20",
               },
@@ -286,7 +286,7 @@ export default function WorkPage() {
                 label: "Due Soon / Overdue",
                 value: attention.overdue + attention.dueToday,
                 icon: IconClock,
-                color: attention.overdue > 0 ? "text-amber-400" : "text-emerald-400",
+                color: attention.overdue > 0 ? "text-amber-500 dark:text-amber-400" : "text-emerald-500 dark:text-emerald-400",
                 bg: attention.overdue > 0 ? "bg-amber-500/10" : "bg-emerald-500/10",
                 border: attention.overdue > 0 ? "border-amber-500/20" : "border-emerald-500/20",
               },
@@ -294,7 +294,7 @@ export default function WorkPage() {
                 label: "Total Projects",
                 value: projects.length,
                 icon: IconBoard,
-                color: "text-indigo-400",
+                color: "text-indigo-500 dark:text-indigo-400",
                 bg: "bg-indigo-500/10",
                 border: "border-indigo-500/20",
               },
@@ -305,39 +305,39 @@ export default function WorkPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
                 className={cx(
-                  "p-4 rounded-2xl bg-[#111722]/80 border backdrop-blur-sm flex flex-col justify-between",
+                  "p-4 rounded-2xl bg-card border shadow-xs flex flex-col justify-between",
                   kpi.border,
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-slate-400">{kpi.label}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{kpi.label}</span>
                   <div className={cx("p-1.5 rounded-lg", kpi.bg, kpi.color)}>
                     <kpi.icon size={14} />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-white tracking-tight">{kpi.value}</div>
+                <div className="text-2xl font-bold text-foreground tracking-tight">{kpi.value}</div>
               </motion.div>
             ))}
           </div>
 
           {/* Search Bar + Animated Filter Tabs */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-1.5 rounded-2xl bg-white/[0.02] border border-white/6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-1.5 rounded-2xl bg-muted/40 border border-border">
             {/* Search Input Group */}
             <div className="relative flex-1 max-w-md">
-              <IconSearch size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <IconSearch size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 type="search"
                 aria-label="Search your tasks"
                 value={search}
                 onChange={handleSearchChange}
                 placeholder="Search your tasks by title or description..."
-                className="w-full pl-10 pr-9 py-2 text-xs rounded-xl bg-white/5 border border-white/8 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                className="w-full pl-10 pr-9 py-2 text-xs rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
               />
               {search ? (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <IconX size={14} />
                 </button>
@@ -345,7 +345,7 @@ export default function WorkPage() {
             </div>
 
             {/* Filter Tabs with Framer Motion Sliding Pill Indicator */}
-            <div className="flex items-center gap-1 p-1 bg-black/30 rounded-xl border border-white/6" role="tablist">
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-xl border border-border" role="tablist">
               {(["all", "assigned", "reported"] as const).map((f) => {
                 const isActive = filter === f;
                 const label = f === "all" ? "All tasks" : f === "assigned" ? "Assigned" : "Reported";
@@ -357,7 +357,7 @@ export default function WorkPage() {
                     onClick={() => handleFilterChange(f)}
                     className={cx(
                       "relative px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors select-none",
-                      isActive ? "text-white font-semibold" : "text-slate-400 hover:text-slate-200",
+                      isActive ? "text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {isActive ? (
@@ -379,13 +379,13 @@ export default function WorkPage() {
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="status" aria-label="Loading tasks">
                 {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="p-5 rounded-2xl bg-[#121824]/60 border border-white/6 flex flex-col gap-3">
+                  <div key={i} className="p-5 rounded-2xl bg-card border border-border flex flex-col gap-3">
                     <div className="flex items-center gap-2">
                       <Skeleton className="size-2.5 rounded-full" />
                       <Skeleton className="h-4 flex-1 rounded" />
                     </div>
                     <Skeleton className="h-3 w-3/4 rounded mt-1" />
-                    <div className="flex gap-2 mt-4 pt-3 border-t border-white/5">
+                    <div className="flex gap-2 mt-4 pt-3 border-t border-border">
                       <Skeleton className="h-5 w-16 rounded-full" />
                       <Skeleton className="h-5 w-20 rounded-full" />
                     </div>
@@ -398,28 +398,28 @@ export default function WorkPage() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
-                className="relative overflow-hidden rounded-3xl border border-white/8 bg-gradient-to-b from-[#121722]/90 to-[#0e1219]/90 p-8 sm:p-12 text-center shadow-2xl flex flex-col items-center"
+                className="relative overflow-hidden rounded-3xl border border-border bg-card p-8 sm:p-12 text-center shadow-md flex flex-col items-center"
               >
                 {/* Radial ambient glow behind */}
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
                     background:
-                      "radial-gradient(circle 320px at 50% 35%, rgba(139, 92, 246, 0.15), transparent 70%)",
+                      "radial-gradient(circle 320px at 50% 35%, rgba(139, 92, 246, 0.08), transparent 70%)",
                   }}
                 />
 
                 <div
-                  className="relative flex items-center justify-center size-14 rounded-2xl bg-white/[0.04] border border-white/10 text-zinc-300 shadow-sm mb-4"
+                  className="relative flex items-center justify-center size-14 rounded-2xl bg-muted border border-border text-foreground shadow-xs mb-4"
                 >
                   <IconSearch size={24} />
                 </div>
 
-                <h2 className="text-xl font-bold tracking-tight text-white mb-2">
+                <h2 className="text-xl font-bold tracking-tight text-foreground mb-2">
                   {search ? `No tasks match "${search.trim()}"` : "You're all caught up"}
                 </h2>
 
-                <p className="max-w-md text-sm text-slate-400 mb-8 leading-relaxed">
+                <p className="max-w-md text-sm text-muted-foreground mb-8 leading-relaxed">
                   {search
                     ? "Try a different search keyword or clear your filter to view all project tasks."
                     : "Tasks assigned to you or created by you in this organization will appear here. Create a task to get your workflow moving."}
@@ -436,14 +436,14 @@ export default function WorkPage() {
                       <Button
                         size="sm"
                         onClick={() => router.push("/app/board")}
-                        className="bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl shadow-md px-4 py-2"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-xs px-4 py-2"
                       >
                         <IconPlus size={14} className="mr-1.5" /> Create new task
                       </Button>
                       <button
                         type="button"
                         onClick={() => setPhotoModalOpen(true)}
-                        className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white transition-all"
+                        className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-xl bg-card hover:bg-muted border border-border text-foreground transition-all"
                       >
                         <UserAvatar name={user?.name ?? "User"} src={photoUrl} seed={user?.id} size="xs" />
                         Set profile photo
@@ -452,7 +452,7 @@ export default function WorkPage() {
                         variant="secondary"
                         size="sm"
                         onClick={() => router.push("/app/board")}
-                        className="rounded-xl border border-white/10 text-slate-300 hover:text-white"
+                        className="rounded-xl border border-border text-muted-foreground hover:text-foreground"
                       >
                         <IconBoard size={14} className="mr-1.5" /> Explore boards
                       </Button>
