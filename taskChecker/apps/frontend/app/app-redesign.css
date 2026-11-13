@@ -308,3 +308,52 @@ html:not(.dark) .tf-in-app {
   color: var(--tf-fg);
   border-color: var(--tf-border);
 }
+
+/* Contained Board Columns / Lanes */
+.tf-app-scope .lagoon-col,
+.tf-in-app .lagoon-col {
+  flex: 0 0 320px !important;
+  width: 320px !important;
+  min-width: 320px !important;
+  max-width: 320px !important;
+  border-radius: 12px !important;
+  background: var(--tf-hover-bg) !important;
+  border: 1px solid var(--tf-border) !important;
+  box-shadow: none !important;
+}
+
+/* Light mode column lane surface contrast */
+html:not(.dark) .tf-app-scope .lagoon-col,
+html:not(.dark).tf-in-app .lagoon-col,
+html:not(.dark) .tf-in-app .lagoon-col {
+  background: #e9edf3 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Board columns scroll container with snap */
+.tf-app-scope .lagoon-cols,
+.tf-in-app .lagoon-cols {
+  display: flex !important;
+  gap: 16px !important;
+  align-items: flex-start !important;
+}
+
+.tf-app-scope .lagoon-board-scroll,
+.tf-in-app .lagoon-board-scroll {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tf-app-scope .lagoon-col,
+.tf-in-app .lagoon-col {
+  scroll-snap-align: start;
+}
+
+/* Light mode card elevation */
+html:not(.dark) .tf-app-scope .tf-kanban-card,
+html:not(.dark).tf-in-app .tf-kanban-card,
+html:not(.dark) .tf-in-app .tf-kanban-card {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.09) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}

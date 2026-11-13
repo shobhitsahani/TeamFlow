@@ -118,15 +118,16 @@ export function clearLagoonMeta(taskId: string): void {
   }
 }
 
-/** Effective pill for a card: stored override wins, else priority default. */
+/** Effective pill for a card: stored custom tag if set, null otherwise (priority is shown separately). */
 export function effectiveLabel(
-  priority: Priority,
+  _priority: Priority,
   meta: LagoonTaskMeta,
 ): { text: string; tone: LagoonTone } | null {
-  const text = meta.label !== undefined ? meta.label : defaultLabelForPriority(priority);
-  if (!text || !text.trim()) return null;
-  const tone = meta.tone ?? toneForPriority(priority) ?? "purple";
-  return { text: text.trim(), tone };
+  if (meta.label && meta.label.trim()) {
+    const tone = meta.tone ?? "purple";
+    return { text: meta.label.trim(), tone };
+  }
+  return null;
 }
 
 /** "2026-09-25T…" -> "2026-09-25" for day-granularity comparisons. */

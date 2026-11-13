@@ -36,15 +36,29 @@ import { GlassSurface } from "@/components/ui/glass-surface";
 import { RealtimeStatusBadge } from "@/components/ui/realtime-status-badge";
 import { RoleBadge } from "@/components/ui/role-badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useTheme } from "@/components/theme-provider";
+import { Moon, Sun } from "lucide-react";
+import {
   IconBoard,
   IconCheck,
+  IconChevronDown,
   IconFolder,
   IconLayers,
   IconListTodo,
+  IconLogout,
   IconMessageSquare,
   IconPlus,
   IconPulse,
   IconSettings,
+  IconUser,
   IconUsers,
   IconX,
   IconSearch,
@@ -55,7 +69,6 @@ import { suggestLagoonKey } from "./lagoon-utils";
 import { LagoonWorkspaceNav } from "./LagoonWorkspaceNav";
 import { CreateOrgDialog, OrgGlyph } from "@/components/org/org-dialogs";
 import { UserAvatar } from "@/components/user/user-avatar";
-import { UserMenu } from "@/components/user/user-menu";
 import { PhotoComponent } from "@/components/user/photo-component";
 import { useUserPhoto } from "@/lib/avatar-store";
 
@@ -144,7 +157,8 @@ export function LagoonShell({
   const router = useRouter();
   const toast = useToast();
   const { org, orgs, setOrg, unread } = useTenant();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { theme, toggle: toggleTheme } = useTheme();
   const { photoUrl, setPhotoUrl } = useUserPhoto();
   const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
   const [showNewOrg, setShowNewOrg] = useState(false);
@@ -331,75 +345,77 @@ export function LagoonShell({
               </button>
             </div>
 
-            {/* Tenant isolation & Role header */}
+            {/* Scoped Tenant & Org Switcher Dropdown */}
             <div className="p-3">
-              <div className="flex flex-col gap-2 rounded-xl border border-[var(--tf-border)] bg-[var(--tf-hover-bg)] p-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <OrgGlyph name={org?.name ?? "Workspace"} hue={org?.hue ?? 0} size={24} />
-                    <span className="truncate text-xs font-semibold text-[var(--tf-fg)]">
-                      {org?.name ?? "Workspace"}
-                    </span>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label={`Switch organization. Current: ${org?.name ?? "Workspace"}`}
+                      className="group flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--tf-border)] bg-[var(--tf-hover-bg)] p-2 text-left hover:bg-[var(--tf-active-bg)] transition-all outline-none"
+                    />
+                  }
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <OrgGlyph name={org?.name ?? "Workspace"} hue={org?.hue ?? 0} size={22} />
+                    <div className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-semibold text-[var(--tf-fg)]">
+                        {org?.name ?? "Workspace"}
+                      </span>
+                      <div className="mt-0.5">
+                        <RoleBadge role={org?.role ?? "member"} />
+                      </div>
+                    </div>
                   </div>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <button
-                          type="button"
-                          aria-label="Create organization"
-                          onClick={() => setShowNewOrg(true)}
-                          className="rounded-md p-1 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] transition-colors"
-                        />
-                      }
-                    >
-                      <IconPlus size={14} />
-                    </TooltipTrigger>
-                    <TooltipContent>New organization</TooltipContent>
-                  </Tooltip>
-                </div>
-
-                {/* Scoped RBAC Role Badge */}
-                <div className="flex items-center justify-between border-t border-[var(--tf-border)] pt-1.5">
-                  <span className="text-[10px] font-medium text-[var(--tf-fg-muted)]">Permissions:</span>
-                  <RoleBadge role={org?.role ?? "member"} />
-                </div>
-              </div>
+                  <IconChevronDown size={14} className="shrink-0 text-[var(--tf-fg-muted)] group-hover:text-[var(--tf-fg)] transition-colors" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 glass-surface-2 p-1.5 shadow-xl">
+                  <DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tf-fg-muted)]">
+                    Organizations
+                  </DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    {orgs.map((o) => {
+                      const isCurrent = o.id === org?.id;
+                      return (
+                        <DropdownMenuItem
+                          key={o.id}
+                          closeOnClick
+                          disabled={isCurrent || switchingOrgId === o.id}
+                          onClick={() => void handleSwitchOrg(o.id, o.name)}
+                          className={cx(
+                            "flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg cursor-pointer",
+                            isCurrent && "bg-purple-500/15 text-purple-700 dark:text-purple-300 font-medium"
+                          )}
+                        >
+                          <OrgGlyph name={o.name} hue={o.hue} size={16} />
+                          <span className="truncate flex-1">{o.name}</span>
+                          <span className="text-[10px] capitalize text-[var(--tf-fg-muted)]">{o.role}</span>
+                          {isCurrent && <IconCheck size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
+                  <DropdownMenuItem
+                    closeOnClick
+                    onClick={() => setShowNewOrg(true)}
+                    className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]"
+                  >
+                    <IconPlus size={14} className="text-[var(--tf-fg-muted)]" />
+                    <span>Create organization</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    closeOnClick
+                    onClick={() => router.push("/app/settings")}
+                    className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]"
+                  >
+                    <IconSettings size={14} />
+                    <span>Organization settings</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-
-            {/* Organizations Switcher */}
-            {orgs.length > 1 && (
-              <nav className="px-3 pb-2" aria-label="Organizations">
-                <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider uppercase text-[var(--tf-fg-muted)] select-none">
-                  Switch Org
-                </p>
-                <div className="flex flex-col gap-1 max-h-28 overflow-y-auto pr-1">
-                  {orgs.map((o) => {
-                    const isCurrent = o.id === org?.id;
-                    return (
-                      <button
-                        key={o.id}
-                        type="button"
-                        className={cx(
-                          "flex items-center gap-2 w-full px-2 py-1 text-xs rounded-lg text-left transition-colors",
-                          isCurrent
-                            ? "bg-purple-600/15 text-purple-700 dark:text-purple-200 font-medium border border-purple-500/30"
-                            : "text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]",
-                        )}
-                        onClick={() => {
-                          if (!isCurrent) void handleSwitchOrg(o.id, o.name);
-                        }}
-                        aria-current={isCurrent ? "true" : undefined}
-                        disabled={switchingOrgId === o.id}
-                      >
-                        <OrgGlyph name={o.name} hue={o.hue} size={14} />
-                        <span className="truncate flex-1">{o.name}</span>
-                        {isCurrent ? <IconCheck size={12} className="text-purple-600 dark:text-purple-400 shrink-0" /> : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </nav>
-            )}
 
             {/* Navigation items */}
             <LagoonWorkspaceNav items={nav} onNavigate={() => setSidebarOpen(false)} />
@@ -485,34 +501,89 @@ export function LagoonShell({
               </div>
             </nav>
 
-            {/* Sidebar User Profile Footer */}
+            {/* Single User Menu in Sidebar Footer with Theme Switcher */}
             <div className="p-3 border-t border-[var(--tf-border)] bg-[var(--tf-hover-bg)]">
-              <div className="flex items-center justify-between gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setPhotoModalOpen(true)}
-                  className="flex items-center gap-2.5 min-w-0 text-left rounded-xl p-1 -m-1 hover:bg-[var(--tf-hover-bg)] transition-colors group flex-1"
-                  title="Click to change photo"
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label={`User menu for ${user?.name ?? "User"}`}
+                      className="group flex w-full items-center justify-between gap-2.5 rounded-xl p-1 text-left hover:bg-[var(--tf-hover-bg)] transition-colors outline-none"
+                    />
+                  }
                 >
-                  <UserAvatar
-                    name={user?.name ?? "User"}
-                    src={photoUrl}
-                    seed={user?.id}
-                    size="default"
-                    status="online"
-                    editable
-                  />
-                  <div className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold text-[var(--tf-fg)] truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
-                      {user?.name ?? "User"}
-                    </span>
-                    <span className="block text-[10px] text-[var(--tf-fg-muted)] truncate">
-                      {user?.email ?? "online"}
-                    </span>
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <UserAvatar
+                      name={user?.name ?? "User"}
+                      src={photoUrl}
+                      seed={user?.id}
+                      size="default"
+                      status="online"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-xs font-semibold text-[var(--tf-fg)] truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                        {user?.name ?? "User"}
+                      </span>
+                      <span className="block text-[10px] text-[var(--tf-fg-muted)] truncate">
+                        {user?.email ?? "online"}
+                      </span>
+                    </div>
                   </div>
-                </button>
-                <UserMenu onOpenPalette={openPalette} onOpenNotifs={openNotifs} />
-              </div>
+                  <IconChevronDown size={14} className="shrink-0 text-[var(--tf-fg-muted)] group-hover:text-[var(--tf-fg)] transition-colors" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 glass-surface-2 p-1.5 shadow-xl">
+                  <DropdownMenuLabel className="px-2 py-1.5">
+                    <div className="text-xs font-semibold text-[var(--tf-fg)] truncate">{user?.name ?? "User"}</div>
+                    <div className="text-[10px] text-[var(--tf-fg-muted)] truncate">{user?.email}</div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
+                  <DropdownMenuItem
+                    closeOnClick
+                    onClick={() => router.push("/app/settings/profile")}
+                    className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg cursor-pointer"
+                  >
+                    <IconUser size={14} />
+                    <span>Profile settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    closeOnClick
+                    onClick={() => setPhotoModalOpen(true)}
+                    className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg cursor-pointer"
+                  >
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--tf-fg-muted)]">
+                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                      <circle cx="12" cy="13" r="3" />
+                    </svg>
+                    <span>Change avatar photo</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    closeOnClick={false}
+                    onClick={() => toggleTheme()}
+                    className="flex items-center justify-between px-2 py-1.5 text-xs rounded-lg cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      {theme === "dark" ? <Moon size={14} className="text-purple-400" /> : <Sun size={14} className="text-amber-500" />}
+                      <span>Theme: {theme === "dark" ? "Dark" : "Light"}</span>
+                    </span>
+                    <span className="text-[10px] text-[var(--tf-fg-muted)] font-mono">Toggle</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
+                  <DropdownMenuItem
+                    closeOnClick
+                    variant="destructive"
+                    onClick={async () => {
+                      await logout();
+                      toast({ title: "Signed out", msg: "Session ended — see you soon." });
+                      router.replace("/auth/sign-in");
+                    }}
+                    className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg cursor-pointer text-red-500 focus:text-red-500"
+                  >
+                    <IconLogout size={14} />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </GlassSurface>
 

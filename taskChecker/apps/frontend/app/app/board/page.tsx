@@ -35,9 +35,8 @@ import { useTenant } from "@/components/store";
 import { useSWR } from "@/lib/swr";
 import { useRealtime } from "@/lib/realtime";
 import { useUpdateTask } from "@/lib/mutations";
-import { AnimatePresence, DUR, LAYOUT_SPRING, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
+import { AnimatePresence, DUR, LAYOUT_SPRING, MOTION_SPRINGS, motion, PageEnter, useLayoutReady, viewFade } from "@/components/motion";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
-import { CinematicThemeSwitcher } from "@/components/ui/cinematic-theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -240,146 +239,178 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
     <Card
       data-slot="lagoon-card-inner"
       className={cx(
-        "lagoon-card cursor-grab tf-kanban-card",
-        dragging && "is-dragging opacity-45",
-        isDone && "is-done opacity-70",
+        "lagoon-card cursor-grab tf-kanban-card group p-3 flex flex-col gap-2 rounded-xl transition-all",
+        dragging && "is-dragging opacity-40 scale-[0.98]",
+        isDone && "is-done opacity-65",
         recentlyUpdated && "tf-realtime-pulsing"
       )}
     >
-      {/* Task key line — compact mono identifier above the title.
-          Short id keeps long UUIDs from stretching the card. */}
-      <span className="mb-2 block font-mono tabular-nums" style={{ fontSize: 11, color: "var(--lagoon-muted-fg)" }} aria-hidden="true">
-        LGN-{task.id.slice(0, 8).toUpperCase()}
-      </span>
-      {(label || (task.priority && task.priority !== "none")) && (
-        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+      {/* Title First (2-line clamp, strong weight) + Mono ID */}
+      <div className="flex items-start justify-between gap-2">
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <h3 className="text-xs font-semibold text-[var(--tf-fg)] line-clamp-2 leading-snug group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" />
+            }
+          >
+            {displayTitle}
+          </TooltipTrigger>
+          <TooltipContent>{displayTitle}</TooltipContent>
+        </Tooltip>
+        <span className="shrink-0 font-mono text-[10px] text-[var(--tf-fg-muted)] tabular-nums" aria-hidden="true">
+          LGN-{task.id.slice(0, 4).toUpperCase()}
+        </span>
+      </div>
+
+      {/* Description if present (1-line clamp, muted) */}
+      {task.description ? (
+        <p className="line-clamp-1 text-[11px] text-[var(--tf-fg-muted)] leading-tight -mt-0.5">
+          {task.description}
+        </p>
+      ) : null}
+
+      {/* Single Meta Row */}
+      <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-[var(--tf-border)]/60 text-[11px] mt-auto">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+          {/* Single Priority indicator (icon + label) */}
           {task.priority && task.priority !== "none" ? (
             <span
-              className={cx("lagoon-card-prio", priorityTone(task.priority))}
+              className={cx(
+                "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md",
+                task.priority === "critical" && "bg-red-500/15 text-red-600 dark:text-red-400 font-semibold",
+                task.priority === "high" && "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold",
+                task.priority === "medium" && "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+                task.priority === "low" && "bg-slate-500/10 text-slate-500 dark:text-slate-400",
+              )}
               title={`Priority: ${PRIORITY_LABEL[task.priority] ?? task.priority}`}
             >
-              <span aria-hidden className="lagoon-card-prio-dot" />
+              <span className="size-1.5 rounded-full shrink-0" style={{ background: "currentColor" }} />
               {PRIORITY_LABEL[task.priority] ?? task.priority}
             </span>
           ) : null}
+
+          {/* Label dot / custom tag */}
           {label ? (
-            <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("lagoon-card-label border-0", `lg-pill-${label.tone}`)} style={{ marginBottom: 0 }}>{label.text}</Badge>
+            <Badge variant="secondary" title="Personal tag — only visible to you" className={cx("border-0 text-[10px] px-1.5 py-0", `lg-pill-${label.tone}`)}>
+              {label.text}
+            </Badge>
           ) : null}
-        </div>
-      )}
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <h3 className="lagoon-card-title line-clamp-3" />
-          }
-        >
-          {displayTitle}
-        </TooltipTrigger>
-        <TooltipContent>{displayTitle}</TooltipContent>
-      </Tooltip>
-      {task.description ? <p className="lagoon-card-desc mt-1.5 line-clamp-3">{task.description}</p> : null}
-      {assigneeName || due || meta.checklist.length > 0 || isDone || canWrite ? (
-      <div className="lagoon-card-foot">
-        {assigneeName ? (
-          <Avatar size="sm" title={assigneeName} style={{ background: lagoonAvatarTone(task.assigneeId ?? "?") }}>
-            <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 10 }}>
-              {lagoonInitials(assigneeName)}
-            </AvatarFallback>
-          </Avatar>
-        ) : null}
-        {due ? (
-          <Badge
-            variant="secondary"
-            className={cx(
-              "lagoon-due gap-1 font-medium tabular-nums",
-              due.status === "overdue" && !isDone && "is-overdue bg-destructive/10 text-destructive font-semibold",
-              due.status === "today" && "is-today font-semibold",
-            )}
-          >
-            <IconCalendar size={13} />
-            {due.status === "overdue" && !isDone ? `Overdue · ${due.text}` : due.text}
-          </Badge>
-        ) : null}
-        <span className="lagoon-card-stats ml-auto flex items-center gap-2 tabular-nums">
+
+          {/* Due date with overdue state */}
+          {due ? (
+            <Badge
+              variant="secondary"
+              className={cx(
+                "gap-1 text-[10px] font-medium tabular-nums px-1.5 py-0",
+                due.status === "overdue" && !isDone && "bg-destructive/15 text-destructive font-semibold",
+                due.status === "today" && "font-semibold",
+              )}
+            >
+              <IconCalendar size={11} />
+              {due.status === "overdue" && !isDone ? `Overdue · ${due.text}` : due.text}
+            </Badge>
+          ) : null}
+
+          {/* Subtask progress */}
           {meta.checklist.length > 0 ? (
-            <span className={cx(doneItems === meta.checklist.length && "is-complete")} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <IconListTodo size={13} />
+            <span
+              className={cx(
+                "inline-flex items-center gap-1 text-[10px] tabular-nums text-[var(--tf-fg-muted)]",
+                doneItems === meta.checklist.length && "text-emerald-600 dark:text-emerald-400 font-semibold"
+              )}
+            >
+              <IconListTodo size={11} />
               {doneItems}/{meta.checklist.length}
             </span>
           ) : null}
-          {isDone ? <IconCheck size={13} style={{ color: "var(--lagoon-success)" }} /> : null}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          {/* Quick actions (visible on hover/focus) */}
           {canWrite ? (
-            <DropdownMenu modal={false} open={moveOpen} onOpenChange={setMoveOpen}>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    className="lagoon-done-btn"
-                    aria-label={showTitle ? `Move ${titleText} to another list` : "Move untitled card to another list"}
-                    title="Move to another list (M)"
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                  />
-                }
-              >
-                <IconColumns size={14} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Move to</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  {moveTargets.map((t) => (
-                    <DropdownMenuItem
-                      key={t.status}
-                      closeOnClick
-                      disabled={t.status === task.status}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMove(task, t.status);
-                      }}
-                    >
-                      <span
-                        aria-hidden
-                        style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[t.status] ?? "var(--lagoon-muted-fg)", flex: "none" }}
+            <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex items-center gap-0.5">
+              <DropdownMenu modal={false} open={moveOpen} onOpenChange={setMoveOpen}>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="size-5 p-0 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]"
+                      aria-label={showTitle ? `Move ${titleText} to another list` : "Move untitled card to another list"}
+                      title="Move to another list (M)"
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    />
+                  }
+                >
+                  <IconColumns size={12} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 glass-surface-2 p-1">
+                  <DropdownMenuLabel className="text-[10px] uppercase font-semibold text-[var(--tf-fg-muted)]">Move to</DropdownMenuLabel>
+                  <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
+                  <DropdownMenuGroup>
+                    {moveTargets.map((t) => (
+                      <DropdownMenuItem
+                        key={t.status}
+                        closeOnClick
+                        disabled={t.status === task.status}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMove(task, t.status);
+                        }}
+                        className="text-xs px-2 py-1 cursor-pointer flex items-center gap-2"
+                      >
+                        <span
+                          aria-hidden
+                          style={{ width: 6, height: 6, borderRadius: 9999, background: STATUS_DOT[t.status] ?? "var(--lagoon-muted-fg)", flex: "none" }}
+                        />
+                        <span>{t.label}</span>
+                        {t.status === task.status ? (
+                          <IconCheck size={12} className="ml-auto" />
+                        ) : null}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {!isDone ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="size-5 p-0 text-[var(--tf-fg-muted)] hover:text-emerald-500 hover:bg-emerald-500/10"
+                        aria-label={showTitle ? `Mark ${titleText} as done` : "Mark untitled card as done"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDone(task);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
                       />
-                      {t.label}
-                      {t.status === task.status ? (
-                        <IconCheck size={14} style={{ marginLeft: "auto" }} />
-                      ) : null}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    }
+                  >
+                    <IconCheck size={12} />
+                  </TooltipTrigger>
+                  <TooltipContent>Mark as done</TooltipContent>
+                </Tooltip>
+              ) : null}
+            </div>
           ) : null}
-          {!isDone && canWrite ? (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    className="lagoon-done-btn"
-                    aria-label={showTitle ? `Mark ${titleText} as done` : "Mark untitled card as done"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDone(task);
-                    }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                  />
-                }
-              >
-                <IconCheck size={14} />
-              </TooltipTrigger>
-              <TooltipContent>Mark as done</TooltipContent>
-            </Tooltip>
+
+          {/* Assignee Avatar */}
+          {assigneeName ? (
+            <Avatar size="sm" title={assigneeName} className="size-5 shrink-0 ring-1 ring-[var(--tf-border)]" style={{ background: lagoonAvatarTone(task.assigneeId ?? "?") }}>
+              <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9 }}>
+                {lagoonInitials(assigneeName)}
+              </AvatarFallback>
+            </Avatar>
           ) : null}
-        </span>
+        </div>
       </div>
-      ) : null}
     </Card>
     </motion.div>
   );
@@ -412,7 +443,7 @@ function LagoonListTitle({
   if (!editing) {
     return (
       <h2
-        className="min-w-0 flex-1 truncate"
+        className="font-semibold text-xs text-[var(--tf-fg)] truncate max-w-[140px] shrink-0"
         title={canWrite ? "Rename list" : title}
         onClick={() => {
           if (canWrite) {
@@ -702,6 +733,27 @@ function LagoonBoard() {
       setView(viewParam);
     }
   }
+
+  // Inline-editable board title
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [boardTitleDraft, setBoardTitleDraft] = useState("");
+
+  const handleSaveBoardTitle = useCallback(async () => {
+    if (!selectedProjectId || !boardTitleDraft.trim() || boardTitleDraft.trim() === selectedProject?.name) {
+      setEditingTitle(false);
+      return;
+    }
+    const newName = boardTitleDraft.trim();
+    try {
+      await api.projects.update(selectedProjectId, { name: newName });
+      await projectsQ.mutate();
+      toast({ title: "Board renamed", msg: `Renamed to "${newName}".` });
+    } catch (err) {
+      toast({ title: "Rename failed", msg: errorDetail(err) ?? "Please try again.", kind: "err" });
+    } finally {
+      setEditingTitle(false);
+    }
+  }, [selectedProjectId, boardTitleDraft, selectedProject?.name, projectsQ, toast]);
 
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -1375,213 +1427,160 @@ function LagoonBoard() {
       <div role="status" aria-live="polite" className="sr-only">
         {announce}
       </div>
-      <header className="lagoon-header">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Open menu"
-                className="lagoon-icon-btn lagoon-only-mobile"
-                onClick={openMenu}
-              />
-            }
-          >
-            <IconMenu size={18} />
-          </TooltipTrigger>
-          <TooltipContent>Menu</TooltipContent>
-        </Tooltip>
-        <div style={{ minWidth: 0 }}>
-          <h1 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {selectedProject?.name ?? "Board"}
-          </h1>
-          <p className="lagoon-sub">{org?.name ?? "Workspace"}</p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-          <InputGroup variant="search" className="lagoon-search hidden min-w-0 sm:flex sm:w-56" data-lagoon-desktop-search>
-            <InputGroupAddon align="inline-start">
-              <IconSearch size={14} />
-            </InputGroupAddon>
-            <InputGroupInput
-              ref={searchInputRef}
-              type="search"
-              aria-label="Search tasks"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tasks… (/)"
-            />
-          </InputGroup>
-          <AvatarGroup className="items-center" data-lagoon-avatar-cluster>
-            {members
-              .filter((m) => user?.id == null || m.userId !== user.id)
-              .slice(0, 2)
-              .map((m) => {
-                const display = m.name ?? m.email ?? m.userId.slice(0, 4);
-                return (
-                  <span key={m.userId} className="contents">
-                    <Avatar
-                      title={display}
-                      size="sm"
-                      className="lagoon-avatar"
-                      style={{
-                        width: 28,
-                        height: 28,
-                        background: lagoonAvatarTone(m.userId),
-                      }}
-                    >
-                      <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9 }}>
-                        {lagoonInitials(display)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </span>
-                );
-              })}
-            {user && (
-              <DropdownMenu key="current-user-avatar" modal={false}>
-                <DropdownMenuTrigger
-                  render={
-                    <Avatar
-                      title={`${user.name} · Profile and settings`}
-                      size="sm"
-                      className="lagoon-avatar ring-1 ring-border/50"
-                      style={{
-                        width: 28,
-                        height: 28,
-                        background: lagoonAvatarTone(user.id),
-                        cursor: "pointer",
-                      }}
-                    >
-                      <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9, fontWeight: 700 }}>
-                        {lagoonInitials(user.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  }
-                  aria-label="Account menu, signed in as yourself"
+      {/* Board Header (Elevation 1 Glass) */}
+      <header className="lagoon-header flex items-center justify-between px-4 sm:px-6 py-2.5 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/30 backdrop-blur-md">
+        <div className="flex items-center gap-3 min-w-0">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Open menu"
+                  className="lagoon-icon-btn lg:hidden"
+                  onClick={openMenu}
                 />
-                <DropdownMenuContent align="end" className="w-60">
-                  <DropdownMenuLabel
-                    className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-muted/70 focus:bg-muted/70"
-                    onClick={() => router.push("/app/settings/profile")}
-                    title="Open full profile and settings"
+              }
+            >
+              <IconMenu size={18} />
+            </TooltipTrigger>
+            <TooltipContent>Menu</TooltipContent>
+          </Tooltip>
+
+          {/* Inline-editable Board Title */}
+          <div className="min-w-0 flex flex-col justify-center">
+            {editingTitle ? (
+              <input
+                autoFocus
+                value={boardTitleDraft}
+                onChange={(e) => setBoardTitleDraft(e.target.value)}
+                onBlur={() => void handleSaveBoardTitle()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleSaveBoardTitle();
+                  if (e.key === "Escape") setEditingTitle(false);
+                }}
+                className="text-base font-bold bg-transparent border-b-2 border-purple-500 text-[var(--tf-fg)] outline-none px-0.5 py-0"
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1
+                  onClick={() => {
+                    if (canWrite) {
+                      setBoardTitleDraft(selectedProject?.name ?? "");
+                      setEditingTitle(true);
+                    }
+                  }}
+                  className={cx(
+                    "text-base font-bold text-[var(--tf-fg)] truncate tracking-tight",
+                    canWrite && "cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                  )}
+                  title={canWrite ? "Click to rename board" : undefined}
+                >
+                  {selectedProject?.name ?? "Board"}
+                </h1>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        onClick={toggleStarred}
+                        className="text-[var(--tf-fg-muted)] hover:text-amber-400 transition-colors p-0.5"
+                        aria-label={starred ? "Unstar board" : "Star board"}
+                      />
+                    }
                   >
-                    <span className="flex items-center gap-2">
-                      <Avatar className="size-7">
-                        <AvatarFallback
-                          style={{
-                            background: lagoonAvatarTone(user.id),
-                            color: "#fff",
-                            fontSize: 11,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {lagoonInitials(user.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="min-w-0 flex-1">
-                        <span className="block max-w-full truncate text-sm font-semibold text-foreground">
-                          {user.name}
-                        </span>
-                        {user.email ? (
-                          <span className="block max-w-full truncate text-xs font-normal text-muted-foreground">
-                            {user.email}
-                          </span>
-                        ) : null}
-                      </span>
-                    </span>
-                    <span className="mt-1.5 block text-[11px] font-semibold text-primary">
-                      Manage profile & settings →
-                    </span>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings/profile")}>
-                      <IconUser size={16} />
-                      Profile & Account Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem closeOnClick onClick={() => router.push("/app/settings")}>
-                      <IconBuilding size={16} />
-                      Workspace Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem closeOnClick onClick={openNotifs}>
-                      <IconBell size={16} />
-                      Notifications
-                      {unread > 0 ? (
-                        <Badge variant="secondary" className="ml-auto tabular-nums">{unread}</Badge>
-                      ) : null}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    closeOnClick
-                    variant="destructive"
-                    onClick={async () => {
-                      await logout();
-                      toast({ title: "Signed out", msg: "Session ended — see you soon." });
-                      router.replace("/auth/sign-in");
-                    }}
-                  >
-                    <IconLogout size={16} />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}</AvatarGroup>
+                    <IconStar size={14} style={starred ? { color: "var(--lagoon-gold)", fill: "var(--lagoon-gold)" } : undefined} />
+                  </TooltipTrigger>
+                  <TooltipContent>{starred ? "Starred" : "Star board"}</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+            <p className="text-[11px] text-[var(--tf-fg-muted)] truncate">{org?.name ?? "Workspace"}</p>
+          </div>
+        </div>
+
+        {/* Center: View Switcher with Sliding Indicator */}
+        <div className="hidden md:flex items-center rounded-xl bg-black/5 dark:bg-white/5 p-1 border border-[var(--tf-border)] shadow-xs" role="tablist" aria-label="Board view switcher">
+          {(["board", "timeline", "calendar"] as const).map((tab) => {
+            const isSelected = view === tab;
+            const Icon = tab === "board" ? IconColumns : tab === "timeline" ? IconList : IconCalendar;
+            const label = tab.charAt(0).toUpperCase() + tab.slice(1);
+            return (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setView(tab)}
+                className={cx(
+                  "relative z-10 flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg transition-colors select-none outline-none",
+                  isSelected ? "text-[var(--tf-fg)] font-semibold" : "text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)]"
+                )}
+              >
+                {isSelected && (
+                  <motion.div
+                    layoutId="tf-board-view-pill"
+                    className="absolute inset-0 z-[-1] rounded-lg bg-[var(--tf-card-bg)] shadow-xs border border-[var(--tf-border)]"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <Icon size={13} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right: Board options & Primary Create Button */}
+        <div className="flex items-center gap-2">
+          {/* Board Options Dropdown (Star / Theme Variant) */}
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger
               render={
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon"
+                  size="icon-sm"
                   aria-label="Board options"
-                  className="lagoon-icon-btn relative"
+                  className="rounded-lg text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]"
                 />
               }
             >
-              <span className="relative inline-flex">
-                <IconMoreHorizontal size={18} />
-                {unread > 0 ? (
-                  <Badge className="absolute top-0 right-0 border-0 p-0" style={{ width: 8, height: 8, borderRadius: 9999, background: "var(--lagoon-green)", padding: 0 }}>
-                    <span className="sr-only">{unread} unread notifications</span>
-                  </Badge>
-                ) : null}
-              </span>
+              <IconMoreHorizontal size={16} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem closeOnClick onClick={openNotifs}>
-                <IconBell size={16} />
-                Notifications
+            <DropdownMenuContent align="end" className="w-48 glass-surface-2 p-1.5 shadow-xl">
+              <DropdownMenuItem closeOnClick onClick={openNotifs} className="text-xs">
+                <IconBell size={14} />
+                <span>Notifications</span>
                 {unread > 0 ? (
-                  <Badge variant="secondary" className="ml-auto tabular-nums">{unread}</Badge>
+                  <Badge variant="secondary" className="ml-auto text-[10px] tabular-nums">{unread}</Badge>
                 ) : null}
               </DropdownMenuItem>
-              <DropdownMenuItem closeOnClick onClick={toggleStarred}>
-                <IconStar size={16} style={starred ? { color: "var(--lagoon-gold)" } : undefined} />
-                {starred ? "Unstar board" : "Star board"}
+              <DropdownMenuItem closeOnClick onClick={toggleStarred} className="text-xs">
+                <IconStar size={14} style={starred ? { color: "var(--lagoon-gold)" } : undefined} />
+                <span>{starred ? "Unstar board" : "Star board"}</span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Theme variant</DropdownMenuLabel>
+              <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
+              <DropdownMenuLabel className="text-[10px] uppercase font-semibold text-[var(--tf-fg-muted)]">Theme variant</DropdownMenuLabel>
               <DropdownMenuRadioGroup value={variant} onValueChange={(v) => setVariant(v as "" | "drydock" | "chartroom" | "pier")}>
                 {VARIANTS.map((opt) => (
-                  <DropdownMenuRadioItem key={opt.label} value={opt.value} closeOnClick>
+                  <DropdownMenuRadioItem key={opt.label} value={opt.value} closeOnClick className="text-xs">
                     {opt.label}
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          <CinematicThemeSwitcher size="sm" />
-          {/* Calendar view owns creation via the EventManager's New Event
-              action — one primary CTA per screen, never two side by side. */}
+
+          {/* Primary Create Button */}
           {view !== "calendar" ? (
             <Tooltip>
               <TooltipTrigger
                 render={
                   <Button
                     type="button"
-                    className="lagoon-create-btn h-8 border-0"
+                    className="h-8 px-3 text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-xs rounded-lg flex items-center gap-1.5"
                     onClick={() => {
                       if (!canWrite) return;
                       setComposerText("");
@@ -1592,117 +1591,126 @@ function LagoonBoard() {
                   />
                 }
               >
-                <IconPlus size={14} /> <span data-lagoon-create-label>Create</span>
+                <IconPlus size={14} />
+                <span data-lagoon-create-label>Create</span>
               </TooltipTrigger>
-              {!canWrite ? (
-                <TooltipContent>Viewers have read-only access</TooltipContent>
-              ) : null}
-            </Tooltip>
-          ) : null}
+            {!canWrite ? (
+              <TooltipContent>Viewers have read-only access</TooltipContent>
+            ) : null}
+          </Tooltip>
+        ) : null}
         </div>
       </header>
 
-      <div className="lagoon-filterbar" role="toolbar" aria-label="Board view and filters">
-        <div role="group" aria-label="View" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
-          <Button type="button" variant="ghost" size="sm" className={cx("lagoon-view-btn border relative", view === "board" && "is-on")} aria-pressed={view === "board"} onClick={() => setView("board")}>
-            {view === "board" ? (
-              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
-            ) : null}
-            <IconColumns size={14} /> Board
-          </Button>
-          <Button type="button" variant="ghost" size="sm" className={cx("lagoon-view-btn border relative", view === "timeline" && "is-on")} aria-pressed={view === "timeline"} onClick={() => setView("timeline")}>
-            {view === "timeline" ? (
-              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
-            ) : null}
-            <IconList size={14} /> Timeline
-          </Button>
-          <Button type="button" variant="ghost" size="sm" className={cx("lagoon-view-btn border relative", view === "calendar" && "is-on")} aria-pressed={view === "calendar"} onClick={() => setView("calendar")}>
-            {view === "calendar" ? (
-              <motion.span layoutId="lagoon-view-tab" transition={LAYOUT_SPRING} aria-hidden className="absolute inset-x-2.5 bottom-1 h-0.5 rounded-full bg-[var(--lagoon-purple)]" />
-            ) : null}
-            <IconCalendar size={14} /> Calendar
-          </Button>
-        </div>
-        <Separator orientation="vertical" className="mx-1 h-6 hidden md:block" aria-hidden />
-        <div role="group" aria-label="Filter by your personal tags, only visible to you" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="lagoon-tone-label" aria-hidden>
-            Your tags
-          </span>
-          {LAGOON_TONES.map((tone) => (
-            <Tooltip key={tone}>
-              <TooltipTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={toneFilter === tone ? `Clear ${tone} personal tag filter, ${toneCounts[tone]} cards` : `Filter by your ${tone} personal tags, ${toneCounts[tone]} cards, only you see these`}
-                    aria-pressed={toneFilter === tone}
-                    onClick={() => setToneFilter((v) => (v === tone ? null : tone))}
-                    className={cx("lagoon-tone-btn rounded-full", toneFilter === tone && "is-on")}
-                    style={{ background: "var(--lagoon-card)", position: "relative" }}
-                  />
-                }
-              >
-                <span style={{ width: 12, height: 12, borderRadius: 9999, background: `var(--lagoon-${tone})` }} />
-                <span
-                  aria-hidden
-                  className="tabular-nums"
-                  style={{
-                    position: "absolute",
-                    right: -6,
-                    bottom: -6,
-                    minWidth: 18,
-                    height: 18,
-                    padding: "0 4px",
-                    display: "grid",
-                    placeItems: "center",
-                    borderRadius: 9999,
-                    background: "var(--lagoon-ink)",
-                    color: "var(--lagoon-surface)",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    lineHeight: 1,
-                  }}
-                >
-                  {toneCounts[tone]}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{tone} personal tags · {toneCounts[tone]} card{toneCounts[tone] === 1 ? "" : "s"} — only you see these{toneFilter === tone ? " · click again to clear" : ""}</TooltipContent>
-            </Tooltip>
+      {/* Filter Bar (Elevation 1 Glass) */}
+      <div className="lagoon-filterbar flex items-center justify-between px-4 sm:px-6 py-2 border-b border-[var(--tf-border)] gap-3 bg-[var(--tf-hover-bg)]/20" role="toolbar" aria-label="Board filters">
+        {/* Mobile View Switcher */}
+        <div className="flex md:hidden items-center rounded-xl bg-black/5 dark:bg-white/5 p-1 border border-[var(--tf-border)]" role="tablist">
+          {(["board", "timeline", "calendar"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={view === tab}
+              onClick={() => setView(tab)}
+              className={cx(
+                "px-2.5 py-0.5 text-xs font-medium rounded-lg capitalize",
+                view === tab ? "bg-[var(--tf-card-bg)] text-[var(--tf-fg)] font-semibold shadow-xs" : "text-[var(--tf-fg-muted)]"
+              )}
+            >
+              {tab}
+            </button>
           ))}
+        </div>
+
+        {/* Tag chips with INLINE counts */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0" role="group" aria-label="Filter by tags">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--tf-fg-muted)] select-none">
+            Tags:
+          </span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {LAGOON_TONES.map((tone) => {
+              const isSelected = toneFilter === tone;
+              return (
+                <button
+                  key={tone}
+                  type="button"
+                  onClick={() => setToneFilter((v) => (v === tone ? null : tone))}
+                  className={cx(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all border outline-none",
+                    isSelected
+                      ? "bg-purple-500/15 border-purple-500/40 text-[var(--tf-fg)] font-semibold shadow-xs"
+                      : "bg-[var(--tf-card-bg)] border-[var(--tf-border)] text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:border-[var(--tf-border-strong)]"
+                  )}
+                  title={`Filter by ${tone} personal tags (${toneCounts[tone]} cards)`}
+                  aria-pressed={isSelected}
+                >
+                  <span className="size-2 rounded-full shrink-0" style={{ background: `var(--lagoon-${tone})` }} />
+                  <span className="capitalize text-[11px]">{tone}</span>
+                  <span className="text-[10px] tabular-nums font-semibold opacity-75">
+                    {toneCounts[tone]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {toneFilter || activeOnly || deferredSearch.trim() ? (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="ml-1 h-9 px-2.5 text-[13px] font-medium"
+              className="h-7 px-2 text-xs text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)]"
               onClick={() => {
                 setToneFilter(null);
                 setActiveOnly(false);
                 setSearch("");
               }}
             >
-              <IconX size={14} /> Clear
+              <IconX size={13} className="mr-1" /> Clear
             </Button>
           ) : null}
         </div>
-        <div role="group" aria-label="Task scope" data-lagoon-scope style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
-          <Button type="button" variant={activeOnly ? "secondary" : "outline"} size="sm" className={cx("lagoon-toggle-btn", activeOnly && "is-on")} aria-pressed={activeOnly} onClick={() => setActiveOnly((v) => !v)}>
-            <IconSliders size={14} /> {activeOnly ? "Active only" : "All tasks"}
+
+        {/* Right side of filter bar: Member Avatars and Task Scope toggle */}
+        <div className="flex items-center gap-3 shrink-0 ml-auto">
+          {/* Member avatars */}
+          {members.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <AvatarGroup className="items-center" data-lagoon-avatar-cluster>
+                {members.slice(0, 3).map((m) => {
+                  const display = m.name ?? m.email ?? m.userId.slice(0, 4);
+                  return (
+                    <Avatar
+                      key={m.userId}
+                      title={display}
+                      size="sm"
+                      className="size-6 ring-1 ring-[var(--tf-border)]"
+                      style={{ background: lagoonAvatarTone(m.userId) }}
+                    >
+                      <AvatarFallback style={{ background: "transparent", color: "#fff", fontSize: 9 }}>
+                        {lagoonInitials(display)}
+                      </AvatarFallback>
+                    </Avatar>
+                  );
+                })}
+              </AvatarGroup>
+            </div>
+          )}
+
+          {/* Scope toggle */}
+          <Button
+            type="button"
+            variant={activeOnly ? "secondary" : "outline"}
+            size="sm"
+            className={cx("h-7 px-2.5 text-xs font-medium rounded-lg border-[var(--tf-border)]", activeOnly && "bg-purple-500/15 border-purple-500/30 text-purple-700 dark:text-purple-300")}
+            aria-pressed={activeOnly}
+            onClick={() => setActiveOnly((v) => !v)}
+          >
+            <IconSliders size={13} className="mr-1.5" />
+            {activeOnly ? "Active only" : "All tasks"}
           </Button>
         </div>
-        <InputGroup variant="search" className="lagoon-search w-full" data-lagoon-mobile-search>
-          <InputGroupAddon align="inline-start">
-            <IconSearch size={14} />
-          </InputGroupAddon>
-          <InputGroupInput
-            aria-label="Search tasks on mobile"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tasks…"
-          />
-        </InputGroup>
       </div>
 
       {tasksQ.error && selectedProjectId ? (
@@ -1749,15 +1757,39 @@ function LagoonBoard() {
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => void handleDrop(e, col.status)}
               >
-                <div className="lagoon-col-head">
-                  <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[col.status], flex: "none" }} />
-                  <LagoonListTitle
-                    status={col.status as Task["status"]}
-                    title={labelFor(col.status)}
-                    canWrite={canWrite}
-                    onRename={handleRenameList}
-                  />
-                  <Badge variant="secondary" className="lagoon-col-count flex-none border tabular-nums">{col.tasks.length}</Badge>
+                <div className="flex items-center justify-between pb-1.5 px-0.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[col.status], flex: "none" }} />
+                    <LagoonListTitle
+                      status={col.status as Task["status"]}
+                      title={labelFor(col.status)}
+                      canWrite={canWrite}
+                      onRename={handleRenameList}
+                    />
+                    <span className="text-[11px] font-semibold text-[var(--tf-fg-muted)] tabular-nums px-1.5 py-0.2 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--tf-border)] shrink-0">
+                      {col.tasks.length}
+                    </span>
+                  </div>
+                  {canWrite && (
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setComposerText("");
+                              setComposerFor(col.status as Task["status"]);
+                            }}
+                            className="p-1 rounded-md text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] transition-colors"
+                            aria-label={`Add card to ${labelFor(col.status)}`}
+                          />
+                        }
+                      >
+                        <IconPlus size={14} />
+                      </TooltipTrigger>
+                      <TooltipContent>Add card to {labelFor(col.status)}</TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
                 <div className={cx("lagoon-col-body", draggedTaskId && "is-dragging", dragOverCol === col.status && "is-dragover")} role="list" aria-label={`${labelFor(col.status)} cards`}>
                   <AnimatePresence initial={false} mode="popLayout">
@@ -1789,21 +1821,16 @@ function LagoonBoard() {
                     ))}
                   </AnimatePresence>
                   {col.tasks.length === 0 && composerFor !== col.status ? (
-                    <div className="st-empty-quiet">
-                      <p style={{ fontWeight: 600, color: "var(--lagoon-ink)" }}>
+                    <div className="flex flex-col items-center justify-center py-7 px-4 border border-dashed border-[var(--tf-border)] rounded-xl text-center bg-black/[0.01] dark:bg-white/[0.01]">
+                      <p className="text-xs font-medium text-[var(--tf-fg-muted)]">
                         {deferredSearch.trim() || toneFilter || activeOnly ? "No matching cards" : "No cards yet"}
-                      </p>
-                      <p style={{ marginTop: 4 }}>
-                        {deferredSearch.trim() || toneFilter || activeOnly
-                          ? "Try clearing filters to see more."
-                          : `Add the first card to ${labelFor(col.status)}.`}
                       </p>
                       {deferredSearch.trim() || toneFilter || activeOnly ? (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="mt-2 h-8"
+                          className="mt-2 h-7 text-xs"
                           onClick={() => {
                             setToneFilter(null);
                             setActiveOnly(false);
@@ -1812,6 +1839,17 @@ function LagoonBoard() {
                         >
                           Clear filters
                         </Button>
+                      ) : canWrite ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setComposerText("");
+                            setComposerFor(col.status as Task["status"]);
+                          }}
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline"
+                        >
+                          <IconPlus size={12} /> Add card
+                        </button>
                       ) : null}
                     </div>
                   ) : null}
