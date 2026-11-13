@@ -21,7 +21,7 @@ import { api, getCurrentTenantId, type Task, type Project } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSWR } from "@/lib/swr";
 import { cx, isOverdue } from "@/lib/utils";
-import { lagoonAvatarTone, toneForPriority } from "@/components/lagoon/lagoon-utils";
+import { toneForPriority } from "@/components/lagoon/lagoon-utils";
 import { UserAvatar } from "@/components/user/user-avatar";
 import { PhotoComponent } from "@/components/user/photo-component";
 import { useUserPhoto } from "@/lib/avatar-store";
