@@ -19,7 +19,7 @@ const chatBubbleVariants = cva("group relative w-full transition-colors", {
       sent: "flex justify-end items-start",
     },
     layout: {
-      stream: "flex justify-start items-start gap-3 px-3 py-1.5 -mx-1 rounded-xl hover:bg-white/[0.04]",
+      stream: "flex justify-start items-start gap-3 px-3 py-1.5 -mx-1 rounded-xl hover:bg-[var(--tf-hover-bg)]/70",
       bubble: "w-full",
     },
   },
@@ -88,12 +88,12 @@ export function ChatBubbleAvatar({
       {src ? (
         <Avatar className="size-full">
           <AvatarImage src={src} alt={name} />
-          <AvatarFallback className="text-xs font-medium bg-[#1e2638] text-slate-200">
+          <AvatarFallback className="text-xs font-medium bg-[var(--tf-hover-bg)] text-[var(--tf-fg)]">
             {initials}
           </AvatarFallback>
         </Avatar>
       ) : (
-        <div className="size-full rounded-full overflow-hidden bg-[#1a2232] ring-1 ring-white/12 shadow-xs">
+        <div className="size-full rounded-full overflow-hidden bg-[var(--tf-hover-bg)] ring-1 ring-[var(--tf-border)] shadow-xs">
           <Blobatar
             name={name}
             animate="hover"
@@ -105,8 +105,8 @@ export function ChatBubbleAvatar({
       {isOnline !== undefined && (
         <span
           className={cn(
-            "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-[#0c1017]",
-            isOnline ? "bg-emerald-500" : "bg-slate-500"
+            "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-[var(--app-canvas-bg)]",
+            isOnline ? "bg-emerald-500" : "bg-slate-400"
           )}
           title={isOnline ? "Online" : "Offline"}
         />
@@ -125,12 +125,12 @@ const chatBubbleMessageVariants = cva(
     variants: {
       variant: {
         received:
-          "bg-[#18202d] text-slate-100 border border-white/8 rounded-2xl shadow-sm px-3.5 py-2",
+          "bg-[var(--tf-card-bg)] text-[var(--tf-fg)] border border-[var(--tf-border)] rounded-2xl shadow-xs px-3.5 py-2",
         sent:
-          "bg-indigo-600 text-white rounded-2xl shadow-sm px-3.5 py-2",
+          "bg-purple-600 text-white rounded-2xl shadow-xs px-3.5 py-2",
       },
       layout: {
-        stream: "w-full bg-transparent border-0 shadow-none p-0 text-slate-200",
+        stream: "w-full bg-transparent border-0 shadow-none p-0 text-[var(--tf-fg)]",
         bubble: "w-fit max-w-full min-w-0",
       },
     },
@@ -188,13 +188,13 @@ export function ChatBubbleTimestamp({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-[11px] text-slate-400 select-none font-mono whitespace-nowrap",
+        "inline-flex items-center gap-1 text-[11px] text-[var(--tf-fg-muted)] select-none font-mono whitespace-nowrap",
         className
       )}
       {...props}
     >
       <span>{timestamp}</span>
-      {isSent && <CheckCheck className="size-3 text-indigo-300" aria-label="Sent" />}
+      {isSent && <CheckCheck className="size-3 text-purple-200" aria-label="Sent" />}
     </span>
   );
 }
@@ -235,7 +235,7 @@ export function ChatBubbleAction({
       className={cn(
         "absolute -top-7 z-20 hidden group-hover:flex items-center gap-0.5",
         isOwn ? "right-0" : "left-0",
-        "rounded-lg border border-white/12 bg-[#161c28]/98 backdrop-blur-md px-1 py-0.5 shadow-xl",
+        "rounded-lg border border-[var(--tf-border-strong)] bg-[var(--tf-card-bg)]/98 backdrop-blur-md px-1 py-0.5 shadow-xl text-[var(--tf-fg)]",
         "animate-in fade-in zoom-in-95 duration-100",
         className
       )}
@@ -245,7 +245,7 @@ export function ChatBubbleAction({
           <button
             key={emoji}
             type="button"
-            className="flex size-6 items-center justify-center rounded hover:bg-white/10 text-sm transition-transform active:scale-115"
+            className="flex size-6 items-center justify-center rounded hover:bg-[var(--tf-hover-bg)] text-sm transition-transform active:scale-115"
             title={`React ${emoji}`}
             onClick={() => onReact(emoji)}
           >
@@ -256,18 +256,18 @@ export function ChatBubbleAction({
       {onCopy && (
         <button
           type="button"
-          className="flex size-6 items-center justify-center rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="flex size-6 items-center justify-center rounded text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] transition-colors"
           title={copied ? "Copied!" : "Copy message"}
           onClick={handleCopy}
         >
-          {copied ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
+          {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
         </button>
       )}
 
       {isOwn && onDelete && (
         <button
           type="button"
-          className="flex size-6 items-center justify-center rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+          className="flex size-6 items-center justify-center rounded text-[var(--tf-fg-muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
           title="Delete message"
           onClick={onDelete}
         >
@@ -315,8 +315,8 @@ export function ChatBubbleReactions({
             className={cn(
               "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs transition-all duration-150 border select-none",
               isMe
-                ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300 font-medium shadow-xs"
-                : "bg-[#18202d] border-white/10 text-slate-300 hover:bg-white/10 hover:text-white"
+                ? "bg-purple-500/15 border-purple-500/35 text-purple-600 dark:text-purple-300 font-medium shadow-xs"
+                : "bg-[var(--tf-card-bg)] border-[var(--tf-border)] text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]"
             )}
             title={`${r.count} ${r.count === 1 ? "reaction" : "reactions"}`}
           >

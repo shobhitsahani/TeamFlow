@@ -82,29 +82,32 @@ export function ChatAudioPlayer({
     return (
       <div
         className={cn(
-          "flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors max-w-sm",
-          "bg-[#151c27] border-white/10 text-slate-200",
+          "flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors max-w-sm shadow-xs",
+          isOwn
+            ? "bg-purple-700/30 border-purple-400/30 text-white"
+            : "bg-[var(--tf-card-bg)] border-[var(--tf-border)] text-[var(--tf-fg)]",
           className
         )}
       >
-        <div className="size-9 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500/20 text-indigo-400">
+        <div className="size-9 rounded-lg flex items-center justify-center shrink-0 bg-purple-500/20 text-purple-600 dark:text-purple-300">
           <FileText className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-medium truncate text-white">{name}</div>
-          {size && (
-            <div className="text-[10px] font-mono text-slate-400">
+          <div className="text-xs font-medium truncate text-current">{name}</div>
+          {size ? (
+            <div className={cn("text-[10px] font-mono", isOwn ? "text-purple-200" : "text-[var(--tf-fg-muted)]")}>
               {formatBytes(size)}
             </div>
-          )}
+          ) : null}
         </div>
         <a
           href={url}
           download={name}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-1.5 rounded-lg transition-colors hover:bg-white/10 shrink-0 text-slate-400 hover:text-white"
+          className="p-1.5 rounded-lg transition-colors hover:bg-[var(--tf-hover-bg)] shrink-0 text-current opacity-80 hover:opacity-100"
           title="Download file"
+          aria-label={`Download ${name}`}
         >
           <Download className="size-4" />
         </a>
@@ -116,8 +119,10 @@ export function ChatAudioPlayer({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 p-2.5 rounded-xl border select-none transition-colors w-68 max-w-full",
-        "bg-[#151c27] border-white/10 text-slate-200",
+        "flex flex-col gap-2 p-2.5 rounded-xl border select-none transition-colors w-68 max-w-full shadow-xs",
+        isOwn
+          ? "bg-purple-700/30 border-purple-400/30 text-white"
+          : "bg-[var(--tf-card-bg)] border-[var(--tf-border)] text-[var(--tf-fg)]",
         className
       )}
     >
@@ -135,16 +140,17 @@ export function ChatAudioPlayer({
         <button
           type="button"
           onClick={togglePlay}
-          className="size-8 rounded-full flex items-center justify-center shrink-0 shadow-md transition-transform active:scale-95 bg-indigo-600 text-white hover:bg-indigo-500"
+          className="size-8 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-95 bg-purple-600 text-white hover:bg-purple-500"
           title={isPlaying ? "Pause" : "Play"}
+          aria-label={isPlaying ? "Pause audio" : "Play audio"}
         >
           {isPlaying ? <Pause className="size-3.5 fill-current" /> : <Play className="size-3.5 fill-current ml-0.5" />}
         </button>
 
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center justify-between text-[11px] font-mono leading-none">
-            <span className="truncate font-medium text-slate-200">{name}</span>
-            <span className="text-slate-400">
+            <span className="truncate font-medium text-current">{name}</span>
+            <span className={cn(isOwn ? "text-purple-200" : "text-[var(--tf-fg-muted)]")}>
               {formatDuration(currentTime || duration)}
             </span>
           </div>
@@ -155,7 +161,8 @@ export function ChatAudioPlayer({
             max={duration || 100}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-white/15 accent-indigo-500"
+            aria-label="Seek audio position"
+            className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-[var(--tf-hover-bg)] accent-purple-600"
           />
         </div>
 
@@ -164,8 +171,9 @@ export function ChatAudioPlayer({
           download={name}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0 text-slate-400 hover:text-white"
+          className="p-1.5 rounded-lg hover:bg-[var(--tf-hover-bg)] transition-colors shrink-0 text-current opacity-80 hover:opacity-100"
           title="Download audio"
+          aria-label={`Download ${name}`}
         >
           <Download className="size-3.5" />
         </a>

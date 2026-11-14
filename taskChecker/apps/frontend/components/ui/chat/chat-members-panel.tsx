@@ -55,40 +55,44 @@ export function ChatMembersPanel({
   return (
     <aside
       className={cn(
-        "flex flex-col w-60 shrink-0 border-l border-white/8 bg-[#0c1017] select-none",
+        "flex flex-col w-60 shrink-0 border-l border-[var(--tf-border)] bg-[var(--app-canvas-bg)] select-none text-[var(--tf-fg)]",
         className
       )}
     >
       {/* Header */}
-      <div className="flex h-12 items-center justify-between px-3 border-b border-white/8">
+      <div className="flex h-12 items-center justify-between px-3.5 border-b border-[var(--tf-border)]">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-xs tracking-wider uppercase text-slate-400">
+          <span className="font-display font-semibold text-xs tracking-wider uppercase text-[var(--tf-fg-muted)]">
             Members
           </span>
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono bg-white/10 text-slate-300 border-none">
+          <Badge
+            variant="secondary"
+            className="text-[10px] px-1.5 py-0 h-4 font-mono bg-[var(--tf-hover-bg)] text-[var(--tf-fg-muted)] border border-[var(--tf-border)]"
+          >
             {members.length}
           </Badge>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          className="size-6 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+          className="size-7 text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] rounded-lg hover:bg-[var(--tf-hover-bg)]"
           onClick={onClose}
           title="Close panel"
+          aria-label="Close members panel"
         >
           <X className="size-3.5" />
         </Button>
       </div>
 
       {/* Member search filter */}
-      <div className="p-2.5 border-b border-white/5">
+      <div className="p-2.5 border-b border-[var(--tf-border)]">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-slate-500 pointer-events-none" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-[var(--tf-fg-muted)] pointer-events-none" />
           <Input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter members…"
-            className="h-7 pl-7 text-xs bg-white/5 border-white/10 rounded-lg text-white placeholder:text-slate-500"
+            className="h-7 pl-7 text-xs bg-[var(--tf-hover-bg)] border-[var(--tf-border)] rounded-lg text-[var(--tf-fg)] placeholder:text-[var(--tf-fg-muted)] focus-visible:ring-1 focus-visible:ring-purple-500"
           />
         </div>
       </div>
@@ -99,10 +103,10 @@ export function ChatMembersPanel({
           <div className="p-3 space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center gap-2.5 animate-pulse">
-                <div className="size-7 rounded-full bg-white/10" />
+                <div className="size-7 rounded-full bg-[var(--tf-hover-bg)]" />
                 <div className="space-y-1 flex-1">
-                  <div className="h-3 w-20 bg-white/10 rounded" />
-                  <div className="h-2 w-14 bg-white/5 rounded" />
+                  <div className="h-3 w-20 bg-[var(--tf-hover-bg)] rounded" />
+                  <div className="h-2 w-14 bg-[var(--tf-hover-bg)]/60 rounded" />
                 </div>
               </div>
             ))}
@@ -111,9 +115,9 @@ export function ChatMembersPanel({
           <>
             {/* Online section */}
             <div>
-              <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+              <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--tf-fg-muted)] flex items-center justify-between">
                 <span>Online</span>
-                <span className="font-mono">{onlineMembers.length}</span>
+                <span className="font-mono text-emerald-500">{onlineMembers.length}</span>
               </div>
               <div className="space-y-0.5 mt-0.5">
                 {onlineMembers.map((m) => {
@@ -123,19 +127,19 @@ export function ChatMembersPanel({
                       key={m.userId}
                       type="button"
                       onClick={() => onMentionMember?.(m)}
-                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-white/5 transition-colors group"
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-[var(--tf-hover-bg)] transition-colors group"
                       title={`Click to tag @${displayName}`}
                     >
-                      <div className="relative size-7 shrink-0 rounded-full overflow-hidden bg-[#18202d] ring-1 ring-white/10">
+                      <div className="relative size-7 shrink-0 rounded-full overflow-hidden bg-[var(--tf-hover-bg)] ring-1 ring-[var(--tf-border)]">
                         <Blobatar name={displayName} className="size-full" />
-                        <span className="absolute bottom-0 right-0 size-2 rounded-full bg-emerald-500 ring-1.5 ring-[#0c1017]" />
+                        <span className="absolute bottom-0 right-0 size-2 rounded-full bg-emerald-500 ring-1.5 ring-[var(--app-canvas-bg)]" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-slate-200 truncate group-hover:text-indigo-400 transition-colors">
+                        <div className="text-xs font-medium text-[var(--tf-fg)] truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                           {displayName}
                         </div>
                         {m.email && m.name && (
-                          <div className="text-[10px] text-slate-500 truncate font-mono">
+                          <div className="text-[10px] text-[var(--tf-fg-muted)] truncate font-mono">
                             {m.email}
                           </div>
                         )}
@@ -149,7 +153,7 @@ export function ChatMembersPanel({
             {/* Offline section */}
             {offlineMembers.length > 0 && (
               <div>
-                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--tf-fg-muted)] flex items-center justify-between">
                   <span>Offline</span>
                   <span className="font-mono">{offlineMembers.length}</span>
                 </div>
@@ -161,19 +165,19 @@ export function ChatMembersPanel({
                         key={m.userId}
                         type="button"
                         onClick={() => onMentionMember?.(m)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-white/5 transition-colors group"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-[var(--tf-hover-bg)] transition-colors group"
                         title={`Click to tag @${displayName}`}
                       >
-                        <div className="relative size-7 shrink-0 rounded-full overflow-hidden bg-[#18202d] ring-1 ring-white/10 grayscale">
+                        <div className="relative size-7 shrink-0 rounded-full overflow-hidden bg-[var(--tf-hover-bg)] ring-1 ring-[var(--tf-border)] grayscale">
                           <Blobatar name={displayName} className="size-full" />
-                          <span className="absolute bottom-0 right-0 size-2 rounded-full bg-slate-600 ring-1.5 ring-[#0c1017]" />
+                          <span className="absolute bottom-0 right-0 size-2 rounded-full bg-slate-400 ring-1.5 ring-[var(--app-canvas-bg)]" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-medium text-slate-400 truncate">
+                          <div className="text-xs font-medium text-[var(--tf-fg)] truncate">
                             {displayName}
                           </div>
                           {m.email && m.name && (
-                            <div className="text-[10px] text-slate-600 truncate font-mono">
+                            <div className="text-[10px] text-[var(--tf-fg-muted)] truncate font-mono">
                               {m.email}
                             </div>
                           )}
