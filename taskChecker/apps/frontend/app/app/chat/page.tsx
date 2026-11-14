@@ -55,6 +55,8 @@ import {
 } from "@/components/ui/chat";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import "blobatar/motion.css";
 
@@ -256,6 +258,7 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
   });
 
   const [activeChannelId, setActiveChannelId] = useState<string>("general");
+  const [activeDmUserId, setActiveDmUserId] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [typing, setTyping] = useState<Map<string, { name: string; at: number }>>(new Map());
@@ -332,6 +335,11 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
     return list;
   }, [channelSlug, org?.name, projects]);
 
+  const activeDmMember = useMemo(
+    () => (activeDmUserId ? members.find((m) => m.userId === activeDmUserId) ?? null : null),
+    [members, activeDmUserId]
+  );
+
   const activeChannel = useMemo(
     () => channels.find((c) => c.id === activeChannelId) ?? channels[0]!,
     [channels, activeChannelId]
@@ -339,15 +347,25 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
 
   const rawItems = useMemo(() => [...(chatQ.data?.data ?? [])].reverse(), [chatQ.data]);
 
-  // Filter messages if search query is active
+  const myUserId = user?.id;
+
+  // Filter messages based on active DM or search query
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return rawItems;
+    let list = rawItems;
+    if (activeDmUserId) {
+      list = list.filter(
+        (m) =>
+          m.authorId === activeDmUserId ||
+          (myUserId && m.authorId === myUserId && (m.mentions ?? []).includes(activeDmUserId))
+      );
+    }
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
-    return rawItems.filter((m) => {
+    return list.filter((m) => {
       const author = names.get(m.authorId)?.toLowerCase() ?? "";
       return m.body?.toLowerCase().includes(q) || author.includes(q);
     });
-  }, [rawItems, searchQuery, names]);
+  }, [rawItems, activeDmUserId, myUserId, searchQuery, names]);
 
   // Group items by day and identify compact runs (same author < 5 mins)
   const itemsWithDay = useMemo(
@@ -582,6 +600,9 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
     if (!text && pending.length === 0) return;
 
     const mentionIds = resolveMentionIds(text, members).filter((id) => id !== user.id);
+    if (activeDmUserId && !mentionIds.includes(activeDmUserId) && activeDmUserId !== user.id) {
+      mentionIds.push(activeDmUserId);
+    }
     const optimistic: ChatMessage = {
       id: `local-${Date.now()}`,
       authorId: user.id,
@@ -634,7 +655,7 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
       setSending(false);
       requestAnimationFrame(() => inputRef.current?.focus());
     }
-  }, [user, draft, pending, members, chatQ, toast]);
+  }, [user, draft, pending, members, activeDmUserId, chatQ, toast]);
 
   // Emoji reactions
   const handleReact = useCallback(
@@ -722,10 +743,14 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
       <ChatChannelSidebar
         channels={channels}
         activeChannelId={activeChannelId}
-        onSelectChannel={(id) => setActiveChannelId(id)}
+        onSelectChannel={(id) => {
+          setActiveChannelId(id);
+          setActiveDmUserId(null);
+        }}
         members={members}
+        activeDmUserId={activeDmUserId}
         onSelectDm={(m) => {
-          selectMember(m);
+          setActiveDmUserId(m.userId);
           inputRef.current?.focus();
         }}
         isCollapsed={!isChannelsOpen}
@@ -737,12 +762,27 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
       <div className="flex flex-1 flex-col h-full min-w-0 min-h-0 bg-[var(--app-canvas-bg)]">
         {/* Compact Channel Header */}
         <ChatHeader
-          channel={activeChannel.name}
-          roomName={activeChannel.description || teamName}
+          channel={
+            activeDmMember
+              ? activeDmMember.name || activeDmMember.email || "Direct Message"
+              : activeChannel.name
+          }
+          roomName={
+            activeDmMember
+              ? activeDmMember.status === "active"
+                ? "Active now"
+                : "Offline"
+              : activeChannel.description || teamName
+          }
           memberCount={members.length}
           onlineCount={onlineCount}
           isConnected={isConnected}
           isMembersOpen={isMembersOpen}
+          isDm={Boolean(activeDmMember)}
+          dmDisplayName={
+            activeDmMember ? activeDmMember.name || activeDmMember.email || "Member" : undefined
+          }
+          channelIcon={activeDmMember ? "dm" : activeChannel.icon}
           onToggleMembers={() => {
             if (typeof window !== "undefined" && window.innerWidth < 768) {
               setMobileMembersOpen(true);
@@ -766,14 +806,38 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
               <div className="size-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
               <span className="text-xs text-[var(--tf-fg-muted)] font-medium">Loading channel messages…</span>
             </div>
-          ) : rawItems.length === 0 ? (
-            <ChatEmptyState
-              channelName={activeChannel.name}
-              onQuickPrompt={(prompt) => {
-                setDraft(prompt);
-                inputRef.current?.focus();
-              }}
-            />
+          ) : filteredItems.length === 0 ? (
+            searchQuery.trim() ? (
+              <div className="flex flex-col items-center justify-center py-20 px-4 text-center select-none max-w-sm mx-auto">
+                <div className="size-12 rounded-xl bg-[var(--tf-hover-bg)] border border-[var(--tf-border)] flex items-center justify-center text-[var(--tf-fg-muted)] mb-3">
+                  <Search className="size-5" />
+                </div>
+                <h4 className="text-sm font-semibold text-[var(--tf-fg)]">No messages found</h4>
+                <p className="text-xs text-[var(--tf-fg-muted)] mt-1">
+                  No messages matching &ldquo;{searchQuery}&rdquo;
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-3 text-xs h-7 border border-[var(--tf-border)]"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Clear search
+                </Button>
+              </div>
+            ) : (
+              <ChatEmptyState
+                channelName={
+                  activeDmMember
+                    ? activeDmMember.name || activeDmMember.email || "Direct Message"
+                    : activeChannel.name
+                }
+                onQuickPrompt={(prompt) => {
+                  setDraft(prompt);
+                  inputRef.current?.focus();
+                }}
+              />
+            )
           ) : (
             itemsWithDay.map(({ m, showDay, compact }) => {
               const own = m.authorId === user?.id;
@@ -909,6 +973,7 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
                             onCopy={m.body ? () => navigator.clipboard.writeText(m.body) : undefined}
                             onDelete={own ? () => void handleDelete(m) : undefined}
                             isOwn={own}
+                            layout="stream"
                           />
                         </div>
 
@@ -1071,6 +1136,7 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
                             onCopy={m.body ? () => navigator.clipboard.writeText(m.body) : undefined}
                             onDelete={own ? () => void handleDelete(m) : undefined}
                             isOwn={own}
+                            layout="bubble"
                           />
                         </div>
 
@@ -1092,7 +1158,7 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
         <ChatTypingIndicator typingUsers={typingNames} />
 
         {/* Bottom Composer */}
-        <div className="px-4 md:px-6 pb-4 pt-1 bg-[var(--app-canvas-bg)] select-none">
+        <div className="px-4 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1 bg-[var(--app-canvas-bg)] select-none">
           <ChatInput
             ref={inputRef}
             value={draft}
@@ -1103,13 +1169,19 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
             }}
             onSubmit={() => void handleSend()}
             disabled={sending}
-            placeholder={`Message #${activeChannel.name}…`}
+            placeholder={
+              activeDmMember
+                ? `Message @${activeDmMember.name || activeDmMember.email}…`
+                : `Message #${activeChannel.name}…`
+            }
             attachments={pending}
             onRemoveAttachment={(i) => setPending((p) => p.filter((_, idx) => idx !== i))}
             onAttachFiles={filesToAttachments}
             mentionQuery={mention?.query ?? null}
             mentionUsers={filteredMentionMembers}
             mentionIndex={mentionIndex}
+            onMentionIndexChange={setMentionIndex}
+            onCloseMention={() => setMention(null)}
             onSelectMention={(m) => selectMember(m)}
           />
         </div>
@@ -1152,11 +1224,13 @@ function ChatRoom({ projects = [] }: ChatRoomProps) {
             activeChannelId={activeChannelId}
             onSelectChannel={(id) => {
               setActiveChannelId(id);
+              setActiveDmUserId(null);
               setMobileChannelsOpen(false);
             }}
             members={members}
+            activeDmUserId={activeDmUserId}
             onSelectDm={(m) => {
-              selectMember(m);
+              setActiveDmUserId(m.userId);
               setMobileChannelsOpen(false);
               inputRef.current?.focus();
             }}

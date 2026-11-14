@@ -218,6 +218,7 @@ export function ChatChannelSidebar({
                   <button
                     key={c.id}
                     type="button"
+                    data-slot="channel-item"
                     onClick={() => onSelectChannel(c.id)}
                     className={cn(
                       "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors group",
@@ -340,6 +341,7 @@ export function ChatChannelSidebar({
                     <button
                       key={m.userId}
                       type="button"
+                      data-slot="dm-item"
                       onClick={() => onSelectDm?.(m)}
                       className={cn(
                         "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors group",

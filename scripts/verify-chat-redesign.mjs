@@ -46,12 +46,53 @@ async function verifyChatRedesign() {
   assert(placeholder?.includes("announcements"), `Expected placeholder to mention announcements, got: ${placeholder}`);
   console.log("✓ Switched to #announcements successfully, placeholder: " + placeholder);
 
+  console.log("5. Testing Direct Messages Selection & State...");
+  const firstDmBtn = channelsSidebar.locator('button[data-slot="dm-item"]').first();
+  if (await firstDmBtn.isVisible()) {
+    await firstDmBtn.click();
+    await page.waitForTimeout(500);
+    const dmPlaceholder = await textarea.getAttribute("placeholder");
+    assert(dmPlaceholder?.startsWith("Message @"), `Expected placeholder to start with 'Message @', got: ${dmPlaceholder}`);
+    console.log("✓ Direct Message selected successfully, placeholder: " + dmPlaceholder);
+  }
+
   // Switch back to primary channel
   const primaryChannelBtn = channelsSidebar.locator('button').filter({ hasText: /team|demo|general/i }).first();
   await primaryChannelBtn.click();
   await page.waitForTimeout(500);
 
-  console.log("5. Testing Sending Message in Stream Mode...");
+  console.log("6. Testing Mention Autocomplete Keyboard Navigation...");
+  await textarea.fill("Hey @");
+  await page.waitForTimeout(300);
+  const mentionDropdown = page.locator('text=Mention member');
+  await mentionDropdown.waitFor({ state: "visible", timeout: 5000 });
+  // Test ArrowDown and Enter to select
+  await page.keyboard.press("ArrowDown");
+  await page.waitForTimeout(100);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  const textAfterMention = await textarea.inputValue();
+  assert(textAfterMention.includes("@"), `Expected textarea to contain mention, got: ${textAfterMention}`);
+  console.log("✓ Mention keyboard navigation (ArrowDown + Enter) verified successfully");
+
+  // Clear draft
+  await textarea.fill("");
+
+  console.log("7. Testing Search with Empty Results...");
+  const searchBtn = page.locator('button[title="Search messages"]').first();
+  await searchBtn.click();
+  await page.waitForTimeout(300);
+  const searchInput = page.locator('input[placeholder*="Search messages"]');
+  await searchInput.fill("zzznotfoundxyz999");
+  await page.waitForTimeout(500);
+  const noMessagesText = page.locator('text=No messages found');
+  await noMessagesText.waitFor({ state: "visible", timeout: 5000 });
+  const clearSearchBtn = page.locator('button:has-text("Clear search")');
+  await clearSearchBtn.click();
+  await page.waitForTimeout(400);
+  console.log("✓ Search empty state and clear search verified successfully");
+
+  console.log("8. Testing Sending Message in Stream Mode...");
   const testMsg = `Verified Linear harbor theme ${Date.now()}`;
   await textarea.fill(testMsg);
   await page.keyboard.press("Enter");
@@ -77,7 +118,7 @@ async function verifyChatRedesign() {
   // Dark mode desktop screenshot with stream
   await page.screenshot({ path: "screenshots/verified-chat-dark-stream.png" });
 
-  console.log("6. Testing Switch to Bubbles Mode...");
+  console.log("9. Testing Switch to Bubbles Mode...");
   const bubblesTab = page.locator('button:has-text("Bubbles")');
   await bubblesTab.click();
   await page.waitForTimeout(500);
@@ -95,7 +136,7 @@ async function verifyChatRedesign() {
   // Dark mode desktop screenshot with bubbles
   await page.screenshot({ path: "screenshots/verified-chat-dark-bubbles.png" });
 
-  console.log("7. Testing Light Mode (Dual Theme Support)...");
+  console.log("10. Testing Light Mode (Dual Theme Support)...");
   await page.evaluate(() => {
     document.documentElement.classList.remove("dark");
   });
@@ -117,7 +158,7 @@ async function verifyChatRedesign() {
   });
   await page.waitForTimeout(300);
 
-  console.log("8. Testing Channels Sidebar Collapse & Expand...");
+  console.log("11. Testing Channels Sidebar Collapse & Expand...");
   const collapseBtn = channelsSidebar.locator('button[title="Collapse channels sidebar"]');
   if (await collapseBtn.isVisible()) {
     await collapseBtn.click();
@@ -131,7 +172,7 @@ async function verifyChatRedesign() {
     console.log("✓ Channel sidebar collapse and expand verified");
   }
 
-  console.log("9. Testing Mobile Viewport (390px)...");
+  console.log("12. Testing Mobile Viewport (390px)...");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(500);
 
@@ -159,7 +200,7 @@ async function verifyChatRedesign() {
   // Mobile screenshot of chat view
   await page.screenshot({ path: "screenshots/verified-chat-mobile-chat.png" });
 
-  console.log("10. Testing Tablet Viewport (768px)...");
+  console.log("13. Testing Tablet Viewport (768px)...");
   await page.setViewportSize({ width: 768, height: 1024 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: "screenshots/verified-chat-tablet.png" });

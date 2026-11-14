@@ -120,7 +120,7 @@ export function ChatBubbleAvatar({
 // ============================================================================
 
 const chatBubbleMessageVariants = cva(
-  "relative text-sm select-text transition-all duration-150 leading-relaxed [overflow-wrap:anywhere]",
+  "relative text-sm select-text transition-all duration-150 leading-relaxed break-words [overflow-wrap:anywhere]",
   {
     variants: {
       variant: {
@@ -209,6 +209,7 @@ export interface ChatBubbleActionProps {
   onCopy?: () => void;
   onDelete?: () => void;
   isOwn?: boolean;
+  layout?: "stream" | "bubble";
   className?: string;
 }
 
@@ -218,6 +219,7 @@ export function ChatBubbleAction({
   onCopy,
   onDelete,
   isOwn,
+  layout = "stream",
   className,
 }: ChatBubbleActionProps) {
   const [copied, setCopied] = React.useState(false);
@@ -233,8 +235,8 @@ export function ChatBubbleAction({
   return (
     <div
       className={cn(
-        "absolute -top-7 z-20 hidden group-hover:flex items-center gap-0.5",
-        isOwn ? "right-0" : "left-0",
+        "absolute -top-3.5 z-20 hidden group-hover:flex items-center gap-0.5",
+        layout === "stream" ? "right-2" : isOwn ? "right-0" : "left-0",
         "rounded-lg border border-[var(--tf-border-strong)] bg-[var(--tf-card-bg)]/98 backdrop-blur-md px-1 py-0.5 shadow-xl text-[var(--tf-fg)]",
         "animate-in fade-in zoom-in-95 duration-100",
         className

@@ -1,7 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Hash, PanelLeft, Search, Users, X } from "lucide-react";
+import {
+  Coffee,
+  ChevronDown,
+  FolderGit2,
+  Hash,
+  Megaphone,
+  PanelLeft,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
+import { Blobatar } from "@blobatar/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -22,6 +33,9 @@ export interface ChatHeaderProps {
   onSearchChange?: (q: string) => void;
   layoutMode: "stream" | "bubble";
   onChangeLayoutMode: (mode: "stream" | "bubble") => void;
+  channelIcon?: "hash" | "announcements" | "random" | "project" | "dm";
+  isDm?: boolean;
+  dmDisplayName?: string | null;
   className?: string;
 }
 
@@ -41,9 +55,33 @@ export function ChatHeader({
   onSearchChange,
   layoutMode,
   onChangeLayoutMode,
+  channelIcon = "hash",
+  isDm = false,
+  dmDisplayName,
   className,
 }: ChatHeaderProps) {
   const [showSearch, setShowSearch] = React.useState(false);
+
+  const renderIcon = (sizeCls = "size-3.5") => {
+    if (isDm && dmDisplayName) {
+      return (
+        <div className="size-full rounded-full overflow-hidden bg-[var(--tf-hover-bg)]">
+          <Blobatar name={dmDisplayName} className="size-full" />
+        </div>
+      );
+    }
+    switch (channelIcon) {
+      case "announcements":
+        return <Megaphone className={sizeCls} />;
+      case "random":
+        return <Coffee className={sizeCls} />;
+      case "project":
+        return <FolderGit2 className={sizeCls} />;
+      case "hash":
+      default:
+        return <Hash className={sizeCls} />;
+    }
+  };
 
   return (
     <div
@@ -90,8 +128,8 @@ export function ChatHeader({
             title="Switch channel"
             aria-label="Switch channel"
           >
-            <div className="size-6 rounded-md bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-              <Hash className="size-3.5" />
+            <div className="size-6 rounded-md bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 overflow-hidden">
+              {renderIcon("size-3")}
             </div>
             <span className="font-display font-semibold text-xs text-[var(--tf-fg)] truncate max-w-[140px]">
               {channel}
@@ -101,8 +139,8 @@ export function ChatHeader({
         ) : null}
 
         <div className={cn("items-center gap-2.5 min-w-0", onOpenMobileChannels ? "hidden md:flex" : "flex")}>
-          <div className="size-7 rounded-lg bg-purple-500/12 border border-purple-500/25 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-            <Hash className="size-3.5" />
+          <div className="size-7 rounded-lg bg-purple-500/12 border border-purple-500/25 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 overflow-hidden">
+            {renderIcon("size-3.5")}
           </div>
 
           <div className="flex items-center gap-2 min-w-0">

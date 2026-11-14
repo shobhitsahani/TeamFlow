@@ -51,7 +51,7 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
           ref={scrollRef}
           onScroll={handleScroll}
           className={cn(
-            "h-full w-full overflow-y-auto px-4 md:px-6 pt-4 pb-8 space-y-1 scroll-smooth text-[var(--tf-fg)]",
+            "h-full w-full overflow-y-auto px-4 md:px-6 pt-6 pb-8 space-y-1 scroll-smooth text-[var(--tf-fg)]",
             "[scrollbar-width:thin] [scrollbar-color:var(--tf-border)_transparent]",
             className
           )}

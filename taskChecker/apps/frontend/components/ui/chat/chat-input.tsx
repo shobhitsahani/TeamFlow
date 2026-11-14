@@ -44,6 +44,8 @@ export interface ChatInputProps {
   mentionUsers?: MentionUser[];
   onSelectMention?: (user: MentionUser) => void;
   mentionIndex?: number;
+  onMentionIndexChange?: (index: number) => void;
+  onCloseMention?: () => void;
   className?: string;
 }
 
@@ -68,6 +70,8 @@ export const ChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputProps>(
       mentionUsers = [],
       onSelectMention,
       mentionIndex = 0,
+      onMentionIndexChange,
+      onCloseMention,
       className,
     },
     ref
@@ -88,8 +92,30 @@ export const ChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputProps>(
     }, [value, textareaRef]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (mentionQuery && mentionUsers.length > 0) {
-        if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === "Tab") {
+      if (mentionQuery !== null && mentionUsers.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const next = (mentionIndex + 1) % mentionUsers.length;
+          onMentionIndexChange?.(next);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          const prev = (mentionIndex - 1 + mentionUsers.length) % mentionUsers.length;
+          onMentionIndexChange?.(prev);
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          e.preventDefault();
+          const target = mentionUsers[mentionIndex] ?? mentionUsers[0];
+          if (target) {
+            onSelectMention?.(target);
+          }
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onCloseMention?.();
           return;
         }
       }
@@ -351,6 +377,8 @@ export const ChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputProps>(
                           <button
                             key={emoji}
                             type="button"
+                            title={`Insert ${emoji}`}
+                            aria-label={`Insert ${emoji}`}
                             onClick={() => handleEmojiClick(emoji)}
                             className="size-7 flex items-center justify-center text-base rounded hover:bg-[var(--tf-hover-bg)] active:scale-95 transition-transform"
                           >
