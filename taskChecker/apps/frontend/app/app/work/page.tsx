@@ -64,7 +64,7 @@ const TaskCard = memo(function TaskCard({ item }: { item: TaskWithProject }) {
       className="group relative"
     >
       <Link
-        href={`/app/tasks/${task.id}`}
+        href={project ? `/app/board?project=${project.id}&task=${task.id}` : `/app/tasks/${task.id}`}
         className="flex flex-col justify-between p-4.5 rounded-2xl bg-card border border-border hover:border-primary/40 hover:bg-card/90 shadow-xs hover:shadow-md transition-all text-card-foreground"
         style={{ minHeight: 140 }}
       >

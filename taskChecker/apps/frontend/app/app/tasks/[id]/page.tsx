@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -166,6 +166,14 @@ export default function TaskDetailPage() {
   );
 
   const task = taskQ.data?.task ?? null;
+
+  // Deep-link bridge: route /app/tasks/[id] to the right-side task detail sheet on the board
+  useEffect(() => {
+    if (task?.projectId && taskId) {
+      router.replace(`/app/board?project=${task.projectId}&task=${taskId}`);
+    }
+  }, [task?.projectId, taskId, router]);
+
   const comments = commentsQ.data?.data ?? [];
   const nameById = useMemo(
     () => new Map((membersQ.data?.members ?? []).map((m) => [m.userId, m.name ?? null])),

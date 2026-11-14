@@ -18,6 +18,7 @@ import {
   IconList,
   IconListTodo,
   IconMenu,
+  IconMessageSquare,
   IconMoreHorizontal,
   IconSettings,
   IconUser,
@@ -86,6 +87,11 @@ const STATUS_DOT: Record<string, string> = {
   todo: "var(--lagoon-purple)",
   in_progress: "var(--lagoon-green)",
   done: "var(--lagoon-success)",
+  critical: "hsl(0 75% 55%)",
+  high: "var(--lagoon-gold)",
+  medium: "var(--lagoon-purple)",
+  low: "var(--lagoon-green)",
+  none: "var(--lagoon-muted-fg)",
 };
 
 /* Priority pill — dot + text travel together (Meaning-With-Text rule),
@@ -312,6 +318,17 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
             >
               <IconListTodo size={11} />
               {doneItems}/{meta.checklist.length}
+            </span>
+          ) : null}
+
+          {/* Comment count */}
+          {((meta.commentCount ?? 0) > 0 || ((task as unknown as Record<string, unknown>).commentCount as number) > 0) ? (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] tabular-nums text-[var(--tf-fg-muted)]"
+              title={`${meta.commentCount ?? ((task as unknown as Record<string, unknown>).commentCount as number)} comments`}
+            >
+              <IconMessageSquare size={11} />
+              {meta.commentCount ?? ((task as unknown as Record<string, unknown>).commentCount as number)}
             </span>
           ) : null}
         </div>
@@ -657,7 +674,7 @@ function LagoonBoard() {
     [listsQ.data],
   );
   const labelFor = useCallback(
-    (status: string) => labelMap.get(status as Task["status"]) ?? STATUS_LABELS[status] ?? status,
+    (status: string) => labelMap.get(status as Task["status"]) ?? STATUS_LABELS[status] ?? PRIORITY_LABEL[status] ?? status,
     [labelMap],
   );
 
@@ -708,6 +725,8 @@ function LagoonBoard() {
   const [toneFilter, setToneFilter] = useState<LagoonTone | null>(null);
   const [activeOnly, setActiveOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"default" | "due" | "priority" | "title">("default");
+  const [groupBy, setGroupBy] = useState<"status" | "priority">("status");
+  const boardScrollRef = useRef<HTMLDivElement>(null);
   const [metaTick, setMetaTick] = useState(0);
   const bumpMeta = useCallback(() => setMetaTick((t) => t + 1), []);
   const [today] = useState<string | null>(() => todayYmd());
@@ -773,7 +792,7 @@ function LagoonBoard() {
     };
   }, []);
 
-  const [composerFor, setComposerFor] = useState<Task["status"] | null>(null);
+  const [composerFor, setComposerFor] = useState<string | null>(null);
   const [composerText, setComposerText] = useState("");
   const [starred, setStarred] = useState(false);
   const [recentlyUpdatedTaskId, setRecentlyUpdatedTaskId] = useState<string | null>(null);
@@ -866,7 +885,29 @@ function LagoonBoard() {
     }
   }, [variant]);
 
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => searchParams.get("task"));
+
+  // Keep a ref to projectTasks so rapid drag events and Undo actions never suffer from stale closures
+  const projectTasksRef = useRef(projectTasks);
+  projectTasksRef.current = projectTasks;
+
+  // Sync selectedTaskId when URL searchParams change
+  useEffect(() => {
+    const t = searchParams.get("task");
+    if (t !== selectedTaskId) {
+      setSelectedTaskId(t);
+    }
+  }, [searchParams, selectedTaskId]);
+
+  // Handle browser back/forward buttons (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      const p = new URLSearchParams(window.location.search);
+      setSelectedTaskId(p.get("task"));
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const selectedTask = selectedTaskId ? (projectTasks.find((t) => t.id === selectedTaskId) ?? null) : null;
 
@@ -879,13 +920,22 @@ function LagoonBoard() {
     [router],
   );
 
+  const PRIORITY_COLS = useMemo(() => ["critical", "high", "medium", "low", "none"] as const, []);
+
   const columns = useMemo(
-    () =>
-      STATUS_ORDER.map((status) => ({
+    () => {
+      if (groupBy === "priority") {
+        return PRIORITY_COLS.map((priority) => ({
+          status: priority,
+          tasks: projectTasks.filter((t) => (t.priority ?? "none") === priority),
+        }));
+      }
+      return STATUS_ORDER.map((status) => ({
         status,
         tasks: projectTasks.filter((t) => t.status === status),
-      })),
-    [projectTasks],
+      }));
+    },
+    [projectTasks, groupBy, PRIORITY_COLS],
   );
 
   useEffect(() => {
@@ -1000,6 +1050,14 @@ function LagoonBoard() {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOverCol(status);
+    if (boardScrollRef.current) {
+      const rect = boardScrollRef.current.getBoundingClientRect();
+      if (e.clientX < rect.left + 70) {
+        boardScrollRef.current.scrollLeft -= 14;
+      } else if (e.clientX > rect.right - 70) {
+        boardScrollRef.current.scrollLeft += 14;
+      }
+    }
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
@@ -1011,21 +1069,72 @@ function LagoonBoard() {
   const [announce, setAnnounce] = useState("");
 
   const performDrop = useCallback(
-    async (taskId: string, newStatus: string) => {
-      const target = projectTasks.find((t) => t.id === taskId);
-      if (!target || target.status === newStatus) return;
+    async (taskId: string, targetCol: string) => {
+      // Use projectTasksRef.current to always resolve latest state (fixes Undo race condition)
+      const target = projectTasksRef.current.find((t) => t.id === taskId);
+      if (!target) return;
+
+      if (groupBy === "priority") {
+        const newPriority = targetCol as Task["priority"];
+        const oldPriority = target.priority ?? "none";
+        if (oldPriority === newPriority) return;
+
+        await tasksQ.mutate(
+          (current) => ({
+            ...(current ?? { data: [], nextCursor: null, hasMore: false }),
+            data: (current?.data ?? []).map((t) =>
+              t.id === taskId ? { ...t, priority: newPriority } : t,
+            ),
+          }),
+          { revalidate: false },
+        );
+
+        try {
+          await updateTask(taskId, { priority: newPriority }, selectedProjectId);
+          const prioLabel = PRIORITY_LABEL[newPriority] ?? newPriority;
+          tfToast.add({
+            title: "Priority updated",
+            description: `Moved to ${prioLabel}.`,
+            type: "success",
+            actionProps: {
+              children: "Undo",
+              onClick: () => {
+                void performDrop(taskId, oldPriority);
+              },
+            },
+          });
+          setAnnounce(`Changed ${target.title} priority to ${prioLabel}.`);
+          await tasksQ.mutate();
+        } catch (err) {
+          await tasksQ.mutate();
+          const detail = errorDetail(err);
+          tfToast.add({
+            title: "Couldn't update priority",
+            description: `"${target.title}" stayed at ${PRIORITY_LABEL[oldPriority] ?? oldPriority}. ${detail ?? "Check your connection, then try again."}`,
+            type: "error",
+          });
+          setAnnounce(`Could not update priority for ${target.title}.`);
+        }
+        return;
+      }
+
+      // Default: Status grouping
+      const newStatus = targetCol as Task["status"];
       const oldStatus = target.status;
+      if (oldStatus === newStatus) return;
+
       await tasksQ.mutate(
         (current) => ({
           ...(current ?? { data: [], nextCursor: null, hasMore: false }),
           data: (current?.data ?? []).map((t) =>
-            t.id === taskId ? { ...t, status: newStatus as Task["status"] } : t,
+            t.id === taskId ? { ...t, status: newStatus } : t,
           ),
         }),
         { revalidate: false },
       );
+
       try {
-        await updateTask(taskId, { status: newStatus as Task["status"] }, selectedProjectId);
+        await updateTask(taskId, { status: newStatus }, selectedProjectId);
         tfToast.add({
           title: "Card moved",
           description: `Moved to ${labelFor(newStatus)}.`,
@@ -1050,7 +1159,7 @@ function LagoonBoard() {
         setAnnounce(`Could not move ${target.title} to ${labelFor(newStatus)}. It stayed in ${labelFor(target.status)}.`);
       }
     },
-    [projectTasks, updateTask, selectedProjectId, tasksQ, labelFor],
+    [updateTask, selectedProjectId, tasksQ, labelFor, groupBy],
   );
 
   const handleDone = useCallback(
@@ -1143,6 +1252,14 @@ function LagoonBoard() {
       setTouchDrag({ ...touchDrag, x: e.clientX, y: e.clientY });
       const status = statusFromPoint(e.clientX, e.clientY);
       setDragOverCol((prev) => (prev === status ? prev : status));
+      if (boardScrollRef.current) {
+        const rect = boardScrollRef.current.getBoundingClientRect();
+        if (e.clientX < rect.left + 70) {
+          boardScrollRef.current.scrollLeft -= 14;
+        } else if (e.clientX > rect.right - 70) {
+          boardScrollRef.current.scrollLeft += 14;
+        }
+      }
     },
     [touchDrag, statusFromPoint],
   );
@@ -1172,8 +1289,18 @@ function LagoonBoard() {
     const title = composerText.trim();
     if (!title || !orgId || !selectedProjectId || !composerFor) return;
     setComposerText("");
+    const isStatus = (STATUS_ORDER as readonly string[]).includes(composerFor);
+    const statusParam = isStatus ? (composerFor as Task["status"]) : "backlog";
+    const priorityParam = !isStatus && ["critical", "high", "medium", "low"].includes(composerFor)
+      ? (composerFor as Task["priority"])
+      : undefined;
     try {
-      await api.tasks.create({ projectId: selectedProjectId, title, status: composerFor });
+      await api.tasks.create({
+        projectId: selectedProjectId,
+        title,
+        status: statusParam,
+        ...(priorityParam ? { priority: priorityParam } : {}),
+      });
       await tasksQ.mutate();
     } catch (err) {
       setComposerText(title);
@@ -1316,6 +1443,11 @@ function LagoonBoard() {
     // on close (Base UI has no Trigger here to return to on its own).
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelectedTaskId(task.id);
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      p.set("task", task.id);
+      window.history.replaceState(null, "", "?" + p.toString());
+    }
   }, []);
 
   const closeCard = useCallback(() => {
@@ -1323,6 +1455,12 @@ function LagoonBoard() {
     // onClose fires from the modal's onExitComplete, so the card is settled
     // and ready to take focus back.
     restoreOpenerFocus();
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      p.delete("task");
+      const nextUrl = p.toString() ? "?" + p.toString() : window.location.pathname;
+      window.history.replaceState(null, "", nextUrl);
+    }
   }, [restoreOpenerFocus]);
 
   // Layout animations stay off through first paint and board switches —
@@ -1593,7 +1731,7 @@ function LagoonBoard() {
                   className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] focus:bg-[var(--tf-hover-bg)] transition-colors outline-none"
                 >
                   <IconUser size={14} className="shrink-0 text-[var(--tf-fg-muted)]" />
-                  <span>Open profile</span>
+                  <span>Open profile…</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   closeOnClick
@@ -1601,7 +1739,7 @@ function LagoonBoard() {
                   className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)] focus:bg-[var(--tf-hover-bg)] transition-colors outline-none"
                 >
                   <IconSettings size={14} className="shrink-0 text-[var(--tf-fg-muted)]" />
-                  <span>Settings</span>
+                  <span>Settings…</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
 
@@ -1804,6 +1942,49 @@ function LagoonBoard() {
             </div>
           )}
 
+          {/* Group By Dropdown */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={cx(
+                    "h-7 px-2 text-xs font-medium rounded-lg border-[var(--tf-border)] gap-1",
+                    groupBy !== "status" && "bg-purple-500/15 border-purple-500/30 text-purple-700 dark:text-purple-300 font-semibold"
+                  )}
+                >
+                  <IconColumns size={12} />
+                  <span>Group: {groupBy === "priority" ? "Priority" : "Status"}</span>
+                  <IconChevronDown size={11} className="opacity-60" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-36 glass-surface-2 p-1">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tf-fg-muted)]">Group columns</DropdownMenuLabel>
+                <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => setGroupBy("status")}
+                  className="flex items-center justify-between text-xs px-2 py-1.5 cursor-pointer"
+                >
+                  <span>Status (default)</span>
+                  {groupBy === "status" && <IconCheck size={12} className="text-purple-600 dark:text-purple-400" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => setGroupBy("priority")}
+                  className="flex items-center justify-between text-xs px-2 py-1.5 cursor-pointer"
+                >
+                  <span>Priority</span>
+                  {groupBy === "priority" && <IconCheck size={12} className="text-purple-600 dark:text-purple-400" />}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Sort By Dropdown */}
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger
@@ -1899,7 +2080,7 @@ function LagoonBoard() {
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={view} variants={viewFade} initial="hidden" animate="show" exit="exit" className="flex flex-1 flex-col min-h-0">
       {view === "board" ? (
-        <div className="lagoon-board-scroll">
+        <div className="lagoon-board-scroll" ref={boardScrollRef}>
           <div className="lagoon-cols tf-columns-snap">
             {tasksQ.isLoading && projectTasks.length === 0 ? (
               STATUS_ORDER.map((status) => (
@@ -1923,7 +2104,7 @@ function LagoonBoard() {
               >
                 <div className="flex items-center justify-between pb-1.5 px-0.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[col.status], flex: "none" }} />
+                    <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 9999, background: STATUS_DOT[col.status] ?? "var(--lagoon-muted-fg)", flex: "none" }} />
                     <LagoonListTitle
                       status={col.status as Task["status"]}
                       title={labelFor(col.status)}
@@ -1957,7 +2138,17 @@ function LagoonBoard() {
                 </div>
                 <div className={cx("lagoon-col-body", draggedTaskId && "is-dragging", dragOverCol === col.status && "is-dragover")} role="list" aria-label={`${labelFor(col.status)} cards`}>
                   <AnimatePresence initial={false} mode="popLayout">
-                    {col.tasks.map((task) => (
+                    {(col.tasks.length > 50
+                      ? (() => {
+                          const slice = col.tasks.slice(0, 50);
+                          if (draggedTaskId && !slice.some((t) => t.id === draggedTaskId)) {
+                            const d = col.tasks.find((t) => t.id === draggedTaskId);
+                            if (d) slice.push(d);
+                          }
+                          return slice;
+                        })()
+                      : col.tasks
+                    ).map((task) => (
                       <LagoonTaskCard
                         key={task.id}
                         task={task}
@@ -1971,7 +2162,11 @@ function LagoonBoard() {
                         isDone={col.status === "done"}
                         today={today}
                         recentlyUpdated={recentlyUpdatedTaskId === task.id}
-                        moveTargets={STATUS_ORDER.map((s) => ({ status: s, label: labelFor(s) }))}
+                        moveTargets={
+                          groupBy === "priority"
+                            ? PRIORITY_COLS.map((p) => ({ status: p as unknown as Task["status"], label: PRIORITY_LABEL[p] ?? p }))
+                            : STATUS_ORDER.map((s) => ({ status: s, label: labelFor(s) }))
+                        }
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                         onTouchDragStart={handleTouchDragStart}
@@ -1980,10 +2175,15 @@ function LagoonBoard() {
                         onTouchDragCancel={cancelTouchDrag}
                         onOpen={openCard}
                         onDone={handleDone}
-                        onMove={(t, s) => void performDrop(t.id, s)}
+                        onMove={(t, s) => void performDrop(t.id, s as string)}
                       />
                     ))}
                   </AnimatePresence>
+                  {col.tasks.length > 50 ? (
+                    <div className="py-2.5 text-center text-[11px] text-[var(--tf-fg-muted)] font-mono tabular-nums border-t border-dashed border-[var(--tf-border)]">
+                      + {col.tasks.length - 50} more cards virtualized
+                    </div>
+                  ) : null}
                   {col.tasks.length === 0 && composerFor !== col.status ? (
                     <div
                       className={cx(

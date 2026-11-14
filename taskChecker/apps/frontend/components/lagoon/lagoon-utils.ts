@@ -45,6 +45,7 @@ export interface LagoonTaskMeta {
   /** Label color override. `undefined` = fall back to priority tone. */
   tone?: LagoonTone;
   checklist: LagoonCheckItem[];
+  commentCount?: number;
 }
 
 const META_PREFIX = "lagoon.task.meta.v1.";
@@ -57,6 +58,7 @@ function readMeta(taskId: string): LagoonTaskMeta {
     const parsed = JSON.parse(raw) as Partial<LagoonTaskMeta>;
     return {
       label: typeof parsed.label === "string" ? parsed.label : undefined,
+      commentCount: typeof parsed.commentCount === "number" ? parsed.commentCount : undefined,
       tone:
         parsed.tone === "gold" || parsed.tone === "green" || parsed.tone === "purple"
           ? parsed.tone
@@ -106,6 +108,12 @@ export function saveLagoonLabel(taskId: string, label: string, tone: LagoonTone 
 export function saveLagoonChecklist(taskId: string, checklist: LagoonCheckItem[]): void {
   const meta = readMeta(taskId);
   meta.checklist = checklist;
+  writeMeta(taskId, meta);
+}
+
+export function saveLagoonCommentCount(taskId: string, count: number): void {
+  const meta = readMeta(taskId);
+  meta.commentCount = count;
   writeMeta(taskId, meta);
 }
 

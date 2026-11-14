@@ -5,12 +5,12 @@
 
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, focalPop, listItem, motion, staggerChild, staggerParent } from "@/components/motion";
-import { api, type Comment, type Member, type PaginatedResponse, type Project, type Task } from "@/lib/api";
+import { api, type ActivityEvent, type Comment, type Member, type PaginatedResponse, type Project, type Task } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { useToast } from "@/components/overlay";
-import { IconTrash } from "@/components/icons";
+import { IconClock, IconMessageSquare, IconTrash } from "@/components/icons";
 import { XIcon } from "lucide-react";
 import {
   Sheet,
@@ -37,6 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DatePicker } from "@/components/ui/date-picker";
+import { cx } from "@/lib/utils";
 import {
   LAGOON_TONES,
   defaultLabelForPriority,
@@ -44,6 +45,7 @@ import {
   lagoonInitials,
   loadLagoonMeta,
   saveLagoonChecklist,
+  saveLagoonCommentCount,
   saveLagoonLabel,
   toYmd,
   type LagoonCheckItem,
@@ -108,6 +110,8 @@ export function LagoonCardModal({
     onClose();
   };
 
+  const [bottomTab, setBottomTab] = useState<"comments" | "activity">("comments");
+
   const commentsQ = useSWR<PaginatedResponse<Comment>>(
     `lagoon-comments-${task.id}`,
     () => api.comments.list(task.id, { limit: 50 }),
@@ -117,6 +121,22 @@ export function LagoonCardModal({
     [commentsQ.data],
   );
   const [commentText, setCommentText] = useState("");
+
+  const activityQ = useSWR<PaginatedResponse<ActivityEvent>>(
+    `lagoon-activity-${task.id}`,
+    () => api.activity.list({ entityType: "task", entityId: task.id, limit: 30 }),
+  );
+  const activities = useMemo(
+    () => activityQ.data?.data ?? [],
+    [activityQ.data],
+  );
+
+  useEffect(() => {
+    if (commentsQ.data) {
+      saveLagoonCommentCount(task.id, comments.length);
+      onMetaChanged();
+    }
+  }, [comments.length, commentsQ.data, task.id, onMetaChanged]);
 
   const names = useMemo(() => {
     const map = new Map<string, string>();
@@ -541,79 +561,139 @@ export function LagoonCardModal({
 
           <motion.div variants={staggerChild}>
           <Field>
-            <FieldLabel className="text-[12px] font-semibold text-muted-foreground tabular-nums">Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</FieldLabel>
-            <div className="flex flex-col gap-2">
-              {commentsQ.isLoading ? (
-                <div className="flex flex-col gap-1.5" role="status" aria-label="Loading comments">
-                  <Skeleton className="h-12 w-full rounded-lg" />
-                  <Skeleton className="h-12 w-full rounded-lg" />
-                </div>
-              ) : comments.length === 0 ? (
-                <p className="text-[12px] text-muted-foreground">No comments yet. Ask a question or share an update.</p>
-              ) : (
-                <AnimatePresence initial={false}>
-                {comments.map((c) => (
-                  <motion.div
-                    key={c.id}
-                    layout
-                    variants={listItem}
-                    initial="hidden"
-                    animate="show"
-                    exit="exit"
-                    className="rounded-lg border border-border bg-muted/40 px-3.5 py-3 text-[13px] leading-relaxed"
-                  >
-                    <div className="mb-1.5 flex items-center gap-2">
-                      <span className="text-[12px] font-semibold">
-                        {names.get(c.authorId) ?? "Someone"}
-                      </span>
-                      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleString()}
-                      </span>
-                      {canWrite ? (
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                aria-label="Delete comment"
-                                onClick={() => void handleDeleteComment(c.id)}
-                                className="ml-auto text-muted-foreground"
-                              />
-                            }
-                          >
-                            <IconTrash size={12} />
-                          </TooltipTrigger>
-                          <TooltipContent>Delete comment</TooltipContent>
-                        </Tooltip>
-                      ) : null}
-                    </div>
-                    <p className="whitespace-pre-wrap">{c.body}</p>
-                  </motion.div>
-                ))}
-                </AnimatePresence>
-              )}
+            <div className="flex items-center gap-4 border-b border-[var(--tf-border)] pb-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setBottomTab("comments")}
+                className={cx(
+                  "text-xs font-semibold pb-1 border-b-2 transition-all cursor-pointer",
+                  bottomTab === "comments"
+                    ? "border-purple-500 text-[var(--tf-fg)]"
+                    : "border-transparent text-muted-foreground hover:text-[var(--tf-fg)]"
+                )}
+              >
+                Comments {comments.length > 0 ? `· ${comments.length}` : ""}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBottomTab("activity")}
+                className={cx(
+                  "text-xs font-semibold pb-1 border-b-2 transition-all cursor-pointer flex items-center gap-1.5",
+                  bottomTab === "activity"
+                    ? "border-purple-500 text-[var(--tf-fg)]"
+                    : "border-transparent text-muted-foreground hover:text-[var(--tf-fg)]"
+                )}
+              >
+                <IconClock size={12} />
+                Activity timeline {activities.length > 0 ? `· ${activities.length}` : ""}
+              </button>
             </div>
-            {canWrite ? (
-              <form onSubmit={handleAddComment} className="mt-1 flex gap-2">
-                <Input
-                  aria-label="Write a comment"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Write a comment…"
-                  className="h-9 min-w-0 flex-1"
-                />
-                <Button
-                  type="submit"
-                  variant="secondary"
-                  className="h-9 font-medium active:scale-[0.97]"
-                  disabled={!commentText.trim() || commentSending}
-                  loading={commentSending}
-                >
-                  Send
-                </Button>
-              </form>
-            ) : null}
+
+            {bottomTab === "comments" ? (
+              <div className="flex flex-col gap-2">
+                {commentsQ.isLoading ? (
+                  <div className="flex flex-col gap-1.5" role="status" aria-label="Loading comments">
+                    <Skeleton className="h-12 w-full rounded-lg" />
+                    <Skeleton className="h-12 w-full rounded-lg" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-[12px] text-muted-foreground">No comments yet. Ask a question or share an update.</p>
+                ) : (
+                  <AnimatePresence initial={false}>
+                  {comments.map((c) => (
+                    <motion.div
+                      key={c.id}
+                      layout
+                      variants={listItem}
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      className="rounded-lg border border-border bg-muted/40 px-3.5 py-3 text-[13px] leading-relaxed"
+                    >
+                      <div className="mb-1.5 flex items-center gap-2">
+                        <span className="text-[12px] font-semibold">
+                          {names.get(c.authorId) ?? "Someone"}
+                        </span>
+                        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                          {new Date(c.createdAt).toLocaleString()}
+                        </span>
+                        {canWrite ? (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  aria-label="Delete comment"
+                                  onClick={() => void handleDeleteComment(c.id)}
+                                  className="ml-auto text-muted-foreground"
+                                />
+                              }
+                            >
+                              <IconTrash size={12} />
+                            </TooltipTrigger>
+                            <TooltipContent>Delete comment</TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                      </div>
+                      <p className="whitespace-pre-wrap">{c.body}</p>
+                    </motion.div>
+                  ))}
+                  </AnimatePresence>
+                )}
+
+                {canWrite ? (
+                  <form onSubmit={handleAddComment} className="mt-1 flex gap-2">
+                    <Input
+                      aria-label="Write a comment"
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Write a comment…"
+                      className="h-9 min-w-0 flex-1"
+                    />
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      className="h-9 font-medium active:scale-[0.97]"
+                      disabled={!commentText.trim() || commentSending}
+                      loading={commentSending}
+                    >
+                      Send
+                    </Button>
+                  </form>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {activityQ.isLoading ? (
+                  <div className="flex flex-col gap-1.5" role="status" aria-label="Loading activity">
+                    <Skeleton className="h-10 w-full rounded-lg" />
+                    <Skeleton className="h-10 w-full rounded-lg" />
+                  </div>
+                ) : activities.length === 0 ? (
+                  <p className="text-[12px] text-muted-foreground">No recorded activity yet for this card.</p>
+                ) : (
+                  <div className="relative ml-2 pl-4 border-l-2 border-[var(--tf-border)] flex flex-col gap-3.5 py-1">
+                    {activities.map((a) => (
+                      <div key={a.id} className="relative flex flex-col gap-0.5 text-xs">
+                        <span className="absolute -left-[21px] top-1 size-2.5 rounded-full bg-purple-500 ring-2 ring-[var(--tf-card-bg)]" />
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-[var(--tf-fg)]">
+                            {names.get(a.actorId ?? "") ?? (a.actorId ? a.actorId.slice(0, 6) : "System")}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
+                            {new Date(a.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-[var(--tf-fg-muted)]">
+                          {a.action || "Updated card"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </Field>
           </motion.div>
           </motion.div>
