@@ -6,6 +6,8 @@
  * Reuses WebSocket channel, REST endpoints, and SWR cache with:
  *   · Real-time messaging over WebSocket (useRealtime)
  *   · Discord / Slack-style Stream timeline layout + optional Bubble layout
+ *   · Channels sidebar (General, Announcements, Random, Projects, Direct Messages)
+ *   · Responsive mobile drawers for Channels and Members
  *   · @mention tagging with autocomplete + highlights + keyboard navigation
  *   · Rich attachments (image grid with lightbox zoom, audio player, documents)
  *   · Emoji reactions, day dividers, optimistic sends, typing presence
@@ -23,13 +25,14 @@ import {
   getCurrentTenantId,
   type ChatAttachment,
   type ChatMessage,
+  type ChatReactionGroup,
   type PaginatedResponse,
   type Project,
 } from "@/lib/api";
 import { useSWR } from "@/lib/swr";
 import { useRealtime } from "@/lib/realtime";
-import { cn, formatChatTime } from "@/lib/utils";
-import { LagoonShell, useLagoonChrome } from "@/components/lagoon/LagoonShell";
+import { cn } from "@/lib/utils";
+import { LagoonShell } from "@/components/lagoon/LagoonShell";
 import {
   ChatBubble,
   ChatBubbleAvatar,
@@ -45,9 +48,12 @@ import {
   ChatInput,
   ChatHeader,
   ChatMembersPanel,
+  ChatChannelSidebar,
+  type ChannelItem,
   ChatAudioPlayer,
   ChatLightbox,
 } from "@/components/ui/chat";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { AnimatePresence, motion } from "framer-motion";
 import "blobatar/motion.css";
@@ -57,8 +63,9 @@ import "blobatar/motion.css";
 const MAX_ATTACHMENTS = 4;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_AUDIO_BYTES = 8 * 1024 * 1024;
-const CHAT_LAYOUT_KEY = "tf.chat.layout.v3";
-const CHAT_MEMBERS_KEY = "tf.chat.members.open.v3";
+const CHAT_LAYOUT_KEY = "tf.chat.layout.v4";
+const CHAT_MEMBERS_KEY = "tf.chat.members.open.v4";
+const CHAT_CHANNELS_KEY = "tf.chat.channels.open.v4";
 
 /* ---------------- mention helpers ---------------- */
 
@@ -121,7 +128,7 @@ function renderFormattedMessage(text: string, isSentBubble = false) {
           className={
             isSentBubble
               ? "inline-flex items-center px-1.5 py-0.2 rounded font-medium text-xs bg-white/20 text-white mx-0.5"
-              : "inline-flex items-center px-1.5 py-0.2 rounded font-medium text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mx-0.5"
+              : "inline-flex items-center px-1.5 py-0.2 rounded font-medium text-xs bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30 mx-0.5"
           }
         >
           {part}
@@ -137,8 +144,8 @@ function renderFormattedMessage(text: string, isSentBubble = false) {
           rel="noopener noreferrer"
           className={
             isSentBubble
-              ? "underline text-white/90 hover:text-white break-all"
-              : "underline text-indigo-400 hover:text-indigo-300 break-all"
+              ? "underline text-white/95 hover:text-white break-all"
+              : "underline text-purple-600 dark:text-purple-400 hover:text-purple-500 break-all"
           }
         >
           {part}
@@ -214,10 +221,13 @@ function dayLabelFor(iso: string): string {
 
 /* ---------------- ChatRoom Component ---------------- */
 
-function ChatRoom() {
+interface ChatRoomProps {
+  projects?: Project[];
+}
+
+function ChatRoom({ projects = [] }: ChatRoomProps) {
   const { org } = useTenant();
   const { user } = useAuth();
-  const { openMenu } = useLagoonChrome();
   const toast = useToast();
   const orgId = org?.id ?? getCurrentTenantId();
 
@@ -227,6 +237,17 @@ function ChatRoom() {
     return (window.localStorage.getItem(CHAT_LAYOUT_KEY) as "stream" | "bubble") || "stream";
   });
 
+  // Channels panel collapse state (desktop)
+  const [isChannelsOpen, setIsChannelsOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const saved = window.localStorage.getItem(CHAT_CHANNELS_KEY);
+    return saved !== null ? saved === "true" : true;
+  });
+
+  // Mobile drawers state
+  const [mobileChannelsOpen, setMobileChannelsOpen] = useState(false);
+  const [mobileMembersOpen, setMobileMembersOpen] = useState(false);
+
   // Members panel toggle
   const [isMembersOpen, setIsMembersOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -234,6 +255,7 @@ function ChatRoom() {
     return saved !== null ? saved === "true" : true;
   });
 
+  const [activeChannelId, setActiveChannelId] = useState<string>("general");
   const [lightbox, setLightbox] = useState<ChatAttachment | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [typing, setTyping] = useState<Map<string, { name: string; at: number }>>(new Map());
@@ -268,6 +290,52 @@ function ChatRoom() {
     }
     return map;
   }, [members]);
+
+  // Construct Channel list
+  const channelSlug = useMemo(() => {
+    const slug = (org?.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return slug || "team";
+  }, [org?.name]);
+
+  const channels: ChannelItem[] = useMemo(() => {
+    const list: ChannelItem[] = [
+      {
+        id: "general",
+        name: channelSlug,
+        description: `${org?.name ?? "Workspace"} main team discussion`,
+        icon: "hash",
+      },
+      {
+        id: "announcements",
+        name: "announcements",
+        description: "Official team and sprint announcements",
+        icon: "announcements",
+      },
+      {
+        id: "random",
+        name: "random",
+        description: "Non-work banter, links, and coffee chats",
+        icon: "random",
+      },
+    ];
+
+    for (const p of projects) {
+      list.push({
+        id: `project-${p.id}`,
+        name: p.name.toLowerCase().replace(/[^a-z0-9_-]+/g, "-"),
+        description: `Discussion for ${p.name} (${p.key})`,
+        icon: "project",
+        isProject: true,
+      });
+    }
+
+    return list;
+  }, [channelSlug, org?.name, projects]);
+
+  const activeChannel = useMemo(
+    () => channels.find((c) => c.id === activeChannelId) ?? channels[0]!,
+    [channels, activeChannelId]
+  );
 
   const rawItems = useMemo(() => [...(chatQ.data?.data ?? [])].reverse(), [chatQ.data]);
 
@@ -304,14 +372,26 @@ function ChatRoom() {
   useEffect(() => {
     try {
       window.localStorage.setItem(CHAT_LAYOUT_KEY, layoutMode);
-    } catch {}
+    } catch {
+      // localStorage unavailable
+    }
   }, [layoutMode]);
 
   useEffect(() => {
     try {
       window.localStorage.setItem(CHAT_MEMBERS_KEY, String(isMembersOpen));
-    } catch {}
+    } catch {
+      // localStorage unavailable
+    }
   }, [isMembersOpen]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CHAT_CHANNELS_KEY, String(isChannelsOpen));
+    } catch {
+      // localStorage unavailable
+    }
+  }, [isChannelsOpen]);
 
   /* Realtime hook */
   const mutateRef = useRef(chatQ.mutate);
@@ -326,7 +406,7 @@ function ChatRoom() {
   const patchReactions = useCallback(
     (
       messageId: string,
-      reactions: { emoji: string; count: number; userIds: string[]; reactedByMe: boolean }[],
+      reactions: ChatReactionGroup[],
     ) => {
       void mutateRef.current(
         (current) => {
@@ -349,9 +429,9 @@ function ChatRoom() {
         messageListRef.current?.scrollToBottom(true);
       },
       onChatUpdated: (msg: { meta?: unknown; [key: string]: unknown }) => {
-        const meta = msg.meta as { messageId?: string; reactions?: unknown[] } | undefined;
+        const meta = msg.meta as { messageId?: string; reactions?: ChatReactionGroup[] } | undefined;
         if (meta?.messageId && Array.isArray(meta.reactions)) {
-          patchReactions(meta.messageId, meta.reactions as any);
+          patchReactions(meta.messageId, meta.reactions);
         }
       },
       onChatTyping: (msg: { meta?: unknown; [key: string]: unknown }) => {
@@ -563,7 +643,7 @@ function ChatRoom() {
       if (!me) return;
       const current = m.reactions ?? [];
       const mine = current.find((g) => g.emoji === emoji)?.reactedByMe;
-      const next = (() => {
+      const next: ChatReactionGroup[] = (() => {
         const map = new Map(current.map((g) => [g.emoji, { ...g, userIds: [...g.userIds] }]));
         const g = map.get(emoji);
         if (mine) {
@@ -623,11 +703,6 @@ function ChatRoom() {
     [chatQ, toast],
   );
 
-  const channelSlug = useMemo(() => {
-    const slug = (org?.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-    return slug || "team";
-  }, [org?.name]);
-
   const teamName = org?.name ? `${org.name} team` : "Team chat";
   const onlineCount = useMemo(() => members.filter((m) => m.status === "active").length, [members]);
   const typingNames = [...typing.values()].map((t) => t.name);
@@ -636,25 +711,48 @@ function ChatRoom() {
 
   return (
     <div
-      className="flex h-full w-full bg-background text-foreground overflow-hidden"
+      className="flex h-full w-full bg-[var(--app-canvas-bg)] text-[var(--tf-fg)] overflow-hidden"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
         if (e.dataTransfer.files.length > 0) void filesToAttachments(e.dataTransfer.files);
       }}
     >
+      {/* Left Channels Sidebar on Desktop */}
+      <ChatChannelSidebar
+        channels={channels}
+        activeChannelId={activeChannelId}
+        onSelectChannel={(id) => setActiveChannelId(id)}
+        members={members}
+        onSelectDm={(m) => {
+          selectMember(m);
+          inputRef.current?.focus();
+        }}
+        isCollapsed={!isChannelsOpen}
+        onToggleCollapse={() => setIsChannelsOpen((v) => !v)}
+        className="hidden md:flex"
+      />
+
       {/* Main chat column */}
-      <div className="flex flex-1 flex-col h-full min-w-0 min-h-0 bg-background">
+      <div className="flex flex-1 flex-col h-full min-w-0 min-h-0 bg-[var(--app-canvas-bg)]">
         {/* Compact Channel Header */}
         <ChatHeader
-          channel={channelSlug}
-          roomName={teamName}
+          channel={activeChannel.name}
+          roomName={activeChannel.description || teamName}
           memberCount={members.length}
           onlineCount={onlineCount}
           isConnected={isConnected}
           isMembersOpen={isMembersOpen}
-          onToggleMembers={() => setIsMembersOpen((v) => !v)}
-          onOpenMobileMenu={openMenu}
+          onToggleMembers={() => {
+            if (typeof window !== "undefined" && window.innerWidth < 768) {
+              setMobileMembersOpen(true);
+            } else {
+              setIsMembersOpen((v) => !v);
+            }
+          }}
+          onOpenMobileChannels={() => setMobileChannelsOpen(true)}
+          onToggleChannels={() => setIsChannelsOpen((v) => !v)}
+          isChannelsOpen={isChannelsOpen}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           layoutMode={layoutMode}
@@ -665,12 +763,12 @@ function ChatRoom() {
         <ChatMessageList ref={messageListRef}>
           {chatQ.isLoading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3 select-none">
-              <div className="size-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-              <span className="text-xs text-slate-400 font-medium">Loading channel messages…</span>
+              <div className="size-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+              <span className="text-xs text-[var(--tf-fg-muted)] font-medium">Loading channel messages…</span>
             </div>
           ) : rawItems.length === 0 ? (
             <ChatEmptyState
-              channelName={channelSlug}
+              channelName={activeChannel.name}
               onQuickPrompt={(prompt) => {
                 setDraft(prompt);
                 inputRef.current?.focus();
@@ -705,8 +803,8 @@ function ChatRoom() {
                           size="default"
                         />
                       ) : (
-                        <div className="size-9 shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 select-none">
-                          <span className="text-[10px] font-mono text-slate-400" title={when.fullTooltip}>
+                        <div className="size-8 shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 select-none">
+                          <span className="text-[10px] font-mono text-[var(--tf-fg-muted)]" title={when.fullTooltip}>
                             {when.timeStr}
                           </span>
                         </div>
@@ -716,18 +814,18 @@ function ChatRoom() {
                       <div className="flex-1 min-w-0">
                         {!compact && (
                           <div className="flex items-center gap-2 select-none mb-0.5">
-                            <span className="text-xs font-semibold text-slate-100 hover:text-indigo-400 hover:underline cursor-pointer">
+                            <span className="text-xs font-semibold text-[var(--tf-fg)] hover:text-purple-600 dark:hover:text-purple-400 hover:underline cursor-pointer">
                               {authorName}
                             </span>
                             {own && (
-                              <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4 bg-white/10 text-slate-300 border-none font-normal">
+                              <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4 bg-[var(--tf-hover-bg)] text-[var(--tf-fg-muted)] border border-[var(--tf-border)] font-normal">
                                 you
                               </Badge>
                             )}
                             {mentionedMe && (
                               <Badge
                                 variant="default"
-                                className="text-[10px] py-0 px-1.5 h-4 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium"
+                                className="text-[10px] py-0 px-1.5 h-4 bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30 font-medium"
                               >
                                 @you
                               </Badge>
@@ -739,7 +837,7 @@ function ChatRoom() {
                         <div className="relative group/bubble">
                           <ChatBubbleMessage layout="stream">
                             {m.body && (
-                              <p className="whitespace-pre-wrap leading-relaxed select-text text-slate-200">
+                              <p className="whitespace-pre-wrap leading-relaxed select-text text-[var(--tf-fg)]">
                                 {renderFormattedMessage(m.body, false)}
                               </p>
                             )}
@@ -758,8 +856,9 @@ function ChatRoom() {
                                     key={`${m.id}-img-${idx}`}
                                     type="button"
                                     onClick={() => setLightbox(img)}
-                                    className="overflow-hidden rounded-xl border border-white/10 hover:opacity-95 transition-transform active:scale-98 shadow-md"
+                                    className="overflow-hidden rounded-xl border border-[var(--tf-border)] hover:opacity-95 transition-transform active:scale-98 shadow-sm"
                                   >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                       src={img.url}
                                       alt={img.name}
@@ -835,18 +934,18 @@ function ChatRoom() {
                           size="default"
                         />
                       )}
-                      {!own && compact && <div className="size-9 shrink-0 select-none" />}
+                      {!own && compact && <div className="size-8 shrink-0 select-none" />}
 
-                      <div className={own ? "flex flex-col items-end max-w-[78%] sm:max-w-[70%] md:max-w-[62%]" : "flex flex-col items-start max-w-[78%] sm:max-w-[70%] md:max-w-[62%]"}>
+                      <div className={own ? "flex flex-col items-end max-w-[85%] sm:max-w-[70%] md:max-w-[62%]" : "flex flex-col items-start max-w-[85%] sm:max-w-[70%] md:max-w-[62%]"}>
                         {!own && !compact && (
                           <div className="flex items-center gap-1.5 mb-1 px-1 select-none">
-                            <span className="text-xs font-semibold text-slate-300">
+                            <span className="text-xs font-semibold text-[var(--tf-fg-muted)]">
                               {authorName}
                             </span>
                             {mentionedMe && (
                               <Badge
                                 variant="default"
-                                className="text-[10px] py-0 px-1.5 h-4 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                                className="text-[10px] py-0 px-1.5 h-4 bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30 font-medium"
                               >
                                 @you
                               </Badge>
@@ -859,7 +958,7 @@ function ChatRoom() {
                             variant={own ? "sent" : "received"}
                             layout="bubble"
                             className={cn(
-                              mentionedMe && !own ? "ring-2 ring-indigo-500/50" : undefined,
+                              mentionedMe && !own ? "ring-2 ring-purple-500/50" : undefined,
                               own
                                 ? compact
                                   ? "rounded-2xl rounded-tr-md rounded-br-md"
@@ -883,8 +982,9 @@ function ChatRoom() {
                                     key={`${m.id}-img-${idx}`}
                                     type="button"
                                     onClick={() => setLightbox(img)}
-                                    className="overflow-hidden rounded-xl border border-white/10 hover:opacity-95 transition-transform active:scale-98 shadow-sm"
+                                    className="overflow-hidden rounded-xl border border-[var(--tf-border)] hover:opacity-95 transition-transform active:scale-98 shadow-sm"
                                   >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                       src={img.url}
                                       alt={img.name}
@@ -942,7 +1042,7 @@ function ChatRoom() {
                                   isSent={own && !m.id.startsWith("local-")}
                                   className={cn(
                                     "text-[10px] shrink-0 font-mono select-none self-end pb-0.5",
-                                    own ? "text-indigo-200/80" : "text-slate-400"
+                                    own ? "text-purple-200/90" : "text-[var(--tf-fg-muted)]"
                                   )}
                                 />
                               </div>
@@ -958,7 +1058,7 @@ function ChatRoom() {
                                     timestamp={when.timeStr}
                                     title={when.fullTooltip}
                                     isSent={own && !m.id.startsWith("local-")}
-                                    className={own ? "text-indigo-200" : "text-slate-400"}
+                                    className={own ? "text-purple-200" : "text-[var(--tf-fg-muted)]"}
                                   />
                                 </div>
                               </>
@@ -992,30 +1092,30 @@ function ChatRoom() {
         <ChatTypingIndicator typingUsers={typingNames} />
 
         {/* Bottom Composer */}
-        <div className="px-4 md:px-6 pb-4 pt-1 bg-background select-none">
+        <div className="px-4 md:px-6 pb-4 pt-1 bg-[var(--app-canvas-bg)] select-none">
           <ChatInput
             ref={inputRef}
-              value={draft}
-              onChange={(val) => {
-                setDraft(val);
-                updateMention(val, inputRef.current?.selectionStart ?? null);
-                broadcastTyping();
-              }}
-              onSubmit={() => void handleSend()}
-              disabled={sending}
-              placeholder={`Message #${channelSlug}…`}
-              attachments={pending}
-              onRemoveAttachment={(i) => setPending((p) => p.filter((_, idx) => idx !== i))}
-              onAttachFiles={filesToAttachments}
-              mentionQuery={mention?.query ?? null}
-              mentionUsers={filteredMentionMembers}
-              mentionIndex={mentionIndex}
-              onSelectMention={(m) => selectMember(m)}
-            />
+            value={draft}
+            onChange={(val) => {
+              setDraft(val);
+              updateMention(val, inputRef.current?.selectionStart ?? null);
+              broadcastTyping();
+            }}
+            onSubmit={() => void handleSend()}
+            disabled={sending}
+            placeholder={`Message #${activeChannel.name}…`}
+            attachments={pending}
+            onRemoveAttachment={(i) => setPending((p) => p.filter((_, idx) => idx !== i))}
+            onAttachFiles={filesToAttachments}
+            mentionQuery={mention?.query ?? null}
+            mentionUsers={filteredMentionMembers}
+            mentionIndex={mentionIndex}
+            onSelectMention={(m) => selectMember(m)}
+          />
         </div>
       </div>
 
-      {/* Right-side Active Members Drawer */}
+      {/* Right-side Active Members Drawer on Desktop */}
       <AnimatePresence>
         {isMembersOpen && (
           <motion.div
@@ -1023,7 +1123,7 @@ function ChatRoom() {
             animate={{ width: 240, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.18, ease: "easeInOut" }}
-            className="hidden md:flex overflow-hidden shrink-0 border-l border-border"
+            className="hidden md:flex overflow-hidden shrink-0 border-l border-[var(--tf-border)] bg-[var(--app-canvas-bg)]"
           >
             <ChatMembersPanel
               members={members}
@@ -1038,6 +1138,54 @@ function ChatRoom() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Channels Drawer */}
+      <Sheet open={mobileChannelsOpen} onOpenChange={setMobileChannelsOpen}>
+        <SheetContent
+          side="left"
+          className="p-0 w-72 max-w-[85vw] border-r border-[var(--tf-border)] bg-[var(--app-canvas-bg)] text-[var(--tf-fg)] flex flex-col"
+          aria-label="Channels drawer"
+          showCloseButton={false}
+        >
+          <ChatChannelSidebar
+            channels={channels}
+            activeChannelId={activeChannelId}
+            onSelectChannel={(id) => {
+              setActiveChannelId(id);
+              setMobileChannelsOpen(false);
+            }}
+            members={members}
+            onSelectDm={(m) => {
+              selectMember(m);
+              setMobileChannelsOpen(false);
+              inputRef.current?.focus();
+            }}
+            className="w-full h-full border-r-0"
+          />
+        </SheetContent>
+      </Sheet>
+
+      {/* Mobile Members Drawer */}
+      <Sheet open={mobileMembersOpen} onOpenChange={setMobileMembersOpen}>
+        <SheetContent
+          side="right"
+          className="p-0 w-72 max-w-[85vw] border-l border-[var(--tf-border)] bg-[var(--app-canvas-bg)] text-[var(--tf-fg)] flex flex-col"
+          aria-label="Members drawer"
+          showCloseButton={false}
+        >
+          <ChatMembersPanel
+            members={members}
+            isLoading={membersQ.isLoading}
+            onClose={() => setMobileMembersOpen(false)}
+            onMentionMember={(m) => {
+              selectMember(m);
+              setMobileMembersOpen(false);
+              inputRef.current?.focus();
+            }}
+            className="w-full h-full border-l-0"
+          />
+        </SheetContent>
+      </Sheet>
 
       {/* Lightbox Modal */}
       <ChatLightbox item={lightbox} onClose={() => setLightbox(null)} />
@@ -1062,7 +1210,7 @@ export default function ChatPage() {
       onSelectProject={(id) => router.push(`/app/board?project=${id}`)}
       onProjectsChanged={() => projectsQ.mutate()}
     >
-      <ChatRoom />
+      <ChatRoom projects={projects} />
     </LagoonShell>
   );
 }
