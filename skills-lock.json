@@ -7,6 +7,12 @@
       "skillPath": "skills/frontend-design/SKILL.md",
       "computedHash": "83485963700bcf11d5bf78118facb301676b69d918fee2e45a95e7f1a2840f6c"
     },
+    "kanban-board": {
+      "source": "thedaviddias/ux-patterns-for-developers",
+      "sourceType": "github",
+      "skillPath": "skills/kanban-board/SKILL.md",
+      "computedHash": "6128a0cdb7f6a978e5babd9a014151a06966cfb691cde4741f505032a705a6e3"
+    },
     "supabase": {
       "source": "supabase/agent-skills",
       "sourceType": "github",

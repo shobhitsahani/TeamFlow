@@ -13,6 +13,7 @@ import { LagoonCardModal } from "@/components/lagoon/LagoonCardModal";
 import {
   IconCalendar,
   IconCheck,
+  IconChevronDown,
   IconColumns,
   IconList,
   IconListTodo,
@@ -28,6 +29,7 @@ import {
 } from "@/components/icons";
 import { api, getCurrentTenantId, type ListLabel, type Member, type Task, type Project } from "@/lib/api";
 import { useToast } from "@/components/overlay";
+import { toast as tfToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth";
 import { useTenant } from "@/components/store";
 import { useSWR } from "@/lib/swr";
@@ -336,9 +338,9 @@ const LagoonTaskCard = memo(function LagoonTaskCard({
                   <IconColumns size={12} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44 glass-surface-2 p-1">
-                  <DropdownMenuLabel className="text-[10px] uppercase font-semibold text-[var(--tf-fg-muted)]">Move to</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
                   <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-[10px] uppercase font-semibold text-[var(--tf-fg-muted)]">Move to</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
                     {moveTargets.map((t) => (
                       <DropdownMenuItem
                         key={t.status}
@@ -705,6 +707,7 @@ function LagoonBoard() {
   const deferredSearch = useDeferredValue(search);
   const [toneFilter, setToneFilter] = useState<LagoonTone | null>(null);
   const [activeOnly, setActiveOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<"default" | "due" | "priority" | "title">("default");
   const [metaTick, setMetaTick] = useState(0);
   const bumpMeta = useCallback(() => setMetaTick((t) => t + 1), []);
   const [today] = useState<string | null>(() => todayYmd());
@@ -915,9 +918,8 @@ function LagoonBoard() {
     const q = deferredSearch.trim().toLowerCase();
     // metaTick re-reads per-task local meta (labels/checklists) after modal saves.
     void metaTick;
-    return columns.map((col) => ({
-      ...col,
-      tasks: col.tasks.filter((t) => {
+    return columns.map((col) => {
+      const tasks = col.tasks.filter((t) => {
         if (activeOnly && t.status === "done") return false;
         if (toneFilter) {
           const meta = loadLagoonMeta(t.id);
@@ -928,9 +930,28 @@ function LagoonBoard() {
         const meta = loadLagoonMeta(t.id);
         const labelText = effectiveLabel(t.priority, meta)?.text ?? "";
         return `${t.title} ${t.description ?? ""} ${labelText}`.toLowerCase().includes(q);
-      }),
-    }));
-  }, [columns, deferredSearch, activeOnly, toneFilter, metaTick]);
+      });
+
+      if (sortBy === "due") {
+        tasks.sort((a, b) => {
+          if (!a.dueAt && !b.dueAt) return 0;
+          if (!a.dueAt) return 1;
+          if (!b.dueAt) return -1;
+          return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+        });
+      } else if (sortBy === "priority") {
+        const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, none: 4 };
+        tasks.sort((a, b) => (order[a.priority ?? "none"] ?? 4) - (order[b.priority ?? "none"] ?? 4));
+      } else if (sortBy === "title") {
+        tasks.sort((a, b) => a.title.localeCompare(b.title));
+      }
+
+      return {
+        ...col,
+        tasks,
+      };
+    });
+  }, [columns, deferredSearch, activeOnly, toneFilter, sortBy, metaTick]);
 
   const flatTasks = useMemo(() => filteredColumns.flatMap((c) => c.tasks), [filteredColumns]);
 
@@ -993,6 +1014,7 @@ function LagoonBoard() {
     async (taskId: string, newStatus: string) => {
       const target = projectTasks.find((t) => t.id === taskId);
       if (!target || target.status === newStatus) return;
+      const oldStatus = target.status;
       await tasksQ.mutate(
         (current) => ({
           ...(current ?? { data: [], nextCursor: null, hasMore: false }),
@@ -1004,21 +1026,31 @@ function LagoonBoard() {
       );
       try {
         await updateTask(taskId, { status: newStatus as Task["status"] }, selectedProjectId);
-        toast({ title: "Card moved", msg: `Moved to ${labelFor(newStatus)}.` });
+        tfToast.add({
+          title: "Card moved",
+          description: `Moved to ${labelFor(newStatus)}.`,
+          type: "success",
+          actionProps: {
+            children: "Undo",
+            onClick: () => {
+              void performDrop(taskId, oldStatus);
+            },
+          },
+        });
         setAnnounce(`Moved ${target.title} to ${labelFor(newStatus)}.`);
         await tasksQ.mutate();
       } catch (err) {
         await tasksQ.mutate();
         const detail = errorDetail(err);
-        toast({
+        tfToast.add({
           title: "Couldn't move card",
-          msg: `"${target.title}" stayed in ${labelFor(target.status)}. ${detail ?? "Check your connection, then try again."}`,
-          kind: "err",
+          description: `"${target.title}" stayed in ${labelFor(target.status)}. ${detail ?? "Check your connection, then try again."}`,
+          type: "error",
         });
         setAnnounce(`Could not move ${target.title} to ${labelFor(newStatus)}. It stayed in ${labelFor(target.status)}.`);
       }
     },
-    [projectTasks, updateTask, selectedProjectId, toast, tasksQ, labelFor],
+    [projectTasks, updateTask, selectedProjectId, tasksQ, labelFor],
   );
 
   const handleDone = useCallback(
@@ -1772,6 +1804,65 @@ function LagoonBoard() {
             </div>
           )}
 
+          {/* Sort By Dropdown */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={cx(
+                    "h-7 px-2 text-xs font-medium rounded-lg border-[var(--tf-border)] gap-1",
+                    sortBy !== "default" && "bg-purple-500/15 border-purple-500/30 text-purple-700 dark:text-purple-300 font-semibold"
+                  )}
+                >
+                  <IconSliders size={12} />
+                  <span>Sort: {sortBy === "due" ? "Due date" : sortBy === "priority" ? "Priority" : sortBy === "title" ? "Title" : "Default"}</span>
+                  <IconChevronDown size={11} className="opacity-60" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-36 glass-surface-2 p-1">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tf-fg-muted)]">Sort cards</DropdownMenuLabel>
+                <DropdownMenuSeparator className="my-1 border-t border-[var(--tf-border)]" />
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => setSortBy("default")}
+                  className="flex items-center justify-between text-xs px-2 py-1.5 cursor-pointer"
+                >
+                  <span>Default</span>
+                  {sortBy === "default" && <IconCheck size={12} className="text-purple-600 dark:text-purple-400" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => setSortBy("due")}
+                  className="flex items-center justify-between text-xs px-2 py-1.5 cursor-pointer"
+                >
+                  <span>Due date</span>
+                  {sortBy === "due" && <IconCheck size={12} className="text-purple-600 dark:text-purple-400" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => setSortBy("priority")}
+                  className="flex items-center justify-between text-xs px-2 py-1.5 cursor-pointer"
+                >
+                  <span>Priority</span>
+                  {sortBy === "priority" && <IconCheck size={12} className="text-purple-600 dark:text-purple-400" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  closeOnClick
+                  onClick={() => setSortBy("title")}
+                  className="flex items-center justify-between text-xs px-2 py-1.5 cursor-pointer"
+                >
+                  <span>Title (A-Z)</span>
+                  {sortBy === "title" && <IconCheck size={12} className="text-purple-600 dark:text-purple-400" />}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Scope toggle */}
           <Button
             type="button"
@@ -1781,7 +1872,6 @@ function LagoonBoard() {
             aria-pressed={activeOnly}
             onClick={() => setActiveOnly((v) => !v)}
           >
-            <IconSliders size={13} className="mr-1.5" />
             {activeOnly ? "Active only" : "All tasks"}
           </Button>
         </div>
@@ -1895,9 +1985,18 @@ function LagoonBoard() {
                     ))}
                   </AnimatePresence>
                   {col.tasks.length === 0 && composerFor !== col.status ? (
-                    <div className="flex flex-col items-center justify-center py-7 px-4 border border-dashed border-[var(--tf-border)] rounded-xl text-center bg-black/[0.01] dark:bg-white/[0.01]">
-                      <p className="text-xs font-medium text-[var(--tf-fg-muted)]">
-                        {deferredSearch.trim() || toneFilter || activeOnly ? "No matching cards" : "No cards yet"}
+                    <div
+                      className={cx(
+                        "flex flex-col items-center justify-center py-7 px-4 border border-dashed rounded-xl text-center transition-all",
+                        draggedTaskId
+                          ? dragOverCol === col.status
+                            ? "border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/20 text-[var(--tf-fg)]"
+                            : "border-purple-500/40 bg-purple-500/5 text-[var(--tf-fg-muted)]"
+                          : "border-[var(--tf-border)] bg-black/[0.01] dark:bg-white/[0.01] text-[var(--tf-fg-muted)]"
+                      )}
+                    >
+                      <p className="text-xs font-medium">
+                        {draggedTaskId ? "Drop card here" : deferredSearch.trim() || toneFilter || activeOnly ? "No matching cards" : "No cards yet"}
                       </p>
                       {deferredSearch.trim() || toneFilter || activeOnly ? (
                         <Button

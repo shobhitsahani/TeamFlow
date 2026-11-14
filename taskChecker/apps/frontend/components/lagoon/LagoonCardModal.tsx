@@ -13,14 +13,14 @@ import { useToast } from "@/components/overlay";
 import { IconTrash } from "@/components/icons";
 import { XIcon } from "lucide-react";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -173,6 +173,15 @@ export function LagoonCardModal({
     }
   };
 
+  const handleStatus = async (status: Task["status"]) => {
+    if (!canWrite) return;
+    try {
+      await onPatch(task.id, { status });
+    } catch (err) {
+      toast({ title: "Status update failed", msg: err instanceof Error ? err.message : "Try again." });
+    }
+  };
+
   const handleAddCheck = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -248,51 +257,57 @@ export function LagoonCardModal({
   return (
     <AnimatePresence onExitComplete={finishClose}>
       {visible ? (
-        <Dialog
+        <Sheet
           open
           onOpenChange={(next) => {
             if (!next) requestClose();
           }}
         >
-          <DialogContent
-            aria-label="Card details"
+          <SheetContent
+            side="right"
+            aria-label={`Task details: ${task.title}`}
             showCloseButton={false}
-            className="lagoon tf-task-modal tf-glass-modal flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-xl p-0 shadow-2xl sm:max-w-[720px]"
-            style={{ maxHeight: "min(880px, calc(100dvh - 2rem))" }}
+            className="lagoon tf-task-modal tf-glass-drawer flex h-full w-full max-w-full sm:max-w-xl md:max-w-2xl flex-col gap-0 overflow-hidden p-0 shadow-2xl border-l border-[var(--tf-border)] bg-[var(--tf-card-bg)] text-[var(--tf-fg)]"
           >
             <motion.div variants={focalPop} initial="hidden" animate="show" exit="exit" className="flex min-h-0 flex-1 flex-col">
-              <DialogHeader className="shrink-0 gap-0 border-b border-border px-6 pt-5 pb-5 sm:px-7">
+              <SheetHeader className="shrink-0 gap-0 border-b border-[var(--tf-border)] px-6 pt-5 pb-5 sm:px-7">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[12px] font-semibold text-muted-foreground">Task details</p>
-                  <DialogClose
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-[var(--tf-hover-bg)] text-[var(--tf-fg-muted)] border border-[var(--tf-border)]">
+                      {project?.key ?? "LGN"}-{task.id.slice(0, 4).toUpperCase()}
+                    </span>
+                    <span className="text-xs text-[var(--tf-fg-muted)]">· Task details</span>
+                  </div>
+                  <SheetClose
                     render={
                       <Button
                         variant="ghost"
                         size="icon-sm"
                         aria-label="Close task details"
+                        className="rounded-lg text-[var(--tf-fg-muted)] hover:text-[var(--tf-fg)] hover:bg-[var(--tf-hover-bg)]"
                       />
                     }
                   >
-                    <XIcon />
+                    <XIcon className="size-4" />
                     <span className="sr-only">Close</span>
-                  </DialogClose>
+                  </SheetClose>
                 </div>
-                <DialogTitle className="sr-only">Card details</DialogTitle>
+                <SheetTitle className="sr-only">Card details</SheetTitle>
                 <Input
                   aria-label="Card title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   disabled={!canWrite}
                   placeholder="Untitled card"
-                  className="mt-3 min-h-9 border-0 bg-transparent px-2 -mx-2 text-[20px] leading-snug font-semibold tracking-[-0.01em] shadow-none hover:bg-muted/60 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/60 placeholder:text-muted-foreground/60"
+                  className="mt-3 min-h-10 border-0 bg-transparent px-2 -mx-2 text-[22px] leading-snug font-bold tracking-tight text-[var(--tf-fg)] shadow-none hover:bg-[var(--tf-hover-bg)] focus-visible:ring-1 focus-visible:ring-purple-500 rounded-lg placeholder:text-muted-foreground/60"
                   style={{ fontFamily: "var(--stack-display)" }}
                 />
                 {project ? (
-                  <DialogDescription className="mt-1.5 font-mono text-[12px] tabular-nums text-muted-foreground">
-                    {project.key} · {project.name}
-                  </DialogDescription>
+                  <SheetDescription className="mt-1 text-xs text-[var(--tf-fg-muted)] flex items-center gap-2">
+                    <span>In project <strong className="text-[var(--tf-fg)]">{project.name}</strong></span>
+                  </SheetDescription>
                 ) : null}
-              </DialogHeader>
+              </SheetHeader>
 
               {/* Scrollable content — header and footer stay pinned while
                   long descriptions, checklists, and threads scroll. */}
@@ -314,9 +329,49 @@ export function LagoonCardModal({
                   />
                 </Field>
 
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {/* Properties Grid: Status, Priority, Assignee, Due date, Labels */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[var(--tf-hover-bg)] border border-[var(--tf-border)]">
                   <Field>
-                    <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Assignee</FieldLabel>
+                    <FieldLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</FieldLabel>
+                    <Select
+                      value={task.status}
+                      onValueChange={(v) => void handleStatus(v as Task["status"])}
+                      disabled={!canWrite}
+                    >
+                      <SelectTrigger aria-label="Status" className="h-9 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="backlog">Backlog</SelectItem>
+                        <SelectItem value="todo">To do</SelectItem>
+                        <SelectItem value="in_progress">In progress</SelectItem>
+                        <SelectItem value="done">Done</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Priority</FieldLabel>
+                    <Select
+                      value={task.priority}
+                      onValueChange={(v) => void handlePriority(v as Task["priority"])}
+                      disabled={!canWrite}
+                    >
+                      <SelectTrigger aria-label="Priority" className="h-9 w-full capitalize">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="critical">Critical</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Assignee</FieldLabel>
                     <AvatarGroup className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
@@ -334,10 +389,6 @@ export function LagoonCardModal({
                         const display = m.name ?? m.email ?? m.userId.slice(0, 4);
                         const active = task.assigneeId === m.userId;
                         return (
-                          // Real button (not a clickable span): keyboard
-                          // reachable with a visible ring + pressed state.
-                          // ring-2 ring-background preserves the avatar
-                          // separator ring lost by nesting under the button.
                           <button
                             key={m.userId}
                             type="button"
@@ -368,35 +419,14 @@ export function LagoonCardModal({
                       })}
                     </AvatarGroup>
                     {assignee ? (
-                      <p className="text-[13px] font-medium">{assignee.name ?? assignee.email}</p>
+                      <p className="text-[12px] font-medium text-[var(--tf-fg)]">{assignee.name ?? assignee.email}</p>
                     ) : (
-                      <p className="text-[12px] text-muted-foreground">Unassigned — pick a member above</p>
+                      <p className="text-[11px] text-muted-foreground">Unassigned</p>
                     )}
                   </Field>
+
                   <Field>
-                    <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Priority</FieldLabel>
-                    <Select
-                      value={task.priority}
-                      onValueChange={(v) => void handlePriority(v as Task["priority"])}
-                      disabled={!canWrite}
-                    >
-                      <SelectTrigger aria-label="Priority" className="h-9 w-full capitalize">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="critical">Critical</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="none">None</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[12px] text-muted-foreground">
-                      Shared with the team — drives board badges.
-                    </p>
-                  </Field>
-                  <Field>
-                    <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Due date</FieldLabel>
+                    <FieldLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Due date</FieldLabel>
                     <DatePicker
                       value={dueDate}
                       disabled={!canWrite}
@@ -412,46 +442,41 @@ export function LagoonCardModal({
                       }}
                     />
                   </Field>
-                  <Field>
-                    <FieldLabel className="text-[12px] font-semibold text-muted-foreground">Personal tag</FieldLabel>
-                    <Input
-                      aria-label="Personal tag (only visible to you)"
-                      value={label}
-                      onChange={(e) => persistLabel(e.target.value, tone)}
-                      placeholder="e.g. Urgent"
-                      disabled={!canWrite}
-                      className="h-9"
-                    />
-                    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Personal tag color">
-                      {LAGOON_TONES.map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          aria-label={tone === t ? `Clear ${t} personal tag color, only you see this` : `Set ${t} personal tag color, only you see this`}
-                          aria-pressed={tone === t}
-                          title={`${t} — personal, only you see this`}
-                          onClick={() => persistLabel(label, tone === t ? undefined : t)}
-                          disabled={!canWrite}
-                          data-active={tone === t}
-                          className="grid size-8 place-items-center rounded-full transition-transform hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-ring data-[active=true]:ring-offset-2"
-                        >
-                          <span
-                            aria-hidden
-                            className="size-5 rounded-full"
-                            style={{ background: `var(--lagoon-${t})` }}
-                          />
-                        </button>
-                      ))}
-                      {label.trim() ? (
-                        <span className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[12px] font-semibold capitalize lg-pill-${tone ?? "purple"}`}>
-                          <span aria-hidden className="size-1.5 rounded-full bg-current" />
-                          {label.trim()}
-                        </span>
-                      ) : null}
+
+                  <Field className="sm:col-span-2">
+                    <FieldLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Personal tag</FieldLabel>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                      <Input
+                        aria-label="Personal tag (only visible to you)"
+                        value={label}
+                        onChange={(e) => persistLabel(e.target.value, tone)}
+                        placeholder="e.g. Urgent, High Impact…"
+                        disabled={!canWrite}
+                        className="h-9 flex-1"
+                      />
+                      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Personal tag color">
+                        {LAGOON_TONES.map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            aria-label={tone === t ? `Clear ${t} tag color` : `Set ${t} tag color`}
+                            aria-pressed={tone === t}
+                            title={`${t} — personal`}
+                            onClick={() => persistLabel(label, tone === t ? undefined : t)}
+                            disabled={!canWrite}
+                            data-active={tone === t}
+                            className="size-7 rounded-full grid place-items-center transition-transform hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[active=true]:ring-2 data-[active=true]:ring-ring data-[active=true]:ring-offset-2"
+                            style={{ background: tone === t ? `var(--lagoon-${t})` : "transparent", border: `2px solid var(--lagoon-${t})` }}
+                          >
+                            <span
+                              aria-hidden
+                              className="size-3.5 rounded-full"
+                              style={{ background: `var(--lagoon-${t})` }}
+                            />
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-[12px] text-muted-foreground">
-                      Only you see this — saved on this device.
-                    </p>
                   </Field>
                 </div>
               </motion.div>
@@ -594,7 +619,7 @@ export function LagoonCardModal({
           </motion.div>
           </div>
 
-          <DialogFooter className="m-0 shrink-0 flex-row flex-wrap items-center justify-between gap-3 rounded-b-xl border-t border-border bg-muted/30 px-6 py-4 sm:justify-between sm:px-7">
+          <SheetFooter className="m-0 shrink-0 flex-row flex-wrap items-center justify-between gap-3 border-t border-[var(--tf-border)] bg-[var(--tf-hover-bg)] px-6 py-4 sm:justify-between sm:px-7">
             {canWrite ? (
               confirmingDelete ? (
                 <div
@@ -632,14 +657,14 @@ export function LagoonCardModal({
               onClick={() => void handleDone()}
               disabled={saving}
               loading={saving}
-              className="lagoon-create-btn h-9 min-w-24 border-0 font-semibold active:scale-[0.97]"
+              className="h-9 min-w-24 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg shadow-xs active:scale-[0.97]"
             >
               Done
             </Button>
-          </DialogFooter>
+          </SheetFooter>
           </motion.div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     ) : null}
   </AnimatePresence>
   );
