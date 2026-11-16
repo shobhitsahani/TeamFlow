@@ -8,7 +8,7 @@
 import { Suspense, memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LagoonShell, useLagoonChrome } from "@/components/lagoon/LagoonShell";
-import { EventManager, type CalendarEvent } from "@/components/ui/event-manager";
+import { LagoonCalendar } from "@/components/lagoon/LagoonCalendar";
 import { LagoonCardModal } from "@/components/lagoon/LagoonCardModal";
 import {
   IconCalendar,
@@ -1355,88 +1355,6 @@ function LagoonBoard() {
     [tasksQ, toast, restoreOpenerFocus],
   );
 
-  /** Calendar view: tasks with due dates become draggable events. Colors mirror
-   *  toneForPriority (gold has no calendar swatch; orange is its stand-in). */
-  const calendarEvents = useMemo<CalendarEvent[]>(
-    () =>
-      flatTasks
-        .filter((t) => t.dueAt)
-        .map((t) => {
-          const start = new Date(t.dueAt as string);
-          const color =
-            t.priority === "critical" || t.priority === "high"
-              ? "green"
-              : t.priority === "medium"
-                ? "purple"
-                : t.priority === "low"
-                  ? "orange"
-                  : "blue";
-          return {
-            id: t.id,
-            title: t.title,
-            description: t.description ?? undefined,
-            startTime: start,
-            endTime: new Date(start.getTime() + 3600000),
-            color,
-            category: labelFor(t.status),
-            tags: [t.priority],
-          };
-        }),
-    [flatTasks, labelFor],
-  );
-
-  const handleCalCreate = useCallback(
-    async (ev: Omit<CalendarEvent, "id">) => {
-      if (!selectedProjectId) return;
-      try {
-        await api.tasks.create({
-          projectId: selectedProjectId,
-          title: ev.title,
-          description: ev.description,
-          status: "backlog",
-          dueAt: ev.startTime.toISOString(),
-        });
-        await tasksQ.mutate();
-        toast({ title: "Event created", msg: `"${ev.title}" added to the board.` });
-      } catch (err) {
-        const detail = errorDetail(err);
-        toast({
-          title: "Couldn't create event",
-          msg: `"${ev.title}" wasn't added. ${detail ?? "Check your connection, then try again."}`,
-          kind: "err",
-        });
-      }
-    },
-    [selectedProjectId, tasksQ, toast],
-  );
-
-  const handleCalUpdate = useCallback(
-    async (id: string, patch: Partial<CalendarEvent>) => {
-      const next: Partial<Task> = {};
-      if (patch.title !== undefined) next.title = patch.title;
-      if (patch.description !== undefined) next.description = patch.description;
-      if (patch.startTime !== undefined) next.dueAt = (patch.startTime as Date).toISOString();
-      try {
-        await patchTask(id, next);
-      } catch (err) {
-        const detail = errorDetail(err);
-        toast({
-          title: "Couldn't reschedule card",
-          msg: `The due date wasn't changed. ${detail ?? "Check your connection, then try again."}`,
-          kind: "err",
-        });
-      }
-    },
-    [patchTask, toast],
-  );
-
-  const handleCalDelete = useCallback(
-    async (id: string) => {
-      const target = projectTasks.find((t) => t.id === id);
-      if (target) await handleDeleteTask(target);
-    },
-    [projectTasks, handleDeleteTask],
-  );
 
   const openCard = useCallback((task: Task) => {
     // Remember the trigger so focus can return to the exact card/row/chip
@@ -2321,15 +2239,13 @@ function LagoonBoard() {
         </div>
       ) : (
         <div className="lagoon-list-wrap">
-          <EventManager
-            key={`${selectedProjectId}-${projectTasks.length}`}
-            events={calendarEvents}
-            onEventCreate={handleCalCreate}
-            onEventUpdate={handleCalUpdate}
-            onEventDelete={handleCalDelete}
-            categories={STATUS_ORDER.map((s) => labelFor(s))}
-            availableTags={["critical", "high", "medium", "low"]}
-            defaultView="month"
+          <LagoonCalendar
+            tasks={flatTasks}
+            projectLabel={selectedProject ? `${selectedProject.name} (${selectedProject.key})` : ""}
+            today={today}
+            metaTick={metaTick}
+            memberName={memberName}
+            onOpen={openCard}
           />
         </div>
       )}
