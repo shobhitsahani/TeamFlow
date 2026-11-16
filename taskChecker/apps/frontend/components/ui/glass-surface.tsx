@@ -26,8 +26,10 @@ export const GlassSurface = forwardRef<HTMLDivElement, GlassSurfaceProps>(
           ? "glass-surface-3"
           : "glass-surface-2";
 
+    const Comp = Component as any;
+
     return (
-      <Component
+      <Comp
         ref={ref}
         className={cx(
           elevationClass,
@@ -37,7 +39,7 @@ export const GlassSurface = forwardRef<HTMLDivElement, GlassSurfaceProps>(
         {...props}
       >
         {children}
-      </Component>
+      </Comp>
     );
   }
 );
