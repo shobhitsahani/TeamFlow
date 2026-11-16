@@ -452,6 +452,12 @@ export const api = {
         tokens: TokenBundle;
       }>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
 
+    resetPassword: (data: { email: string; password: string }) =>
+      request<{ ok: boolean; message: string }>("/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
     google: (data: { idToken: string; orgName?: string }) =>
       request<{
         user: User;
