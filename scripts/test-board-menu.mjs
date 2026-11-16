@@ -96,7 +96,29 @@ async function runRegressionTest() {
   assert(box.x >= 0, `Menu overflows off-screen to the left (x = ${box.x})`);
   assert(box.x + box.width <= 390, `Menu overflows off-screen to the right (x+w = ${box.x + box.width})`);
 
-  console.log("9. Final assertions: checking for console/page errors across entire run...");
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1280, height: 800 });
+
+  console.log("9. Verifying restored Theme UI Switcher button in board header...");
+  const themeBtn = page.locator('#board-theme-mode');
+  await themeBtn.waitFor({ state: "visible", timeout: 5000 });
+  const initialDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+  console.log(`Current dark mode state: ${initialDark}`);
+
+  // Click theme switcher to toggle mode
+  await themeBtn.click();
+  await page.waitForTimeout(500);
+  const toggledDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+  assert.strictEqual(toggledDark, !initialDark, "Clicking theme switcher button did not toggle .dark class");
+  console.log(`Toggled dark mode state: ${toggledDark}`);
+
+  // Toggle back to original mode
+  await themeBtn.click();
+  await page.waitForTimeout(500);
+  const restoredDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+  assert.strictEqual(restoredDark, initialDark, "Theme switcher button did not restore initial mode");
+
+  console.log("10. Final assertions: checking for console/page errors across entire run...");
   assert.strictEqual(pageErrors.length, 0, `Page errors: ${pageErrors.join(", ")}`);
   assert.strictEqual(boardConsoleErrors.length, 0, `Console errors: ${boardConsoleErrors.join(", ")}`);
 

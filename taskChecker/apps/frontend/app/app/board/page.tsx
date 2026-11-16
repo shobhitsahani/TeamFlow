@@ -41,6 +41,7 @@ import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CinematicThemeSwitcher } from "@/components/ui/cinematic-theme-switcher";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
@@ -1816,6 +1817,9 @@ function LagoonBoard() {
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Theme switcher */}
+          <CinematicThemeSwitcher size="sm" id="board-theme-mode" />
 
           {/* Primary Create Button */}
           {view !== "calendar" ? (
