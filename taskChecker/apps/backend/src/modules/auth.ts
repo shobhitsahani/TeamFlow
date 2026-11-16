@@ -10,7 +10,7 @@ import { memberships, refreshTokens, tenants, users } from "../db/schema.js";
 import { hashPassword, hashSecret, verifyPassword } from "../lib/password.js";
 import { randomToken, uuidv7 } from "../lib/ids.js";
 import { signAccessToken } from "../lib/tokens.js";
-import { badRequest, unauthorized, ApiError } from "../lib/errors.js";
+import { badRequest, unauthorized, notFound, ApiError } from "../lib/errors.js";
 import { membershipsForUser } from "../lib/auth.js";
 import { GoogleNotConfiguredError, verifyGoogleIdToken } from "../lib/google.js";
 import { log } from "../lib/log.js";
@@ -111,6 +111,27 @@ authRoutes.post("/auth/login", async (c) => {
     tenant,
     tokens: { accessToken, refreshToken },
   });
+});
+
+// POST /v1/auth/reset-password — resets password for an existing account by email
+authRoutes.post("/auth/reset-password", async (c) => {
+  const parsed = z
+    .object({
+      email: z.string().email(),
+      password: z.string().min(8, "Password must be at least 8 characters."),
+    })
+    .safeParse(await json(c));
+  if (!parsed.success) {
+    throw badRequest(parsed.error.errors[0]?.message || "Invalid email or password.");
+  }
+  const emailLower = parsed.data.email.toLowerCase();
+  const user = await db.select().from(users).where(eq(users.email, emailLower)).limit(1);
+  if (!user[0]) {
+    throw notFound("No account found with this email address.");
+  }
+  const newHash = hashPassword(parsed.data.password);
+  await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user[0].id));
+  return c.json({ ok: true, message: "Password updated successfully." });
 });
 
 // POST /v1/auth/google — Sign in with Google (GIS ID token). Verifies the

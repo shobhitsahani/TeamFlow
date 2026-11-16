@@ -28,7 +28,7 @@ export function LoginPage({
   submitting?: boolean
   error?: string
   onSocial?: (provider: 'google' | 'github') => void
-  onForgotPassword?: () => void
+  onForgotPassword?: (currentEmail?: string) => void
   /** Replaces the brand-image panel (e.g. a chats directory). Defaults to the brand asset. */
   leftPanel?: ReactNode
   /** Real Google button (mirrors sign-up's renderGoogle). When provided it
@@ -178,7 +178,7 @@ export function LoginPage({
               </label>
               <button
                 type="button"
-                onClick={onForgotPassword}
+                onClick={() => onForgotPassword?.(formData.email)}
                 className="text-sm font-medium text-blue-400 hover:text-blue-300"
               >
                 Forgot password?

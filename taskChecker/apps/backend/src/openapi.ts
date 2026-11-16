@@ -168,6 +168,39 @@ export const openApiDoc = {
         },
       },
     },
+    "/v1/auth/reset-password": {
+      post: {
+        summary: "Reset password — updates password for an existing account",
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "password"],
+                properties: { email: { type: "string", format: "email" }, password: { type: "string", minLength: 8 } },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "ok",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { ok: { type: "boolean" }, message: { type: "string" } },
+                },
+              },
+            },
+          },
+          "400": { description: "validation error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "404": { description: "account not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
     "/v1/auth/google": {
       post: {
         summary: "Sign in with Google — verifies GIS ID token, login-or-signup",

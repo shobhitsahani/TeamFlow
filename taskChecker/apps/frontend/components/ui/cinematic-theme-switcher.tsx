@@ -4,6 +4,7 @@ import { Sun, Moon } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/components/theme-provider';
+import { cx } from '@/lib/utils';
 
 interface Particle {
   id: number;
@@ -22,7 +23,15 @@ interface Particle {
  * `size="sm"` renders a true header-scale variant (64x36 track, 24px
  * thumb) with the same visuals. `size="md"` is the full 104x64 original.
  */
-export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) {
+export function CinematicThemeSwitcher({
+  size = "md",
+  id,
+  className,
+}: {
+  size?: "sm" | "md";
+  id?: string;
+  className?: string;
+}) {
   // Header-scale dimensions (sm) vs full-size original (md). Track travel =
   // inner width minus thumb so the thumb docks at both ends.
   const dims =
@@ -89,7 +98,7 @@ export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) 
   }
 
   return (
-    <div className="relative inline-block shrink-0">
+    <div className={cx("relative inline-block shrink-0", className)}>
       {/* SVG Filter for Film Grain Texture */}
       <svg className="absolute w-0 h-0">
         <defs>
@@ -137,6 +146,7 @@ export function CinematicThemeSwitcher({ size = "md" }: { size?: "sm" | "md" }) 
 
       {/* Pill-shaped track container */}
       <motion.button
+        id={id}
         ref={toggleRef}
         onClick={handleToggle}
         className="relative flex items-center rounded-full transition-all duration-300 focus:outline-none"
